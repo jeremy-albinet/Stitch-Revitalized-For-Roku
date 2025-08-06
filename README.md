@@ -1,15 +1,15 @@
-[![stars - Stitch-Revitalized-For-Roku](https://img.shields.io/github/stars/Narehood/Stitch-Revitalized-For-Roku?style=social)](https://github.com/Narehood/Stitch-Revitalized-For-Roku)
-[![forks - Stitch-Revitalized-For-Roku](https://img.shields.io/github/forks/Narehood/Stitch-Revitalized-For-Roku?style=social)](https://github.com/Narehood/Stitch-Revitalized-For-Roku)
-[![GitHub release](https://img.shields.io/github/release/Narehood/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/Narehood/Stitch-Revitalized-For-Roku/releases/)
-[![License](https://img.shields.io/badge/License-Unlicense-blue)](https://github.com/Narehood/Stitch-Revitalized-For-Roku/blob/main/LICENSE)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/Narehood/Stitch-Revitalized-For-Roku?utm_source=oss&utm_medium=github&utm_campaign=Narehood%2FStitch-Revitalized-For-Roku&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
-[![issues - Stitch-Revitalized-For-Roku](https://img.shields.io/github/issues/Narehood/Stitch-Revitalized-For-Roku)](https://github.com/Narehood/Stitch-Revitalized-For-Roku/issues)
+[![stars - Stitch-Revitalized-For-Roku](https://img.shields.io/github/stars/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
+[![forks - Stitch-Revitalized-For-Roku](https://img.shields.io/github/forks/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
+[![GitHub release](https://img.shields.io/github/release/jeremy-albinet/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/)
+[![License](https://img.shields.io/badge/License-Unlicense-blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/blob/main/LICENSE)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/jeremy-albinet/Stitch-Revitalized-For-Roku?utm_source=oss&utm_medium=github&utm_campaign=jeremy-albinet%2FStitch-Revitalized-For-Roku&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+[![issues - Stitch-Revitalized-For-Roku](https://img.shields.io/github/issues/jeremy-albinet/Stitch-Revitalized-For-Roku)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues)
 
 ![Roku](https://img.shields.io/badge/roku-6f1ab1?style=for-the-badge&logo=roku&logoColor=white)
 ![Twitch](https://img.shields.io/badge/Twitch-9347FF?style=for-the-badge&logo=twitch&logoColor=white)
 
 # Stitch Revitalized (for Roku)
-Stitch Revitalized is a Roku channel that aims to provide an actively maintained, reasonably feature-complete Twitch experience while respecting Twitch's business model (ads, monetization, and the like). This channel is based on the now archived Stich channel https://github.com/0xW1sKy/Stitch-For-Roku (Nov 24, 2024).
+Stitch Revitalized is a Roku channel that aims to provide an actively maintained, reasonably feature-complete Twitch experience while respecting Twitch's business model (ads, monetization, and the like). This channel is based on the now archived Stitch channel https://github.com/Narehood/Stitch-Revitalized-For-Roku (Jul 29, 2025) that was based on https://github.com/0xW1sKy/Stitch-For-Roku (Nov 24, 2024).
 
 ## Installation
 
@@ -20,7 +20,7 @@ If the link is not loading or you otherwise want to sideload this you can do so 
 
 Easy: 
 
-- Download the ZIP here: [Sitch Revitalized Download](https://github.com/Narehood/Stitch-Revitalized-For-Roku/releases/download/v1.6.6/Stitch.Revitalized.zip)
+- Download the ZIP here: [Stitch Revitalized Download](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/download/v2.1/Stitch-Revitalized-For-Roku.zip)
 - Enable/Configure Dev mode on your Roku
 - Upload the ZIP file to your Roku through a web browser
 
@@ -36,7 +36,7 @@ Manual Compiling:
 
 ## Contributing
 
-If you are comfortable using the GitHub interface, you can report bugs or request features by opening a [GitHub Issue](https://github.com/Narehood/Stitch-Revitalized-For-Roku/issues). (Please check to see if your issue has already been reported before opening a new one.)
+If you are comfortable using the GitHub interface, you can report bugs or request features by opening a [GitHub Issue](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues). (Please check to see if your issue has already been reported before opening a new one.)
 
 
 In addition to issues, Pull Requests are welcome. All contributions must be made [under the Unlicense](./LICENSE).
@@ -48,7 +48,7 @@ I do not collect any data from this app, but Roku and Twitch may do so. If this 
 
 ## Authorship and License
 
-Stich Revitalized exists because Twitch does not presently have any official channel for Roku, despite [Roku being the most popular smart TV platform, with (as of early 2022), a 39% market share in North America and a 31% market share worldwide](https://seekingalpha.com/article/4547471-the-sleeping-giant-in-streaming-turning-roku-into-a-huge-2023-winner). If Stitch becomes active or Twitch makes an official app, this project will no longer be maintained.
+Stitch Revitalized exists because Twitch does not presently have any official channel for Roku, despite [Roku being the most popular smart TV platform, with (as of early 2022), a 39% market share in North America and a 31% market share worldwide](https://seekingalpha.com/article/4547471-the-sleeping-giant-in-streaming-turning-roku-into-a-huge-2023-winner). If Stitch becomes active or Twitch makes an official app, this project will no longer be maintained.
 
 Stitch (and now Stitch Revitalized) began as a hard fork of [Twoku](https://github.com/worldreboot/twitch-reloaded-roku), due to that application's apparent abandonment. Since then Stitch has been almost completely rewritten.
 
