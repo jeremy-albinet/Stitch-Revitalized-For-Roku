@@ -13,7 +13,7 @@ Stitch Revitalized is a Roku channel that aims to provide an actively maintained
 
 ## Installation
 
-No longer available
+You can add the channel using this link: https://my.roku.com/account/add/TwitchRevitalized
 
 ## Side Loading
 If the link is not loading or you otherwise want to sideload this you can do so by doing the following (this is not a full tutorial, I may make one at some point). There may be a better way to do this, but this was what I was able to figure out without any previous instruction/documentation.
