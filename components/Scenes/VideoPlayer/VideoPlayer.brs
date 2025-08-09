@@ -515,6 +515,12 @@ sub init()
     m.lastRealTime = invalid
     m.lastVideoPosition = invalid
     m.estimatedLiveDelay = invalid
+    
+    ' Initialize error handler
+    m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
+    m.bufferCheckTimer = invalid
+    m.lastBufferState = ""
+    m.bufferStartTime = 0
 end sub
 
 sub onToggleChat()
@@ -570,18 +576,196 @@ sub onVideoStateChange()
     ' This is observed on m.video.
     ' StitchVideo/CustomVideo have their own onVideoStateChange for UI.
     ' ? "[VideoPlayer] Global onVideoStateChange: "; m.video.state
+    
+    ' Handle buffering states
+    if m.video.state = "buffering"
+        handleBufferingState()
+    else if m.lastBufferState = "buffering" and m.video.state = "playing"
+        ' Recovered from buffering
+        m.errorHandler.callFunc("resetErrorState")
+        if m.bufferCheckTimer <> invalid
+            m.bufferCheckTimer.control = "stop"
+            m.bufferCheckTimer = invalid
+        end if
+    end if
+    
+    m.lastBufferState = m.video.state
+    
     if m.video.state = "finished" and m.allowBreak
         ' ? "[VideoPlayer] Video finished, exiting player."
         exitPlayer()
     else if m.video.state = "error"
         ' ? "[VideoPlayer] Video error state. Code: "; m.video.errorCode; ", Message: "; m.video.errorMessage
-        ' Potentially show a global error message or attempt recovery if not handled by child
+        handleStreamError()
     end if
 end sub
 
 sub onVideoError()
     ' ? "[VideoPlayer] Global onVideoError. Code: "; m.video.errorCode; ", Message: "; m.video.errorMessage
-    ' This can be used for more detailed global error logging or recovery.
+    handleStreamError()
+end sub
+
+sub handleStreamError()
+    if m.errorHandler = invalid
+        m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
+    end if
+    
+    errorCode = m.video.errorCode
+    errorMessage = m.video.errorMessage
+    if errorMessage = invalid then errorMessage = "Unknown error"
+    
+    recovery = m.errorHandler.callFunc("handleVideoError", errorCode, errorMessage, m.video, m.top.contentRequested)
+    
+    if recovery.shouldRetry
+        ' ? "[VideoPlayer] Attempting error recovery: "; recovery.action
+        
+        if recovery.action = "retry"
+            ' Retry with same content after delay
+            retryTimer = CreateObject("roSGNode", "Timer")
+            retryTimer.duration = recovery.delay / 1000
+            retryTimer.repeat = false
+            retryTimer.observeField("fire", "retryPlayback")
+            retryTimer.control = "start"
+            
+        else if recovery.action = "change_quality" and recovery.newContent <> invalid
+            ' Switch to different quality
+            m.video.qualityChangeRequest = recovery.newContent.qualityID
+            onQualityChangeRequested()
+            
+        else if recovery.action = "refresh_auth"
+            ' Refresh authentication and retry
+            refreshAuthAndRetry()
+            
+        else if recovery.action = "force_lower_quality"
+            ' Force switch to lowest available quality
+            if m.video.qualityOptions <> invalid and m.video.qualityOptions.count() > 0
+                lowestQuality = m.video.qualityOptions[m.video.qualityOptions.count() - 1]
+                m.video.qualityChangeRequest = lowestQuality
+                onQualityChangeRequested()
+            end if
+        end if
+    else
+        if m.errorHandler.callFunc("shouldGiveUp")
+            ' ? "[VideoPlayer] Too many errors, giving up"
+            showErrorDialog("Playback Failed", "Unable to play this stream. Please try again later.")
+            exitPlayer()
+        end if
+    end if
+end sub
+
+sub handleBufferingState()
+    if m.bufferStartTime = 0
+        m.bufferStartTime = CreateObject("roDateTime").AsSeconds()
+    end if
+    
+    ' Check for excessive buffering
+    currentTime = CreateObject("roDateTime").AsSeconds()
+    bufferDuration = currentTime - m.bufferStartTime
+    
+    if bufferDuration > 10 ' More than 10 seconds of buffering
+        recovery = m.errorHandler.callFunc("handleBufferStall", m.video)
+        
+        if recovery.shouldRecover
+            if recovery.action = "reduce_quality"
+                ' Switch to lower quality
+                lowerQuality = findLowerQuality()
+                if lowerQuality <> invalid
+                    m.video.qualityChangeRequest = lowerQuality
+                    onQualityChangeRequested()
+                end if
+            else if recovery.action = "adjust_buffer"
+                ' Adjust buffering configuration
+                adjustBufferConfig()
+            end if
+        end if
+        
+        m.bufferStartTime = 0 ' Reset timer
+    end if
+    
+    ' Start a timer to check for stuck buffering
+    if m.bufferCheckTimer = invalid
+        m.bufferCheckTimer = CreateObject("roSGNode", "Timer")
+        m.bufferCheckTimer.duration = 15 ' Check after 15 seconds
+        m.bufferCheckTimer.repeat = false
+        m.bufferCheckTimer.observeField("fire", "onBufferTimeout")
+        m.bufferCheckTimer.control = "start"
+    end if
+end sub
+
+sub onBufferTimeout()
+    if m.video.state = "buffering"
+        ' ? "[VideoPlayer] Buffer timeout - attempting recovery"
+        handleStreamError()
+    end if
+    m.bufferCheckTimer = invalid
+end sub
+
+sub retryPlayback()
+    ' ? "[VideoPlayer] Retrying playback..."
+    exitPlayer()
+    playContent()
+end sub
+
+sub refreshAuthAndRetry()
+    ' TODO: Implement auth refresh logic
+    ' For now, just retry
+    retryPlayback()
+end sub
+
+function findLowerQuality() as dynamic
+    if m.video.qualityOptions = invalid or m.video.qualityOptions.count() = 0
+        return invalid
+    end if
+    
+    currentQuality = m.video.selectedQuality
+    if currentQuality = invalid
+        currentQuality = m.video.qualityOptions[0]
+    end if
+    
+    ' Find current index
+    currentIndex = -1
+    for i = 0 to m.video.qualityOptions.count() - 1
+        if m.video.qualityOptions[i] = currentQuality
+            currentIndex = i
+            exit for
+        end if
+    end for
+    
+    ' Return next lower quality
+    if currentIndex >= 0 and currentIndex < m.video.qualityOptions.count() - 1
+        return m.video.qualityOptions[currentIndex + 1]
+    end if
+    
+    return invalid
+end function
+
+sub adjustBufferConfig()
+    ' Increase buffer sizes to handle network issues
+    if m.video <> invalid
+        m.video.bufferingConfig = {
+            initialBufferingMs: 5000,
+            minBufferMs: 10000,
+            maxBufferMs: 30000,
+            bufferForPlaybackMs: 5000,
+            bufferForPlaybackAfterRebufferMs: 10000,
+            rebufferMs: 5000
+        }
+        ' ? "[VideoPlayer] Adjusted buffer configuration for stability"
+    end if
+end sub
+
+sub showErrorDialog(title as string, message as string)
+    dialog = CreateObject("roSGNode", "Dialog")
+    dialog.title = title
+    dialog.message = message
+    dialog.buttons = ["OK"]
+    dialog.observeField("buttonSelected", "onErrorDialogDismissed")
+    m.top.dialog = dialog
+end sub
+
+sub onErrorDialogDismissed()
+    m.top.dialog = invalid
+    exitPlayer()
 end sub
 
 sub onDurationChanged()
