@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="VideoErrorHandler" extends="Node">
+    <interface>
+        <!-- Configuration -->
+        <field id="maxRetries" type="integer" value="3" />
+        <field id="retryDelay" type="integer" value="2000" />
+        <field id="maxRetryDelay" type="integer" value="30000" />
+        <field id="maxBufferStalls" type="integer" value="5" />
+        <field id="bufferStallTimeout" type="integer" value="10000" />
+        
+        <!-- State tracking -->
+        <field id="currentRetryCount" type="integer" value="0" />
+        <field id="bufferStallCount" type="integer" value="0" />
+        <field id="lastErrorTime" type="float" value="0" />
+        <field id="lastBufferTime" type="float" value="0" />
+        
+        <!-- Error history -->
+        <field id="errorHistory" type="array" />
+        
+        <!-- Functions -->
+        <function name="handleVideoError" />
+        <function name="handleBufferStall" />
+        <function name="resetErrorState" />
+        <function name="shouldGiveUp" />
+        <function name="getErrorStatistics" />
+    </interface>
+    
+    <script type="text/brightscript" uri="VideoErrorHandler.brs" />
+</component>
