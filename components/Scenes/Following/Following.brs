@@ -284,7 +284,15 @@ sub handleItemSelected()
     end if
     selectedRow = item.content.getchild(item.rowItemSelected[0])
     selectedItem = selectedRow.getChild(item.rowItemSelected[1])
-    m.top.contentSelected = selectedItem
+    
+    ' Delegate to specific handler based on content type
+    if selectedItem.contentType = "LIVE"
+        ' Use the existing live handler for direct playback
+        handleLiveItemSelected()
+    else
+        ' Regular navigation for other content types
+        m.top.contentSelected = selectedItem
+    end if
 end sub
 
 sub handleLiveItemSelected()
