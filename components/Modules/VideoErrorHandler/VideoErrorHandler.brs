@@ -17,8 +17,13 @@ sub init()
         "connection_error": "retry_with_backoff",
         "buffer_timeout": "quality_downgrade",
         "stream_unavailable": "retry_different_quality",
+        "stream_not_found": "fail_immediately",
         "authentication_error": "refresh_token",
-        "excessive_buffering": "switch_to_lower_quality"
+        "excessive_buffering": "switch_to_lower_quality",
+        "stream_format_error": "retry_different_quality",
+        "media_decode_error": "quality_downgrade",
+        "server_error": "retry_with_backoff",
+        "codec_incompatible": "fail_immediately"
     }
 end sub
 
@@ -129,22 +134,32 @@ function handleBufferStall(video as object) as object
 end function
 
 function classifyError(errorCode as integer, errorMessage as string) as string
-    ' Network errors
-    if errorCode >= -5 and errorCode <= -1
-        return "connection_error"
-    ' HTTP errors
+    if errorMessage.InStr("970") > -1 or errorMessage.InStr("buffer:loop:demux") > -1
+        return "codec_incompatible"
+    else if errorCode = 9
+        if errorMessage.InStr("all bitrates") > -1
+            return "stream_format_error"
+        else
+            return "media_decode_error"
+        end if
+    else if errorCode >= -5 and errorCode <= -1
+        if errorCode = -5 and (errorMessage.InStr("demux") > -1 or errorMessage.InStr("970") > -1)
+            return "codec_incompatible"
+        else
+            return "connection_error"
+        end if
     else if errorCode >= 400 and errorCode <= 499
         if errorCode = 401 or errorCode = 403
             return "authentication_error"
+        else if errorCode = 404
+            return "stream_not_found"
         else
             return "stream_unavailable"
         end if
     else if errorCode >= 500 and errorCode <= 599
-        return "connection_error"
-    ' Buffering timeout
+        return "server_error"
     else if errorMessage.InStr("buffer") > -1 or errorMessage.InStr("timeout") > -1
         return "buffer_timeout"
-    ' Excessive buffering
     else if errorMessage.InStr("excessive") > -1 or errorMessage.InStr("stall") > -1
         return "excessive_buffering"
     else
@@ -260,4 +275,70 @@ function getErrorStatistics() as object
     end for
     
     return stats
+end function
+
+function getUserFriendlyErrorMessage(errorCode as integer, errorType as string) as object
+    messages = {
+        "connection_error": {
+            title: "Connection Problem",
+            message: "Unable to connect to the stream. Please check your internet connection and try again.",
+            suggestion: "Check your network connection"
+        },
+        "buffer_timeout": {
+            title: "Stream Loading Issue",
+            message: "The stream is taking too long to load. This may be due to network congestion.",
+            suggestion: "Try selecting a lower video quality"
+        },
+        "stream_unavailable": {
+            title: "Stream Unavailable",
+            message: "This stream is temporarily unavailable. The broadcaster may have ended the stream.",
+            suggestion: "Try refreshing or check back later"
+        },
+        "stream_not_found": {
+            title: "Stream Not Found",
+            message: "This stream could not be found. It may have been deleted or moved.",
+            suggestion: "Return to browse for other streams"
+        },
+        "authentication_error": {
+            title: "Authentication Required",
+            message: "You need to sign in again to access this content.",
+            suggestion: "Please sign in to continue"
+        },
+        "excessive_buffering": {
+            title: "Playback Issue",
+            message: "The stream is experiencing frequent interruptions.",
+            suggestion: "Try lowering the video quality or check your connection speed"
+        },
+        "stream_format_error": {
+            title: "Stream Format Error",
+            message: "Unable to play this stream format. The stream may be using an incompatible encoding.",
+            suggestion: "Try a different quality setting or contact support"
+        },
+        "media_decode_error": {
+            title: "Playback Error",
+            message: "There was a problem playing the video stream.",
+            suggestion: "Try selecting a different video quality"
+        },
+        "server_error": {
+            title: "Service Issue",
+            message: "The streaming service is experiencing problems. Please try again later.",
+            suggestion: "Wait a moment and try again"
+        },
+        "codec_incompatible": {
+            title: "Video Format Not Supported",
+            message: "This video cannot be played on your Roku device due to codec or resolution incompatibility.",
+            suggestion: "Try selecting a lower quality setting (720p or below) from the stream options"
+        }
+    }
+    
+    ' Default message if error type not found
+    if messages[errorType] = invalid
+        return {
+            title: "Playback Error",
+            message: "Unable to play this stream. Error code: " + errorCode.toStr(),
+            suggestion: "Please try again later"
+        }
+    end if
+    
+    return messages[errorType]
 end function

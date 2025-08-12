@@ -69,6 +69,9 @@ function init()
     m.top.observeField("qualityOptions", "onQualityOptionsChange")
     m.top.observeField("selectedQuality", "onSelectedQualityChange")
 
+    ' Pre-create message overlay to avoid runtime overhead
+    createMessageOverlay()
+    
     ' Initialize UI
     updateProgressBar()
     setupLiveUI()
@@ -76,6 +79,42 @@ function init()
 
     ' ? "[StitchVideo] Initialized for live stream"
 end function
+
+sub createMessageOverlay()
+    m.messageOverlay = CreateObject("roSGNode", "Group")
+    m.messageOverlay.visible = false
+    
+    messageBg = CreateObject("roSGNode", "Rectangle")
+    messageBg.width = 600
+    messageBg.height = 150
+    messageBg.color = "0x000000CC"
+    messageBg.translation = [340, 285]
+    
+    messageTitle = CreateObject("roSGNode", "Label")
+    messageTitle.id = "messageTitle"
+    messageTitle.font = "font:MediumBoldSystemFont"
+    messageTitle.text = ""
+    messageTitle.horizAlign = "center"
+    messageTitle.vertAlign = "center"
+    messageTitle.width = 600
+    messageTitle.height = 50
+    messageTitle.translation = [340, 300]
+    
+    messageText = CreateObject("roSGNode", "Label")
+    messageText.id = "messageText"
+    messageText.font = "font:SmallSystemFont"
+    messageText.text = ""
+    messageText.horizAlign = "center"
+    messageText.vertAlign = "center"
+    messageText.width = 600
+    messageText.height = 50
+    messageText.translation = [340, 350]
+    
+    m.messageOverlay.appendChild(messageBg)
+    m.messageOverlay.appendChild(messageTitle)
+    m.messageOverlay.appendChild(messageText)
+    m.top.appendChild(m.messageOverlay)
+end sub
 
 sub setupLiveUI()
     ' Set up UI specifically for live streams
@@ -121,13 +160,17 @@ end sub
 sub onVideoStateChange()
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
+        hideMessage()
     else if m.top.state = "paused"
         m.controlButton.uri = "pkg:/images/play.png"
     else if m.top.state = "buffering"
-        ' Could add loading spinner here
-        ' ? "[StitchVideo] Buffering..."
+        ' Buffering state - no timer needed
     else if m.top.state = "error"
-        ' ? "[StitchVideo] Video error occurred"
+        if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
+            showErrorMessage("Incompatible Video Format", "This stream cannot be played on your device")
+        else
+            showErrorMessage("Stream Error", "Having trouble loading the live stream. Retrying...")
+        end if
     end if
 end sub
 
@@ -346,6 +389,65 @@ function convertToReadableTimeFormat(time) as string
         return hours.toStr() + ":" + minuteStr + ":" + secondStr
     end if
 end function
+
+sub showErrorMessage(title as string, message as string)
+    showMessage(title, message, 0) ' 0 duration means persistent
+end sub
+
+sub hideErrorMessage()
+    hideMessage()
+end sub
+
+sub showMessage(title as string, message as string, duration as float)
+    if m.messageOverlay <> invalid
+        titleNode = m.messageOverlay.findNode("messageTitle")
+        if titleNode <> invalid
+            titleNode.text = title
+            titleNode.visible = (title <> "")
+        end if
+        messageNode = m.messageOverlay.findNode("messageText")
+        if messageNode <> invalid
+            messageNode.text = message
+            if title = ""
+                messageNode.translation = [340, 335]
+            else
+                messageNode.translation = [340, 350]
+            end if
+        end if
+    end if
+    
+    m.messageOverlay.visible = true
+    
+    ' Clear any existing auto-hide timer
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer = invalid
+    end if
+    
+    ' Set up auto-hide timer if duration > 0
+    if duration > 0
+        m.messageTimer = CreateObject("roSGNode", "Timer")
+        m.messageTimer.duration = duration
+        m.messageTimer.repeat = false
+        m.messageTimer.observeField("fire", "onMessageTimeout")
+        m.messageTimer.control = "start"
+    end if
+end sub
+
+sub hideMessage()
+    if m.messageOverlay <> invalid
+        m.messageOverlay.visible = false
+    end if
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer = invalid
+    end if
+end sub
+
+sub onMessageTimeout()
+    hideMessage()
+    m.messageTimer = invalid
+end sub
 
 function onKeyEvent(key, press) as boolean
     ' ? "[StitchVideo] KeyEvent: "; key; " "; press

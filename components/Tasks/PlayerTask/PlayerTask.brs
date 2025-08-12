@@ -93,9 +93,21 @@ sub playContentWithAds()
                 curState = msg.GetData()
                 print "PlayerTask: state = "; curState
                 if curState = "error"
-                    ? "[Video Playback Error String]: " video.errorStr
-                    ? "[Video Playback Error Info]: " video.errorInfo
-                    ? "[Video Playback Error Segment]: "; video.streamingSegment
+                    ? "[Video Playback Error] =================="
+                    ? "[Error Code]: "; video.errorCode
+                    ? "[Error String]: " video.errorStr
+                    ? "[Error Info]: " video.errorInfo
+                    ? "[Error Message]: "; video.errorMessage
+                    ? "[Streaming Segment]: "; video.streamingSegment
+                    
+                    ' Provide more detailed error context
+                    if video.errorInfo <> invalid and video.errorInfo.category <> invalid
+                        ? "[Error Category]: "; video.errorInfo.category
+                    end if
+                    if video.errorInfo <> invalid and video.errorInfo.source <> invalid
+                        ? "[Error Source]: "; video.errorInfo.source
+                    end if
+                    ? "======================================"
                 end if
                 if curState = "stopped" then
                     if adPods = invalid or adPods.count() = 0 then

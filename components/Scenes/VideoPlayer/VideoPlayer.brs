@@ -445,8 +445,6 @@ sub playContent()
 end sub
 
 sub exitPlayer()
-    ' print "[VideoPlayer] exitPlayer()"
-
     if m.delayMeasureTimer <> invalid
         m.delayMeasureTimer.control = "stop"
         m.delayMeasureTimer = invalid
@@ -614,12 +612,19 @@ sub handleStreamError()
     errorMessage = m.video.errorMessage
     if errorMessage = invalid then errorMessage = "Unknown error"
     
+    ' Get error classification for user-friendly messages
+    errorType = m.errorHandler.callFunc("classifyError", errorCode, errorMessage)
+    
     recovery = m.errorHandler.callFunc("handleVideoError", errorCode, errorMessage, m.video, m.top.contentRequested)
     
     if recovery.shouldRetry
         ' ? "[VideoPlayer] Attempting error recovery: "; recovery.action
         
         if recovery.action = "retry"
+            ? "[VideoPlayer] Retry action with delay: "; recovery.delay
+            ' Show temporary message while retrying
+            showTemporaryMessage("Reconnecting...", recovery.delay / 1000)
+            
             ' Retry with same content after delay
             retryTimer = CreateObject("roSGNode", "Timer")
             retryTimer.duration = recovery.delay / 1000
@@ -628,26 +633,42 @@ sub handleStreamError()
             retryTimer.control = "start"
             
         else if recovery.action = "change_quality" and recovery.newContent <> invalid
+            ' Show quality change message
+            showTemporaryMessage("Switching to lower quality...", 2)
+            
             ' Switch to different quality
             m.video.qualityChangeRequest = recovery.newContent.qualityID
             onQualityChangeRequested()
             
         else if recovery.action = "refresh_auth"
+            ' Show auth message
+            showTemporaryMessage("Refreshing authentication...", 2)
+            
             ' Refresh authentication and retry
             refreshAuthAndRetry()
             
         else if recovery.action = "force_lower_quality"
+            ' Show quality message
+            showTemporaryMessage("Adjusting quality for better playback...", 2)
+            
             ' Force switch to lowest available quality
             if m.video.qualityOptions <> invalid and m.video.qualityOptions.count() > 0
                 lowestQuality = m.video.qualityOptions[m.video.qualityOptions.count() - 1]
                 m.video.qualityChangeRequest = lowestQuality
                 onQualityChangeRequested()
             end if
+        else if recovery.action = "fail_immediately"
+            ' Get user-friendly error message
+            errorInfo = m.errorHandler.callFunc("getUserFriendlyErrorMessage", errorCode, errorType)
+            showErrorDialog(errorInfo.title, errorInfo.message + Chr(10) + Chr(10) + "Suggestion: " + errorInfo.suggestion)
+            exitPlayer()
         end if
     else
         if m.errorHandler.callFunc("shouldGiveUp")
             ' ? "[VideoPlayer] Too many errors, giving up"
-            showErrorDialog("Playback Failed", "Unable to play this stream. Please try again later.")
+            ' Get user-friendly error message for final failure
+            errorInfo = m.errorHandler.callFunc("getUserFriendlyErrorMessage", errorCode, errorType)
+            showErrorDialog(errorInfo.title, errorInfo.message)
             exitPlayer()
         end if
     end if
@@ -760,11 +781,20 @@ sub showErrorDialog(title as string, message as string)
     dialog.message = message
     dialog.buttons = ["OK"]
     dialog.observeField("buttonSelected", "onErrorDialogDismissed")
-    m.top.dialog = dialog
+    ' Use the scene's dialog property, not m.top.dialog
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = dialog
+    end if
+    m.errorDialog = dialog
 end sub
 
 sub onErrorDialogDismissed()
-    m.top.dialog = invalid
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = invalid
+    end if
+    m.errorDialog = invalid
     exitPlayer()
 end sub
 
@@ -782,4 +812,14 @@ sub onVideoBack()
     end if
     m.allowBreak = true
     exitPlayer()
+end sub
+
+sub showTemporaryMessage(message as string, durationSeconds as float)
+    ' For now, we'll skip temporary messages since we can't call external functions on Video nodes
+    ' The error handling still works with the showErrorDialog function
+    ? "[VideoPlayer] Status: "; message
+end sub
+
+sub dismissTemporaryMessage()
+    ' No-op for now
 end sub

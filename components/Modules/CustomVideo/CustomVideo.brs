@@ -84,17 +84,15 @@ function init()
 
     ' Timers
     m.fadeAwayTimer = createObject("roSGNode", "Timer")
-    m.top.appendChild(m.fadeAwayTimer)
     m.fadeAwayTimer.observeField("fire", "onFadeAway")
     m.fadeAwayTimer.repeat = false
-    m.fadeAwayTimer.duration = 5 ' seconds
+    m.fadeAwayTimer.duration = 5
     m.fadeAwayTimer.control = "stop"
 
     m.buttonHoldTimer = createObject("roSGNode", "Timer")
-    m.top.appendChild(m.buttonHoldTimer)
     m.buttonHoldTimer.observeField("fire", "onButtonHold")
     m.buttonHoldTimer.repeat = true
-    m.buttonHoldTimer.duration = 0.1 ' seconds
+    m.buttonHoldTimer.duration = 0.1
     m.buttonHoldTimer.control = "stop"
 
     ' Observers
@@ -105,11 +103,50 @@ function init()
     m.top.observeField("bufferingStatus", "onBufferingStatusChange")
     m.top.observeField("video_type", "onVideoTypeChange")
 
+    ' Pre-create message overlay to avoid runtime overhead
+    createMessageOverlay()
+    
     ' Initialize UI
     updateProgressBar()
 
     ? "[CustomVideo] Initialized"
 end function
+
+sub createMessageOverlay()
+    m.messageOverlay = CreateObject("roSGNode", "Group")
+    m.messageOverlay.visible = false
+    
+    messageBg = CreateObject("roSGNode", "Rectangle")
+    messageBg.width = 600
+    messageBg.height = 150
+    messageBg.color = "0x000000CC"
+    messageBg.translation = [340, 285]
+    
+    messageTitle = CreateObject("roSGNode", "Label")
+    messageTitle.id = "messageTitle"
+    messageTitle.font = "font:MediumBoldSystemFont"
+    messageTitle.text = ""
+    messageTitle.horizAlign = "center"
+    messageTitle.vertAlign = "center"
+    messageTitle.width = 600
+    messageTitle.height = 50
+    messageTitle.translation = [340, 300]
+    
+    messageText = CreateObject("roSGNode", "Label")
+    messageText.id = "messageText"
+    messageText.font = "font:SmallSystemFont"
+    messageText.text = ""
+    messageText.horizAlign = "center"
+    messageText.vertAlign = "center"
+    messageText.width = 600
+    messageText.height = 50
+    messageText.translation = [340, 350]
+    
+    m.messageOverlay.appendChild(messageBg)
+    m.messageOverlay.appendChild(messageTitle)
+    m.messageOverlay.appendChild(messageText)
+    m.top.appendChild(m.messageOverlay)
+end sub
 
 sub onVideoTypeChange()
     m.isLiveStream = (m.top.video_type = "LIVE")
@@ -159,6 +196,7 @@ sub onVideoStateChange()
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
         m.loadingSpinner.visible = false
+        hideMessage()
     else if m.top.state = "paused"
         m.controlButton.uri = "pkg:/images/play.png"
         m.loadingSpinner.visible = false
@@ -167,6 +205,11 @@ sub onVideoStateChange()
     else if m.top.state = "error"
         m.loadingSpinner.visible = false
         ? "[CustomVideo] Video error occurred"
+        if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
+            showErrorMessage("Incompatible Video Format", "This video cannot be played on your device")
+        else
+            showErrorMessage("Stream Error", "Having trouble loading the stream. Retrying...")
+        end if
     end if
 
     ' Show live indicator for live streams
@@ -624,6 +667,63 @@ function saveVideoBookmark() as void
         end if
     end if
 end function
+
+sub showErrorMessage(title as string, message as string)
+    showMessage(title, message, 0)
+end sub
+
+sub hideErrorMessage()
+    hideMessage()
+end sub
+
+sub showMessage(title as string, message as string, duration as float)
+    if m.messageOverlay <> invalid
+        titleNode = m.messageOverlay.findNode("messageTitle")
+        if titleNode <> invalid
+            titleNode.text = title
+            titleNode.visible = (title <> "")
+        end if
+        messageNode = m.messageOverlay.findNode("messageText")
+        if messageNode <> invalid
+            messageNode.text = message
+            if title = ""
+                messageNode.translation = [340, 335]
+            else
+                messageNode.translation = [340, 350]
+            end if
+        end if
+    end if
+    
+    m.messageOverlay.visible = true
+    
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer = invalid
+    end if
+    
+    if duration > 0
+        m.messageTimer = CreateObject("roSGNode", "Timer")
+        m.messageTimer.duration = duration
+        m.messageTimer.repeat = false
+        m.messageTimer.observeField("fire", "onMessageTimeout")
+        m.messageTimer.control = "start"
+    end if
+end sub
+
+sub hideMessage()
+    if m.messageOverlay <> invalid
+        m.messageOverlay.visible = false
+    end if
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer = invalid
+    end if
+end sub
+
+sub onMessageTimeout()
+    hideMessage()
+    m.messageTimer = invalid
+end sub
 
 function onKeyEvent(key, press) as boolean
     ? "[CustomVideo] KeyEvent: "; key; " "; press
