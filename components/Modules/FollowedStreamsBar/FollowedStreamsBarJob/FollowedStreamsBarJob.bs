@@ -20,20 +20,20 @@ sub updateFollowBar()
             end if
         end if
         reqHeaders = {
-            "Accept": "*/*"
-            "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"
-            "Device-ID": device_code
-            "Origin": "https://android.tv.twitch.tv"
-            "Referer": "https://android.tv.twitch.tv/"
+            "Accept": "*/*",
+            "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
+            "Device-ID": device_code,
+            "Origin": "https://android.tv.twitch.tv",
+            "Referer": "https://android.tv.twitch.tv/",
             "Accept-Language": getDeviceLocale()
         }
         if access_token <> invalid
             reqHeaders["Authorization"] = access_token
         end if
         req = HttpRequest({
-            url: "https://gql.twitch.tv/gql"
-            headers: reqHeaders
-            method: "POST"
+            url: "https://gql.twitch.tv/gql",
+            headers: reqHeaders,
+            method: "POST",
             data: {
                 query: `query FollowingPage_Query(
                 $first: Int!
@@ -373,16 +373,16 @@ sub updateFollowBar()
                         }
                     }
                 }
-            }`
+            }`,
                 variables: {
-                    "first": 100
+                    "first": 100,
                     ' "liveUserCursor": ""
                     ' "offlineUserCursor": ""
-                    "followedGameType": "ALL"
-                    "categoryFirst": 100
-                    "itemsPerRow": 25
-                    "limit": 8
-                    "platform": "web_tv"
+                    "followedGameType": "ALL",
+                    "categoryFirst": 100,
+                    "itemsPerRow": 25,
+                    "limit": 8,
+                    "platform": "web_tv",
                     "requestID": di.GetRandomUUID()
                 }
             }

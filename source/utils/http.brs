@@ -6,7 +6,7 @@ function HttpRequest(params = invalid as dynamic) as object
     timeout = 0
     retries = 1
     interval = 500
-    if params <> invalid then
+    if params <> invalid
         if params.url <> invalid then url = params.url
         if params.method <> invalid then method = params.method
         if params.headers <> invalid then headers = params.headers
@@ -17,20 +17,20 @@ function HttpRequest(params = invalid as dynamic) as object
     end if
 
     obj = {
-        _timeout: timeout
-        _retries: retries
-        _interval: interval
-        _deviceInfo: createObject("roDeviceInfo")
-        _url: url
-        _method: method
-        _requestHeaders: headers
-        _data: data
-        _http: invalid
-        _isAborted: false
+        _timeout: timeout,
+        _retries: retries,
+        _interval: interval,
+        _deviceInfo: createObject("roDeviceInfo"),
+        _url: url,
+        _method: method,
+        _requestHeaders: headers,
+        _data: data,
+        _http: invalid,
+        _isAborted: false,
 
         _isProtocolSecure: function(url as string) as boolean
             return left(url, 6) = "https:"
-        end function
+        end function,
 
         _createHttpRequest: function() as object
             request = createObject("roUrlTransfer")
@@ -45,29 +45,29 @@ function HttpRequest(params = invalid as dynamic) as object
             if m._method <> invalid then request.setRequest(m._method)
 
             'Checks if URL protocol is secured, and adds appropriate parameters if needed
-            if m._isProtocolSecure(m._url) then
+            if m._isProtocolSecure(m._url)
                 request.setCertificatesFile("common:/certs/ca-bundle.crt")
                 request.initClientCertificates()
             end if
 
             return request
-        end function
+        end function,
 
         getPort: function()
-            if m._http <> invalid then
+            if m._http <> invalid
                 return m._http.getPort()
             else
                 return invalid
             end if
-        end function
+        end function,
 
         getCookies: function(domain as string, path as string) as object
-            if m._http <> invalid then
+            if m._http <> invalid
                 return m._http.getCookies(domain, path)
             else
                 return invalid
             end if
-        end function
+        end function,
 
         send: function(data = invalid as dynamic) as dynamic
             timeout = m._timeout
@@ -76,19 +76,19 @@ function HttpRequest(params = invalid as dynamic) as object
 
             if data <> invalid then m._data = data
 
-            if m._data <> invalid and getInterface(m._data, "ifString") = invalid then
+            if m._data <> invalid and getInterface(m._data, "ifString") = invalid
                 m._data = formatJson(m._data)
             end if
 
             while retries > 0 and m._deviceInfo.getLinkStatus()
-                if m._sendHttpRequest(m._data) then
+                if m._sendHttpRequest(m._data)
                     event = m._http.getPort().waitMessage(timeout)
 
-                    if m._isAborted then
+                    if m._isAborted
                         m._isAborted = false
                         m._http.asyncCancel()
                         exit while
-                    else if type(event) = "roUrlEvent" then
+                    else if type(event) = "roUrlEvent"
                         response = event
                         exit while
                     end if
@@ -102,21 +102,21 @@ function HttpRequest(params = invalid as dynamic) as object
             end while
 
             return response
-        end function
+        end function,
 
         _sendHttpRequest: function(data = invalid as dynamic) as dynamic
             m._http = m._createHttpRequest()
 
-            if data <> invalid then
+            if data <> invalid
                 return m._http.asyncPostFromString(data)
             else
                 return m._http.asyncGetToString()
             end if
-        end function
+        end function,
 
-        abort: function()
+        abort: sub()
             m._isAborted = true
-        end function
+        end sub
 
     }
 

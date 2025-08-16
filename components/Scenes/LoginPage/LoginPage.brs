@@ -38,9 +38,8 @@ sub handleUserLogin()
     RunContentTask()
 end sub
 
-function getUserLogin()
+sub getUserLogin()
     ? "[LoginPage] - getUserLogin"
-    userToken = get_user_setting("access_token")
     m.UserLoginTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
     m.UserLoginTask.observeField("response", "handleUserLogin")
     m.UserLoginTask.request = {
@@ -48,7 +47,7 @@ function getUserLogin()
     }
     m.UserLoginTask.functionName = m.UserLoginTask.request.type
     m.UserLoginTask.control = "run"
-end function
+end sub
 
 
 sub handleRendezvouzToken()
@@ -61,7 +60,7 @@ sub handleRendezvouzToken()
         m.OauthTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
         m.OauthTask.observeField("response", "handleOauthToken")
         m.OauthTask.request = {
-            type: "getOauthToken"
+            type: "getOauthToken",
             params: response
         }
         m.OauthTask.functionName = m.Oauthtask.request.type
@@ -109,7 +108,7 @@ sub RunContentTask()
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
-    if not press return false
+    if not press then return false
     m.top.backPressed = true
     return true
 end function

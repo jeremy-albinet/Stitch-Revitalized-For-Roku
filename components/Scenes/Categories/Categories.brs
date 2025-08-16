@@ -16,6 +16,7 @@ end sub
 
 function buildContentNodeFromShelves(games)
     contentCollection = createObject("RoSGNode", "ContentNode")
+    row = createObject("RoSGNode", "ContentNode")
     for i = 0 to (games.count() - 1) step 1
         if i mod 5 = 0
             row = createObject("RoSGNode", "ContentNode")
@@ -73,7 +74,7 @@ sub appendMoreRows()
         ' observe content so we can know when feed content will be parsed
         m.GetContentTask.observeField("response", "handleRecommendedSections")
         m.GetContentTask.request = {
-            type: "getBrowsePageQuery"
+            type: "getBrowsePageQuery",
             cursor: m.top.cursor
         }
         m.GetContentTask.functionName = m.GetContentTask.request.type
@@ -93,7 +94,6 @@ function buildRowData(contentCollection)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -112,15 +112,15 @@ function buildRowData(contentCollection)
         end if
     end for
     return {
-        rowHeights: rowHeights
-        showRowLabel: showRowLabel
-        rowItemSize: rowItemSize
-        content: contentCollection
+        rowHeights: rowHeights,
+        showRowLabel: showRowLabel,
+        rowItemSize: rowItemSize,
+        content: contentCollection,
         numRows: contentCollection.getChildCount()
     }
 end function
 
-function updateRowList(contentCollection)
+sub updateRowList(contentCollection)
     rowData = buildRowData(contentCollection)
     if m.rowlist.content <> invalid
         for i = 0 to (rowData.content.getChildCount() - 1) step 1
@@ -130,7 +130,7 @@ function updateRowList(contentCollection)
         m.rowlist.content = rowData.content
     end if
     m.rowlist.numRows = m.rowlist.content.getChildCount()
-end function
+end sub
 
 sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
@@ -164,4 +164,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
     end if
+    return false
 end function

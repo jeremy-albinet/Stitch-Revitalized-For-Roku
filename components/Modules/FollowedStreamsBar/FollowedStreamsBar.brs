@@ -28,7 +28,7 @@ sub refreshFollowBar()
     ' m.top.refreshFollowBar = false
 end sub
 
-sub numberToText(number) as object
+function numberToText(number) as object
     s = StrI(number)
     result = ""
     if number >= 100000 and number < 1000000
@@ -41,7 +41,7 @@ sub numberToText(number) as object
         result = s
     end if
     return result
-end sub
+end function
 
 sub onFollowedStreamsChange()
     if m.top.itemHasFocus = false
@@ -86,7 +86,7 @@ sub onGetFocus()
     end if
 end sub
 
-sub onKeyEvent(key, press) as boolean
+function onKeyEvent(key, press) as boolean
     handled = false
     if press
         if key = "left"
@@ -144,4 +144,4 @@ sub onKeyEvent(key, press) as boolean
         end if
     end if
     return handled
-end sub
+end function

@@ -21,20 +21,20 @@ function TwitchGraphQLRequest(data)
         return invalid
     end if
     reqHeaders = {
-        "Accept": "*/*"
-        "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"
-        "Device-ID": device_code
-        "Origin": "https://android.tv.twitch.tv"
-        "Referer": "https://android.tv.twitch.tv/"
+        "Accept": "*/*",
+        "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
+        "Device-ID": device_code,
+        "Origin": "https://android.tv.twitch.tv",
+        "Referer": "https://android.tv.twitch.tv/",
         "Accept-Language": getDeviceLocale()
     }
     if access_token <> invalid
         reqHeaders["Authorization"] = access_token
     end if
     req = HttpRequest({
-        url: "https://gql.twitch.tv/gql"
-        headers: reqHeaders
-        method: "POST"
+        url: "https://gql.twitch.tv/gql",
+        headers: reqHeaders,
+        method: "POST",
         data: data
     })
     rspData = req.send()
@@ -59,19 +59,19 @@ function validateOauthToken() as object
         return false
     end if
     reqHeaders = {
-        "Accept": "*/*"
-        "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"
-        "Device-ID": device_code
-        "Origin": "https://android.tv.twitch.tv"
-        "Referer": "https://android.tv.twitch.tv/"
+        "Accept": "*/*",
+        "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
+        "Device-ID": device_code,
+        "Origin": "https://android.tv.twitch.tv",
+        "Referer": "https://android.tv.twitch.tv/",
         "Accept-Language": getDeviceLocale()
     }
     if access_token <> invalid
         reqHeaders["Authorization"] = access_token
     end if
     req = HttpRequest({
-        url: "https://id.twitch.tv/oauth2/validate"
-        headers: reqHeaders
+        url: "https://id.twitch.tv/oauth2/validate",
+        headers: reqHeaders,
         method: "GET"
     })
     rsp = ParseJSON(req.send())
@@ -85,6 +85,7 @@ function validateOauthToken() as object
     end if
     m.top.control = "STOP"
     ? "pause"
+    return invalid
 end function
 
 function getHomePageQuery() as object
@@ -237,7 +238,7 @@ function getHomePageQuery() as object
             createdAt
             type
             viewersCount
-        }`
+        }`,
         variables: {
             "itemsPerRow": 20,
             "limit": 8,
@@ -251,6 +252,7 @@ function getHomePageQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getCategoryQuery() as object
@@ -315,9 +317,9 @@ function getCategoryQuery() as object
             type
             viewersCount
             createdAt
-            }`
+            }`,
         variables: {
-            "channelsCount": 40
+            "channelsCount": 40,
             "gameAlias": m.top.request.params.id
         }
     })
@@ -327,9 +329,10 @@ function getCategoryQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
-function getStreamPlayerQuery()
+sub getStreamPlayerQuery()
     rsp = TwitchGraphQLRequest({
         query: `query StreamPlayer_Query(
             $login: String!
@@ -354,11 +357,11 @@ function getStreamPlayerQuery()
                 id
                 __typename
             }
-        }`
+        }`,
         variables: {
-            "login": m.top.request.params.id
-            "platform": "web_tv"
-            "playerType": "pulsar"
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
             "skipPlayToken": false
         }
     })
@@ -368,7 +371,7 @@ function getStreamPlayerQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
 function getVodPlayerWrapperQuery() as object
     rsp = TwitchGraphQLRequest({
@@ -389,11 +392,11 @@ function getVodPlayerWrapperQuery() as object
                 id
                 __typename
             }
-        }`
+        }`,
         variables: {
-            "videoId": m.top.request.params.id
-            "platform": "web_tv"
-            "playerType": "pulsar"
+            "videoId": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
             "skipPlayToken": false
         }
     })
@@ -403,6 +406,7 @@ function getVodPlayerWrapperQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 
@@ -568,11 +572,11 @@ function getChannelInterstitialQuery() as object
                 id
                 __typename
             }
-        }`
+        }`,
         variables: {
-            "login": m.top.request.params.id
-            "platform": "web_tv"
-            "playerType": "pulsar"
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
             "skipPlayToken": true
         }
     })
@@ -582,6 +586,7 @@ function getChannelInterstitialQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getChannelHomeQuery() as object
@@ -1000,11 +1005,11 @@ function getChannelHomeQuery() as object
                 __typename
                 }
             }
-            }`
+            }`,
         variables: {
-            "login": m.top.request.params.id
-            "platform": "web_tv"
-            "playerType": "quasar"
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "quasar",
             "skipPlayToken": false
         }
     })
@@ -1014,6 +1019,7 @@ function getChannelHomeQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getFollowingPageQuery() as object
@@ -1359,16 +1365,16 @@ function getFollowingPageQuery() as object
                     }
                 }
             }
-        }`
+        }`,
         variables: {
-            "first": 100
+            "first": 100,
             ' "liveUserCursor": ""
             ' "offlineUserCursor": ""
-            "followedGameType": "ALL"
-            "categoryFirst": 100
-            "itemsPerRow": 25
-            "limit": 8
-            "platform": "web_tv"
+            "followedGameType": "ALL",
+            "categoryFirst": 100,
+            "itemsPerRow": 25,
+            "limit": 8,
+            "platform": "web_tv",
             "requestID": getRandomUUID()
         }
     })
@@ -1378,16 +1384,17 @@ function getFollowingPageQuery() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
-function getRendezvouzToken()
+sub getRendezvouzToken()
     req = HttpRequest({
-        url: "https://id.twitch.tv/oauth2/device?scopes=channel_read%20chat%3Aread%20user_blocks_edit%20user_blocks_read%20user_follows_edit%20user_read&client_id=ue6666qo983tsx6so1t0vnawi233wa"
+        url: "https://id.twitch.tv/oauth2/device?scopes=channel_read%20chat%3Aread%20user_blocks_edit%20user_blocks_read%20user_follows_edit%20user_read&client_id=ue6666qo983tsx6so1t0vnawi233wa",
         headers: {
-            "content-type": "application/x-www-form-urlencoded"
-            "origin": "https://android.tv.twitch.tv"
+            "content-type": "application/x-www-form-urlencoded",
+            "origin": "https://android.tv.twitch.tv",
             "referer": "https://android.tv.twitch.tv/"
-        }
+        },
         method: "POST"
     })
     rsp = ParseJSON(req.send())
@@ -1397,19 +1404,19 @@ function getRendezvouzToken()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
 
 function getOauthToken()
-    if m.top.request.params.device_code = invalid return invalid
+    if m.top.request.params.device_code = invalid then return invalid
     req = HttpRequest({
-        url: "https://id.twitch.tv/oauth2/token" + "?client_id=ue6666qo983tsx6so1t0vnawi233wa&device_code=" + m.top.request.params.device_code + "&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code"
+        url: "https://id.twitch.tv/oauth2/token" + "?client_id=ue6666qo983tsx6so1t0vnawi233wa&device_code=" + m.top.request.params.device_code + "&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code",
         headers: {
-            "content-type": "application/x-www-form-urlencoded"
-            "origin": "https://android.tv.twitch.tv"
-            "referer": "https://android.tv.twitch.tv/"
+            "content-type": "application/x-www-form-urlencoded",
+            "origin": "https://android.tv.twitch.tv",
+            "referer": "https://android.tv.twitch.tv/",
             "accept": "application/json"
-        }
+        },
         method: "POST"
     })
     while true
@@ -1425,9 +1432,10 @@ function getOauthToken()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
-function getSearchQuery()
+sub getSearchQuery()
     if m.top.request.query <> invalid and m.top.request.query <> ""
         noQuery = false
     else
@@ -1600,10 +1608,10 @@ function getSearchQuery()
                     previewThumbnailURL
                 }
             }
-        }`
+        }`,
         variables: {
-            "userQuery": m.top.request.query.toStr()
-            "platform": "web_tv"
+            "userQuery": m.top.request.query.toStr(),
+            "platform": "web_tv",
             "noQuery": noQuery
         }
     })
@@ -1613,11 +1621,11 @@ function getSearchQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
 function getGameDirectoryQuery()
     ? "param: " m.top.request.params
-    if m.top.request.params.gamealias = invalid return invalid
+    if m.top.request.params.gamealias = invalid then return invalid
     rsp = TwitchGraphQLRequest({
         query: `query GameDirectory_Query(
             $gameAlias: String!
@@ -1679,7 +1687,7 @@ function getGameDirectoryQuery()
             previewImageURL
             type
             viewersCount
-        }`
+        }`,
         variables: {
             "gameAlias": m.top.request.params.gamealias,
             "channelsCount": 40
@@ -1691,6 +1699,7 @@ function getGameDirectoryQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getCategoriesQuery()
@@ -1724,7 +1733,7 @@ function getCategoriesQuery()
             displayName
             viewersCount
             boxArtURL
-        }`
+        }`,
         variables: {
             "first": 80
         }
@@ -1735,15 +1744,16 @@ function getCategoriesQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getChannelShell()
-    if m.top.request.params.id = invalid return invalid
+    if m.top.request.params.id = invalid then return invalid
     rsp = TwitchGraphQLRequest({
-        operationName: "ChannelShell"
+        operationName: "ChannelShell",
         variables: {
             login: m.top.request.params.id
-        }
+        },
         extensions: {
             persistedQuery: {
                 version: 1,
@@ -1757,9 +1767,10 @@ function getChannelShell()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
-function TwitchHelixApiRequest()
+sub TwitchHelixApiRequest()
     ? "HelixAPIRequest"
     access_token = ""
     device_code = ""
@@ -1771,15 +1782,15 @@ function TwitchHelixApiRequest()
         end if
     end if
     requestParams = {
-        url: "https://api.twitch.tv/helix/" + m.top.request.params.endpoint + "?" + m.top.request.params.args
+        url: "https://api.twitch.tv/helix/" + m.top.request.params.endpoint + "?" + m.top.request.params.args,
         headers: {
-            "Accept": "*/*"
-            "Authorization": access_token
-            "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa"
-            "Device-ID": device_code
-            "Origin": "https://android.tv.twitch.tv"
+            "Accept": "*/*",
+            "Authorization": access_token,
+            "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
+            "Device-ID": device_code,
+            "Origin": "https://android.tv.twitch.tv",
             "Referer": "https://android.tv.twitch.tv/"
-        }
+        },
         method: m.top.request.params.method
     }
     if m.top.request.params.data <> invalid
@@ -1793,7 +1804,7 @@ function TwitchHelixApiRequest()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
 
 function followChannel() as object
@@ -1818,6 +1829,7 @@ function followChannel() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function getRecommendedSections() as object
@@ -1851,6 +1863,7 @@ function getRecommendedSections() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 function unfollowChannel() as object
@@ -1874,10 +1887,11 @@ function unfollowChannel() as object
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
+    return invalid
 end function
 
 
-function getBrowsePagePopularQuery()
+sub getBrowsePagePopularQuery()
     variables = {
         "imageWidth": 300,
         "limit": 30,
@@ -1916,9 +1930,9 @@ function getBrowsePagePopularQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
-function getBrowsePageQuery()
+sub getBrowsePageQuery()
     variables = {
         "limit": 100,
         "options": {
@@ -1935,7 +1949,7 @@ function getBrowsePageQuery()
     end if
     rsp = TwitchGraphQLRequest({
         "operationName": "BrowsePage_AllDirectories",
-        "variables": variables
+        "variables": variables,
         "extensions": {
             "persistedQuery": {
                 "version": 1,
@@ -1949,9 +1963,9 @@ function getBrowsePageQuery()
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
-function getTwitchBookmarks()
+sub getTwitchBookmarks()
     if get_setting("active_user", "$default$") <> "$default$"
         rsp = TwitchGraphQLRequest({
             "operationName": "queryUserViewedVideo",
@@ -1978,11 +1992,11 @@ function getTwitchBookmarks()
         end if
     end if
     m.top.control = "STOP"
-end function
+end sub
 
-function updateUserViewedVideo()
+sub updateUserViewedVideo()
     if get_setting("active_user", "$default$") <> "$default$"
-        rsp = TwitchGraphQLRequest({
+        TwitchGraphQLRequest({
             "operationName": "updateUserViewedVideo",
             "variables": {
                 "input": {
@@ -2001,4 +2015,4 @@ function updateUserViewedVideo()
         })
     end if
     m.top.control = "STOP"
-end function
+end sub

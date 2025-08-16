@@ -5,14 +5,14 @@ sub Init()
     m.top.functionName = "listenInput"
 end sub
 
-function ListenInput()
+sub ListenInput()
     port = createobject("romessageport")
     InputObject = createobject("roInput")
     InputObject.setmessageport(port)
 
     while true
         msg = port.waitmessage(500)
-        if type(msg) = "roInputEvent" then
+        if type(msg) = "roInputEvent"
             print "INPUT EVENT!"
             if msg.isInput()
                 inputData = msg.getInfo()
@@ -24,7 +24,7 @@ function ListenInput()
                 ' pass the deeplink to UI
                 if inputData.DoesExist("mediaType") and inputData.DoesExist("contentID")
                     deeplink = {
-                        id: inputData.contentID
+                        id: inputData.contentID,
                         type: inputData.mediaType
                     }
                     print "got input deeplink= "; deeplink
@@ -33,4 +33,4 @@ function ListenInput()
             end if
         end if
     end while
-end function
+end sub

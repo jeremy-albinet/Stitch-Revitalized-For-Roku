@@ -22,7 +22,7 @@ sub Main(input as dynamic)
             print "Splash Time: "; input.splashTime
         end if
         if input.reason <> invalid
-            if input.reason = "ad" then
+            if input.reason = "ad"
                 print "Channel launched from ad click"
                 'do ad stuff here
             end if
@@ -58,16 +58,16 @@ sub Main(input as dynamic)
     m.scene.observeField("exitApp", m.port)
     m.scene.setFocus(true)
 
-    while (true)
+    while true
         msg = wait(0, m.port)
         msgType = type(msg)
-        if msgType = "roSGScreenEvent" then
-            if msg.isScreenClosed() then
+        if msgType = "roSGScreenEvent"
+            if msg.isScreenClosed()
                 return
             end if
-        else if msgType = "roSGNodeEvent" then
+        else if msgType = "roSGNodeEvent"
             field = msg.getField()
-            if field = "exitApp" then
+            if field = "exitApp"
                 return
             end if
         end if

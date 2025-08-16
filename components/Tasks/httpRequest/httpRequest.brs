@@ -2,21 +2,22 @@ sub init()
     m.top.functionName = "basicRequest"
 end sub
 
-function writeResponse(data)
+sub writeResponse(data)
     if data <> invalid
         m.top.response = { "data": data }
     else
         m.top.response = { "response": invalid }
     end if
     m.top.control = "STOP"
-end function
+end sub
 
-function basicRequest()
+sub basicRequest()
     req = HttpRequest({
-        url: m.top.request.url
-        headers: m.top.request.headers
+        url: m.top.request.url,
+        headers: m.top.request.headers,
         method: m.top.request.method
     })
+    rsp = invalid
     while true
         rsp = req.send().getString()
         if rsp <> invalid
@@ -25,5 +26,5 @@ function basicRequest()
         sleep(10)
     end while
     writeResponse(rsp)
-end function
+end sub
 

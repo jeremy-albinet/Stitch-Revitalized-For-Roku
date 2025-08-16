@@ -21,7 +21,7 @@ sub updatePage()
     ' ' observe content so we can know when feed content will be parsed
     m.GetContentTask.observeField("response", "updateChannelInfo")
     m.GetContentTask.request = {
-        type: "getChannelHomeQuery"
+        type: "getChannelHomeQuery",
         params: {
             id: m.top.contentRequested.streamerLogin
         }
@@ -32,7 +32,7 @@ sub updatePage()
     ' ' observe content so we can know when feed content will be parsed
     m.GetShellTask.observeField("response", "updateChannelShell")
     m.GetShellTask.request = {
-        type: "getChannelShell"
+        type: "getChannelShell",
         params: {
             id: m.top.contentRequested.streamerLogin
         }
@@ -45,7 +45,7 @@ sub updateChannelShell()
     setBannerImage()
 end sub
 
-function setBannerImage()
+sub setBannerImage()
     bannerGroup = m.top.findNode("banner")
     poster = createObject("roSGNode", "Poster")
     if m.GetShellTask.response.data.userOrError.bannerImageUrl <> invalid
@@ -64,7 +64,7 @@ function setBannerImage()
     ' overlay.height = 320
     ' poster.appendChild(overlay)
     bannerGroup.appendChild(poster)
-end function
+end sub
 
 sub updateChannelInfo()
     ' m.GetcontentTask.response.data.channel
@@ -141,7 +141,7 @@ function buildContentNodeFromShelves(inputData)
     return contentCollection
 end function
 
-function updateRowList(contentCollection)
+sub updateRowList(contentCollection)
     rowItemSize = []
     showRowLabel = []
     rowHeights = []
@@ -152,7 +152,6 @@ function updateRowList(contentCollection)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row?.getchild(0)?.contentType = "LIVE" or row?.getchild(0)?.contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -175,14 +174,14 @@ function updateRowList(contentCollection)
     m.rowlist.rowItemSize = rowItemSize
     m.rowlist.content = contentCollection
     m.rowlist.numRows = contentCollection.getChildCount()
-end function
+end sub
 
-function handleItemSelected()
+sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.top.playContent = true
     m.top.contentSelected = selectedItem
-end function
+end sub
 
 sub FocusRowlist()
     if m.rowlist.focusedChild = invalid
@@ -219,5 +218,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
             ? "selected"
         end if
     end if
+    return false
 end function
 

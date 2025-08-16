@@ -3,7 +3,12 @@
     "scripts": {
         "build": "bsc --createPackage=false",
         "watch": "npm run build -- --watch",
-        "package": "bsc --create-package"
+        "package": "bsc --create-package",
+        "lint": "bslint",
+        "lint:fix": "bslint --fix",
+        "fmt": "brighterscript-formatter --write '**/*.{brs,bs,xml}'",
+        "fmt:check": "brighterscript-formatter --check '**/*.{brs,bs,xml}'"
+
     },
     "devDependencies": {
         "@rokucommunity/bslint": "^0.8.34",

@@ -1,4 +1,4 @@
-function init()
+sub init()
     ' m.poster = m.top.findNode("poster")
     ' m.timer = m.top.findNode("timer")
     m.top.observeField("width", "onSizeChange")
@@ -12,7 +12,7 @@ function init()
     m.decoder = createObject("roSGNode", "GIFDecoder")
     m.top.observeField("uri", "onUriChange")
     m.firstRun = true
-end function
+end sub
 
 sub onUriChange()
     if m.firstRun
@@ -37,14 +37,14 @@ sub focusItem(item as integer)
     m.animator.callFunc("finish")
 end sub
 
-function onSizeChange()
+sub onSizeChange()
     m.top.clippingRect = {
-        width: m.top.width
-        height: m.top.height
-        x: 0
+        width: m.top.width,
+        height: m.top.height,
+        x: 0,
         y: 0
     }
-end function
+end sub
 
 ' function onControlChange() as void
 '     if m.top.control = "start" and m.top.frameOffsets = invalid or m.top.frameOffsets.count() = 0 or m.top.spriteSheetUri = invalid or m.top.spriteSheetUri = ""

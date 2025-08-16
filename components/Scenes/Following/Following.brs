@@ -229,7 +229,7 @@ sub handleRecommendedSections()
     end try
 end sub
 
-function updateRowList(contentCollection)
+sub updateRowList(contentCollection)
     ? "updateRowList: "; TimeStamp()
     rowItemSize = []
     showRowLabel = []
@@ -241,7 +241,6 @@ function updateRowList(contentCollection)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -274,17 +273,22 @@ function updateRowList(contentCollection)
     m.rowlist.numRows = m.rowlist.content.getChildCount()
     m.rowlist.rowlabelcolor = m.global.constants.colors.twitch.purple10
     ? "updateRowList Done: "; TimeStamp()
-end function
+end sub
 
 sub handleItemSelected()
+    item = invalid
     if m.rowlist.focusedChild <> invalid
         item = m.rowList
     else if m.offlinelist.focusedChild <> invalid
         item = m.offlinelist
     end if
-    selectedRow = item.content.getchild(item.rowItemSelected[0])
-    selectedItem = selectedRow.getChild(item.rowItemSelected[1])
-    
+    if item <> invalid
+        selectedRow = item.content.getchild(item.rowItemSelected[0])
+        selectedItem = selectedRow.getChild(item.rowItemSelected[1])
+    else
+        return
+    end if
+
     ' Delegate to specific handler based on content type
     if selectedItem.contentType = "LIVE"
         ' Use the existing live handler for direct playback
@@ -318,4 +322,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
     end if
+    return false
 end function

@@ -21,6 +21,10 @@
         "manifest",
         "env"
     ],
+    "plugins": [
+        "brighterscript-formatter",
+        "@rokucommunity/bslint"
+    ],
     "diagnosticFilters": [
         {
             "src": "vendor/**/*",

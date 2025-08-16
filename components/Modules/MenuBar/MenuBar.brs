@@ -29,8 +29,8 @@ end sub
 
 function buildIcon(icon)
     map = {
-        "search": m.global.constants.defaultIcons.search
-        "settings": m.global.constants.defaultIcons.settings
+        "search": m.global.constants.defaultIcons.search,
+        "settings": m.global.constants.defaultIcons.settings,
         "loginpage": get_user_setting("profile_image_url", m.global.constants.defaultIcons.login)
     }
     newItem = createObject("roSGNode", "Button")
@@ -107,7 +107,6 @@ end sub
 sub handleUserLoginResponse()
     ? "[MenuBar] - handleUserLoginResponse()"
     search = m.loginIconTask.response
-    result = { raw: search }
     if search <> invalid and search.data <> invalid
         for each stream in search.data
             set_user_setting("id", stream.id)
@@ -131,10 +130,10 @@ sub handleUserLogin()
             m.loginIconTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
             m.loginIconTask.observeField("response", "handleUserLoginResponse")
             m.loginIconTask.request = {
-                type: "TwitchHelixApiRequest"
+                type: "TwitchHelixApiRequest",
                 params: {
-                    endpoint: "users"
-                    args: "login=" + get_user_setting("login")
+                    endpoint: "users",
+                    args: "login=" + get_user_setting("login"),
                     method: "GET"
                 }
             }

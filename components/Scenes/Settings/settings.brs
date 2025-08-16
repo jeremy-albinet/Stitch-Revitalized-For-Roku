@@ -163,11 +163,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
     else if (key = "back" or key = "left") and m.radioSetting.hasFocus()
         m.settingsMenu.setFocus(true)
         return true
-    else if (key = "back")
+    else if key = "back"
         m.top.backPressed = true
         return true
     end if
-    if (key = "right" or key = "OK")
+    if key = "right" or key = "OK"
         settingSelected()
     end if
     if key = "up"

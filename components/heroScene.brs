@@ -3,10 +3,6 @@ sub init()
     m.validateOauthToken.observeField("response", "ValidateUserLogin")
     m.validateOauthToken.functionName = "validateOauthToken"
     m.validateOauthToken.control = "run"
-    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    ' Anything important needs to run before this sleep.
-    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    sleep(2000)
     VersionJobs()
     m.top.backgroundUri = ""
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
@@ -41,7 +37,7 @@ sub init()
 
 end sub
 
-function cleanUserData()
+sub cleanUserData()
     active_user = get_setting("active_user", "$default$")
     if active_user <> "$default$"
         unset_user_setting("access_token")
@@ -59,9 +55,9 @@ function cleanUserData()
             end if
         end for
     end if
-end function
+end sub
 
-function ValidateUserLogin()
+sub ValidateUserLogin()
     if m.validateOauthToken?.response?.tokenValid <> invalid
         tokenValid = m.validateOauthToken.response.tokenValid
     else
@@ -74,7 +70,7 @@ function ValidateUserLogin()
         m.menu.updateUserIcon = true
         ? "pause"
     end if
-end function
+end sub
 
 function focusedMenuItem()
     focusedItem = ""
@@ -84,27 +80,27 @@ function focusedMenuItem()
     return focusedItem
 end function
 
-function VersionJobs()
+sub VersionJobs()
     if m.global.appinfo.version.major.toInt() = 2 and m.global.appinfo.version.minor.toInt() = 3
         ' Clean Up Job for switching default profile name to "$default$" as "default" is technically a possible twitch user.
         if get_setting("active_user") <> invalid and get_setting("active_user") = "default"
             set_setting("active_user", "$default$")
         end if
     end if
-end function
+end sub
 
-function refreshFollowBar()
+sub refreshFollowBar()
     m.followedStreamBar.refreshFollowBar = true
-end function
+end sub
 
-function handleDeviceCode()
+sub handleDeviceCode()
     if m.getDeviceCodeTask <> invalid
         response = m.getDeviceCodeTask.response
         set_user_setting("device_code", response.device_code)
         m.followedStreamBar.callFunc("refreshFollowBar")
     end if
     onMenuSelection()
-end function
+end sub
 
 function buildNode(name)
     if name <> invalid
@@ -123,6 +119,7 @@ function buildNode(name)
         end if
         return newNode
     end if
+    return invalid
 end function
 
 sub onLoginFinished()
@@ -147,7 +144,7 @@ sub onLoginFinished()
     ' end if
 end sub
 
-function onMenuSelection()
+sub onMenuSelection()
     ' refreshFollowBar()
     ' If user is already logged in, show them their user page
     if focusedMenuItem() = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
@@ -172,7 +169,7 @@ function onMenuSelection()
         end if
         m.activeNode.setfocus(true)
     end if
-end function
+end sub
 
 sub onFollowSelected()
     content = m.followedStreamBar.contentSelected
@@ -188,6 +185,7 @@ sub onFollowSelected()
 end sub
 
 sub onContentSelected()
+    id = invalid
     if m.activeNode.contentSelected.contentType = "STREAMER"
         id = "StreamerChannelPage"
     else if m.activeNode.contentSelected.contentType = "GAME"
@@ -214,7 +212,6 @@ end sub
 
 sub onBackPressed()
     ? "backpress detected from: "; m.activeNode.id
-    fmi = focusedMenuItem()
     if m.activeNode.backPressed <> invalid and m.activeNode.backPressed
         ? "fmi ping"
         if m.activeNode.id = "StreamerChannelPage"
@@ -277,6 +274,7 @@ function onKeyEvent(key, press) as boolean
     '     m.top.setFocus(true)
     '     return true
     ' end if
-    if not press return false
+    if not press then return false
     ? "KEY EVENT: "; key press
+    return false
 end function

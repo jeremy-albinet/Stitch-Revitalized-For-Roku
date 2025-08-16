@@ -1,4 +1,4 @@
-function init()
+sub init()
     ' Initialize UI elements
     m.top.enableUI = false
     m.top.enableTrickPlay = false
@@ -107,24 +107,24 @@ function init()
 
     ' Initialize UI
     updateProgressBar()
-    
+
     ' Show loading overlay initially
     showLoadingOverlay()
-    
+
     ? "[CustomVideo] Initialized"
-end function
+end sub
 
 sub createMessageOverlay()
     if m.messageOverlay = invalid
         m.messageOverlay = CreateObject("roSGNode", "Group")
         m.messageOverlay.visible = false
-        
+
         messageBg = CreateObject("roSGNode", "Rectangle")
         messageBg.width = 600
         messageBg.height = 150
         messageBg.color = "0x000000CC"
         messageBg.translation = [340, 285]
-        
+
         messageTitle = CreateObject("roSGNode", "Label")
         messageTitle.id = "messageTitle"
         messageTitle.font = "font:MediumBoldSystemFont"
@@ -134,7 +134,7 @@ sub createMessageOverlay()
         messageTitle.width = 600
         messageTitle.height = 50
         messageTitle.translation = [340, 300]
-        
+
         messageText = CreateObject("roSGNode", "Label")
         messageText.id = "messageText"
         messageText.font = "font:SmallSystemFont"
@@ -144,7 +144,7 @@ sub createMessageOverlay()
         messageText.width = 600
         messageText.height = 50
         messageText.translation = [340, 350]
-        
+
         m.messageOverlay.appendChild(messageBg)
         m.messageOverlay.appendChild(messageTitle)
         m.messageOverlay.appendChild(messageText)
@@ -155,7 +155,7 @@ end sub
 sub onVideoTypeChange()
     m.isLiveStream = (m.top.video_type = "LIVE")
     updateUIForVideoType()
-    
+
     ' Update loading text based on video type
     if m.loadingText <> invalid
         if m.isLiveStream
@@ -660,7 +660,7 @@ function convertToReadableTimeFormat(time) as string
     end if
 end function
 
-function saveVideoBookmark() as void
+sub saveVideoBookmark()
     ' Bookmark saving logic (keeping your existing implementation)
     if m.top.video_type = "LIVE" or m.top.video_type = "VOD"
         bookmarkPosition = Int(m.top.position)
@@ -678,15 +678,15 @@ function saveVideoBookmark() as void
             m.bookmarkTask = createObject("roSGNode", "TwitchApiTask")
             m.bookmarkTask.functionname = "updateUserViewedVideo"
             m.bookmarkTask.request = {
-                "userId": get_user_setting("id")
-                "position": bookmarkPosition
-                "videoId": m.top.video_id
+                "userId": get_user_setting("id"),
+                "position": bookmarkPosition,
+                "videoId": m.top.video_id,
                 "videoType": m.top.video_type
             }
             m.bookmarkTask.control = "run"
         end if
     end if
-end function
+end sub
 
 sub showErrorMessage(title as string, message as string)
     showMessage(title, message, 0)
@@ -714,14 +714,14 @@ sub showMessage(title as string, message as string, duration as float)
             end if
         end if
     end if
-    
+
     m.messageOverlay.visible = true
-    
+
     if m.messageTimer <> invalid
         m.messageTimer.control = "stop"
         m.messageTimer = invalid
     end if
-    
+
     if duration > 0
         m.messageTimer = CreateObject("roSGNode", "Timer")
         m.messageTimer.duration = duration

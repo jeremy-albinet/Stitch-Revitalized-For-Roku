@@ -35,7 +35,7 @@ sub updatePage()
     ' ' observe content so we can know when feed content will be parsed
     m.GetContentTask.observeField("response", "updateChannelInfo")
     m.GetContentTask.request = {
-        type: "getChannelHomeQuery"
+        type: "getChannelHomeQuery",
         params: {
             id: m.top.contentRequested.streamerLogin
         }
@@ -46,7 +46,7 @@ sub updatePage()
     ' ' observe content so we can know when feed content will be parsed
     m.GetShellTask.observeField("response", "updateChannelShell")
     m.GetShellTask.request = {
-        type: "getChannelShell"
+        type: "getChannelShell",
         params: {
             id: m.top.contentRequested.streamerLogin
         }
@@ -62,7 +62,7 @@ sub updateChannelShell()
     setBannerImage()
 end sub
 
-function setBannerImage()
+sub setBannerImage()
     bannerGroup = m.top.findNode("banner")
     poster = createObject("roSGNode", "Poster")
     if m.GetShellTask?.response?.data?.userOrError?.bannerImageUrl <> invalid
@@ -81,7 +81,7 @@ function setBannerImage()
     ' overlay.height = 320
     ' poster.appendChild(overlay)
     bannerGroup.appendChild(poster)
-end function
+end sub
 
 sub updateChannelInfo()
     ' m.GetcontentTask.response.data.channel
@@ -110,12 +110,12 @@ sub updateChannelInfo()
 end sub
 
 
-function handleItemSelected()
+sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.top.playContent = true
     m.top.contentSelected = selectedItem
-end function
+end sub
 
 
 function onKeyEvent(key as string, press as boolean) as boolean
@@ -145,6 +145,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             ? "selected"
         end if
     end if
+    return false
 end function
 
 sub onButtonSelected()

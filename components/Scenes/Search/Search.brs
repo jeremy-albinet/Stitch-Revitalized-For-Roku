@@ -14,7 +14,7 @@ sub init()
     updateRecents()
 end sub
 
-function updateRecents(appendItem = invalid)
+sub updateRecents(appendItem = invalid)
     oldRecents = ParseJson(get_user_setting("recents", "[]"))
     if oldRecents = invalid
         oldRecents = []
@@ -34,7 +34,7 @@ function updateRecents(appendItem = invalid)
     set_user_setting("recents", FormatJson(newRecents, 256))
     m.recents.buttons = ParseJson(get_user_setting("recents", "[]"))
     adjustPositionForRecents()
-end function
+end sub
 
 sub onRecentItemSelected()
     selectedText = m.recents.buttons[m.recents.buttonSelected].tostr()
@@ -79,12 +79,12 @@ sub handleRecommendedSections()
         ' ?"data: "; m.GetContentTask.response.data
         if m.GetContentTask?.response?.data?.searchFor <> invalid
             ' ? "searchFor: "m.GetContentTask.response.data.searchFor
-            contentCollection = buildContentNodeFromShelves(m.GetContentTask.response.data.searchFor)
+            buildContentNodeFromShelves(m.GetContentTask.response.data.searchFor)
         end if
     end if
 end sub
 
-function buildContentNodeFromShelves(shelves)
+sub buildContentNodeFromShelves(shelves)
     LiveChannels = []
     Users = []
     Games = []
@@ -194,7 +194,7 @@ function buildContentNodeFromShelves(shelves)
     rowHeights = []
     if firstRow.getChildCount() > 0
         rowItemSize.push([320, 180])
-        rowheights.push(275)
+        rowHeights.push(275)
         AllContent.appendChild(firstRow)
     end if
     if secondRow.getchildCount() > 0
@@ -209,7 +209,7 @@ function buildContentNodeFromShelves(shelves)
     end if
     if fourthRow.getchildCount() > 0
         rowItemSize.push([320, 180])
-        rowheights.push(275)
+        rowHeights.push(275)
         AllContent.appendchild(fourthRow)
     end if
     m.rowlist.visible = false
@@ -217,7 +217,7 @@ function buildContentNodeFromShelves(shelves)
     m.rowlist.rowHeights = rowHeights
     m.rowlist.rowItemSize = rowItemSize
     m.rowlist.visible = true
-end function
+end sub
 
 
 sub handleItemSelected()
@@ -283,4 +283,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             end if
         end if
     end if
+    return false
 end function

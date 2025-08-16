@@ -12,7 +12,7 @@ sub updatePage()
     ' observe content so we can know when feed content will be parsed
     m.GetContentTask.observeField("response", "handleRecommendedSections")
     m.GetContentTask.request = {
-        type: "getGameDirectoryQuery"
+        type: "getGameDirectoryQuery",
         params: {
             gameAlias: m.top.contentRequested.gameName
         }
@@ -24,6 +24,7 @@ end sub
 function buildContentNodeFromShelves(streams)
     itemsPerRow = 3
     contentCollection = createObject("RoSGNode", "ContentNode")
+    row = createObject("RoSGNode", "ContentNode")
     for i = 0 to (streams.count() - 1) step 1
         if i mod itemsPerRow = 0
             row = createObject("RoSGNode", "ContentNode")
@@ -55,7 +56,7 @@ function buildContentNodeFromShelves(streams)
 end function
 
 
-function updateRowList(contentCollection)
+sub updateRowList(contentCollection)
     rowItemSize = []
     showRowLabel = []
     rowHeights = []
@@ -66,7 +67,6 @@ function updateRowList(contentCollection)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -89,7 +89,7 @@ function updateRowList(contentCollection)
     m.rowlist.rowItemSize = rowItemSize
     m.rowlist.content = contentCollection
     m.rowlist.numRows = contentCollection.getChildCount()
-end function
+end sub
 
 
 sub handleRecommendedSections()
@@ -119,4 +119,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
     end if
+    return false
 end function

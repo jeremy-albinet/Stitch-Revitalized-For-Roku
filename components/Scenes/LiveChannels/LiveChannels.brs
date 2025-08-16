@@ -70,7 +70,7 @@ sub appendMoreRows()
         ' observe content so we can know when feed content will be parsed
         m.GetContentTask.observeField("response", "handleRecommendedSections")
         m.GetContentTask.request = {
-            type: "getBrowsePagePopularQuery"
+            type: "getBrowsePagePopularQuery",
             cursor: m.top.cursor
         }
         m.GetContentTask.functionName = m.GetContentTask.request.type
@@ -90,7 +90,6 @@ function buildRowData(contentCollection)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -109,10 +108,10 @@ function buildRowData(contentCollection)
         end if
     end for
     return {
-        rowHeights: rowHeights
-        showRowLabel: showRowLabel
-        rowItemSize: rowItemSize
-        content: contentCollection
+        rowHeights: rowHeights,
+        showRowLabel: showRowLabel,
+        rowItemSize: rowItemSize,
+        content: contentCollection,
         numRows: contentCollection.getChildCount()
     }
 end function
@@ -159,4 +158,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
     end if
+    return false
 end function

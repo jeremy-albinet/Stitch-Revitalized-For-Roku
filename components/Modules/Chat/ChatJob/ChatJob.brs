@@ -1,9 +1,9 @@
-function init()
+sub init()
     m.top.functionName = "main"
     m.delay = 29
-end function
+end sub
 
-function loginToChat(tcpListen)
+sub loginToChat(tcpListen)
     tcpListen.SendStr("CAP REQ :twitch.tv/tags twitch.tv/commands" + Chr(13) + Chr(10))
     user_auth_token = get_user_setting("access_token")
     m.loggedinUserName = get_user_setting("login")
@@ -18,9 +18,9 @@ function loginToChat(tcpListen)
         tcpListen.SendStr("PASS SCHMOOPIIE" + Chr(13) + Chr(10))
         tcpListen.SendStr("NICK justinfan32006" + Chr(13) + Chr(10))
     end if
-end function
+end sub
 
-function main()
+sub main()
     ? "[ChatJob] - main"
     if m.top.channel <> ""
         receivedNewMessage = false
@@ -85,7 +85,7 @@ function main()
                 currentTimestamp = CreateObject("roDateTime").AsSeconds()
                 if _parsedMessage?.tags?.tmi_sent_ts <> invalid
                     commentTimeStamp = Val(_parsedMessage.tags.tmi_sent_ts.left(10), 10)
-                    commentAge = currentTimestamp - commentTimestamp
+                    commentAge = currentTimestamp - commentTimeStamp
                     if m.top.forceLive = true
                         sendWaitingMessage = false
                         m.top.nextCommentObj = MessageParser(queue.pop())
@@ -114,15 +114,15 @@ function main()
             end if
         end while
     end if
-end function
+end sub
 
 
 function MessageParser(message)
     try
         parsedMessage = {
-            tags: {}
-            source: {}
-            command: {}
+            tags: {},
+            source: {},
+            command: {},
             parameters: ""
         }
         rawTagsComponent = invalid
@@ -146,13 +146,13 @@ function MessageParser(message)
         end if
 
         endIdx = message.InStr(idx, ":")
-        if (endIdx = -1)
+        if endIdx = -1
             endIdx = message.len()
         end if
 
         rawCommandComponent = message.mid(idx, endIdx).trim()
 
-        if (endidx <> message.len())
+        if endIdx <> message.len()
             idx = endIdx + 1
             rawParametersComponent = message.mid(idx)
         end if
@@ -184,7 +184,7 @@ end function
 
 function parseTags(tags)
     tagsToIgnore = {
-        "client-nonce": invalid
+        "client-nonce": invalid,
         "flags": invalid
     }
     dictParsedtags = {}
@@ -207,7 +207,7 @@ function parseTags(tags)
                 end for
                 dictParsedtags[parsedTag[0].replace("-", "_")] = dict
             else
-                dictParsedTags[parsedTag[0].replace("-", "_")] = invalid
+                dictParsedtags[parsedTag[0].replace("-", "_")] = invalid
             end if
         else if parsedTag[0] = "emotes"
             if tagValue <> invalid
@@ -220,7 +220,7 @@ function parseTags(tags)
                     for each position in positions
                         positionParts = position.split("-")
                         textPositions.push({
-                            startPosition: positionParts[0]
+                            startPosition: positionParts[0],
                             endPosition: positionParts[1]
                         })
                     end for
@@ -233,7 +233,7 @@ function parseTags(tags)
         else if parsedTag[0] = "emote-sets"
             if tagValue <> invalid
                 emoteSetIds = tagValue.split(",")
-                dictParsedTags[parsedTag[0].replace("-", "_")] = emoteSetIds
+                dictParsedtags[parsedTag[0].replace("-", "_")] = emoteSetIds
             end if
         else
             if tagsToIgnore.DoesExist(parsedTag[0])
@@ -251,7 +251,7 @@ function parseParameters(rawParameterscomponent, command)
     idx = 0
     commandParts = rawParameterscomponent.mid((idx + 1)).trim()
     paramsidx = commandParts.InStr(" ")
-    if paramsIdx = -1
+    if paramsidx = -1
         command.botCommand = commandParts.mid(0)
     else
         command.botCommand = commandParts.mid(0, paramsidx)
@@ -271,7 +271,7 @@ function parseSource(rawSourceComponent)
             host = sourceParts[0]
         end if
         return {
-            nick: nick
+            nick: nick,
             host: host.trim()
         }
     else
@@ -286,13 +286,13 @@ function parseCommand(rawCommandComponent)
     commandParts = rawCommandComponent.split(" ")
     if commandParts[0] = "JOIN" or commandParts[0] = "PART" or commandParts[0] = "NOTICE" or commandParts[0] = "HOSTTARGET" or commandParts[0] = "PRIVMSG"
         parsedCommand = {
-            command: commandParts[0]
+            command: commandParts[0],
             channel: commandParts[1]
         }
     else if commandParts[0] = "USERNOTICE"
         ' User Subscribed Event
         parsedCommand = {
-            command: commandParts[0]
+            command: commandParts[0],
             channel: commandParts[1]
         }
     else if commandParts[0] = "PING"
@@ -305,7 +305,7 @@ function parseCommand(rawCommandComponent)
             capRequestEnabled = true
         end if
         parsedCommand = {
-            command: commandParts[0]
+            command: commandParts[0],
             isCapRequestEnabled: capRequestEnabled
         }
     else if commandParts[0] = "GLOBALUSERSTATE"
@@ -314,8 +314,8 @@ function parseCommand(rawCommandComponent)
         }
     else if commandParts[0] = "USERSTATE" or commandParts[0] = "ROOMSTATE"
         parsedCommand = {
-            command: commandParts[0]
-            channel: commandPArts[1]
+            command: commandParts[0],
+            channel: commandParts[1]
         }
     else if commandParts[0] = "RECONNECT"
         ? "The Twitch IRC server is about to terminate the connection for maintenance."
@@ -332,7 +332,7 @@ function parseCommand(rawCommandComponent)
     else if commandParts[0] = "001"
         ' Welcome Message
         parsedCommand = {
-            command: commandParts[0]
+            command: commandParts[0],
             channel: commandParts[1]
         }
     else if commandParts[0] = "002" or commandParts[0] = "003" or commandParts[0] = "004" or commandParts[0] = "353" or commandParts[0] = "366" or commandParts[0] = "372" or commandParts[0] = "375" or commandParts[0] = "376"

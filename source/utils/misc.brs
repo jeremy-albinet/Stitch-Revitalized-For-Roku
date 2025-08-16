@@ -289,7 +289,7 @@ function TimeStamp()
 end function
 
 
-function setTwitchContentFields(twitchContentNode, fields)
+sub setTwitchContentFields(twitchContentNode, fields)
     if fields.contentId <> invalid
         twitchContentNode.contentId = fields.contentId
     end if
@@ -347,10 +347,10 @@ function setTwitchContentFields(twitchContentNode, fields)
     if fields.datePublished <> invalid
         twitchContentNode.datePublished = fields.datePublished
     end if
-end function
+end sub
 
 ' Helper function to add and set fields of a content node
-function AddAndSetFields(node as object, aa as object)
+sub AddAndSetFields(node as object, aa as object)
     'This gets called for every content node -- no logging since it's pretty verbose
     addFields = {}
     setFields = {}
@@ -363,7 +363,7 @@ function AddAndSetFields(node as object, aa as object)
     end for
     node.setFields(setFields)
     node.addFields(addFields)
-end function
+end sub
 
 
 'Create a row of content
@@ -404,7 +404,7 @@ function createGrid(list as object)
 end function
 
 
-sub numberToText(number as object) as object
+function numberToText(number as object) as object
     result = ""
     if number < 1000
         result = number.toStr()
@@ -419,7 +419,7 @@ sub numberToText(number as object) as object
         result = r.Match(n)[0] + "M"
     end if
     return result
-end sub
+end function
 
 
 function getRelativeTimePublished(timePublished as string) as string

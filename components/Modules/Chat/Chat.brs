@@ -8,7 +8,7 @@ sub init()
     m.translation = m.lower_bound - m.line_height
 end sub
 
-function updatePanelTranslation()
+sub updatePanelTranslation()
     ' m.chatPanel.translation = [(m.top.width * 3), 0]
     setChatPanelSize()
     setSizingParameters()
@@ -17,9 +17,9 @@ function updatePanelTranslation()
     for each chatmessage in m.chatPanel.getChildren(-1, 0)
         m.chatPanel.removeChild(chatmessage)
     end for
-end function
+end sub
 
-function setSizingParameters()
+sub setSizingParameters()
     '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ' Size and Spacing Settings
     '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -33,9 +33,9 @@ function setSizingParameters()
 
     m.lower_bound = m.chatPanel.height - m.message_height
     '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-end function
+end sub
 
-function setChatPanelSize()
+sub setChatPanelSize()
     m.font_size = m.top.fontSize
     ' m.chatPanel.width = m.global.constants.screenWidth
     ' m.chatPanel.height = m.global.constants.screenHeight
@@ -43,7 +43,7 @@ function setChatPanelSize()
     m.lower_bound = m.chatPanel.height - m.font_size
     m.right_bound = m.chatPanel.width - m.font_size
     m.upper_bound = 0 - (m.chatPanel.height - m.font_size)
-end function
+end sub
 
 sub onInvisible()
     if m.top.visible = false
@@ -87,7 +87,7 @@ sub onEnterChannel()
     m.EmoteJob.control = "run"
 end sub
 
-sub extractMessage(section) as object
+function extractMessage(section) as object
     m.userstate_change = false
     words = section.Split(" ")
     if words[2] = "USERSTATE"
@@ -98,7 +98,7 @@ sub extractMessage(section) as object
         message += words[i] + " "
     end for
     return message
-end sub
+end function
 
 function buildBadges(badges)
     group = createObject("roSGNode", "Group")
@@ -189,7 +189,7 @@ end function
 
 '
 
-function buildMessage(message, x_translation, emote_set, username_translation)
+function buildMessage(message, x_translation)
     message_group = createObject("roSGNode", "Group")
     words = message.Split(" ")
     line_available_space = m.right_bound - x_translation
@@ -256,7 +256,6 @@ sub onNewCommentObj()
     m.chat.readyForNextComment = false
     if m.chat.nextCommentObj <> invalid
         comment = m.chat.nextCommentObj
-        posteruri = invalid
         display_name = comment.tags.display_name
         message = comment.parameters.trim()
         color = ""
@@ -317,7 +316,7 @@ sub onNewCommentObj()
         colon.translation = [x_translation, 0]
         x_translation += colon.localBoundingRect().width + 1
 
-        message_group = buildMessage(message, x_translation, emote_set, username.translation[0])
+        message_group = buildMessage(message, x_translation)
         message_group.translation = [0, 0]
         x_translation += message_group.localBoundingRect().width + 1
 

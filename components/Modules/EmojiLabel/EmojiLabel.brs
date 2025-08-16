@@ -34,7 +34,7 @@ sub onTimerFireChange() as void
     m.timer.control = "stop"
 end sub
 
-function doScroll()
+sub doScroll()
     if m.top.repeatCount <> invalid
         if m.top.repeatCount <> 0
             m.animation.repeat = true
@@ -59,10 +59,10 @@ function doScroll()
             m.timer.control = "stop"
         end if
     end if
-end function
+end sub
 
 ' Will update the components if an interface field has changed.
-function updateComponents()
+sub updateComponents()
     ' Only update components if we are actually rendering text
     if m.top.text <> ""
         width = m.top.width
@@ -143,18 +143,18 @@ function updateComponents()
             yTranslation = height
         end if
         m.top.clippingRect = {
-            width: m.top.maxWidth
-            height: (m.top.height * 2)
-            x: 0
+            width: m.top.maxWidth,
+            height: (m.top.height * 2),
+            x: 0,
             y: (0 - (m.top.height / 2))
         }
         ' m.top.translation = [m.top.translation[0], m.top.translation[1] + (height / 2)]
         ' m.components.translation = [xTranslation, height]
     end if
-end function
+end sub
 
 ' Convenience function to check if we need to truncate the label
-function checkBoundingWidth()
+sub checkBoundingWidth()
     curWidth = 0
     width = m.top.width
     ' Reset previous ellipsis if present
@@ -202,7 +202,7 @@ function checkBoundingWidth()
             end if
         end if
     end for
-end function
+end sub
 
 ' function normalizeText(text as string)
 '     unicodeRegex = createObject("roRegex", unidecodeRegex(), "m")
@@ -215,7 +215,7 @@ end function
 ' end function
 
 ' Updates the entire label components with new text.
-function setText()
+sub setText()
     labelText = m.top.text
 
     resetComponents()
@@ -251,7 +251,7 @@ function setText()
 
     ' Update the components.
     updateComponents()
-end function
+end sub
 
 ' Create a new label to display non-emoji text in the label.
 function createLabel(withText as string)
@@ -296,11 +296,11 @@ function getAllComponents()
 end function
 
 ' Removes all child components to reset the layout group.
-function resetComponents()
+sub resetComponents()
     while m.components.getChildCount() > 0
         m.components.removeChildIndex(0)
     end while
-end function
+end sub
 
 
 ' function onSizeChange()

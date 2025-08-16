@@ -133,7 +133,7 @@ end sub
 '     return newRowList
 ' end function
 
-function updateRowList(jsonContent)
+sub updateRowList(jsonContent)
     ? "updateRowList: "; TimeStamp()
     contentCollection = createObject("roSGNode", "ContentNode")
     if jsonContent <> invalid
@@ -159,7 +159,6 @@ function updateRowList(jsonContent)
             hasRowLabel = false
         end if
         showRowLabel.push(hasRowLabel)
-        defaultRowHeight = 275
         if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
             rowItemSize.push([320, 180])
             if hasRowLabel
@@ -185,7 +184,7 @@ function updateRowList(jsonContent)
     m.rowlist.numRows = contentCollection.getChildCount()
     m.rowlist.rowlabelcolor = m.global.constants.colors.twitch.purple10
     m.rowlist.visible = true
-end function
+end sub
 
 sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
@@ -210,4 +209,5 @@ function onKeyEvent(key as string, press as boolean) as boolean
             return true
         end if
     end if
+    return false
 end function

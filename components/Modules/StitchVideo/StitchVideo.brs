@@ -1,4 +1,4 @@
-function init()
+sub init()
     ' Initialize UI elements
     m.top.enableUI = false
     m.top.enableTrickPlay = false
@@ -77,24 +77,24 @@ function init()
     updateProgressBar()
     setupLiveUI()
     updateLatencyIndicator()
-    
+
     ' Show loading overlay initially
     showLoadingOverlay()
 
     ' ? "[StitchVideo] Initialized for live stream"
-end function
+end sub
 
 sub createMessageOverlay()
     if m.messageOverlay = invalid
         m.messageOverlay = CreateObject("roSGNode", "Group")
         m.messageOverlay.visible = false
-        
+
         messageBg = CreateObject("roSGNode", "Rectangle")
         messageBg.width = 600
         messageBg.height = 150
         messageBg.color = "0x000000CC"
         messageBg.translation = [340, 285]
-        
+
         messageTitle = CreateObject("roSGNode", "Label")
         messageTitle.id = "messageTitle"
         messageTitle.font = "font:MediumBoldSystemFont"
@@ -104,7 +104,7 @@ sub createMessageOverlay()
         messageTitle.width = 600
         messageTitle.height = 50
         messageTitle.translation = [340, 300]
-        
+
         messageText = CreateObject("roSGNode", "Label")
         messageText.id = "messageText"
         messageText.font = "font:SmallSystemFont"
@@ -114,7 +114,7 @@ sub createMessageOverlay()
         messageText.width = 600
         messageText.height = 50
         messageText.translation = [340, 350]
-        
+
         m.messageOverlay.appendChild(messageBg)
         m.messageOverlay.appendChild(messageTitle)
         m.messageOverlay.appendChild(messageText)
@@ -425,15 +425,15 @@ sub showMessage(title as string, message as string, duration as float)
             end if
         end if
     end if
-    
+
     m.messageOverlay.visible = true
-    
+
     ' Clear any existing auto-hide timer
     if m.messageTimer <> invalid
         m.messageTimer.control = "stop"
         m.messageTimer = invalid
     end if
-    
+
     ' Set up auto-hide timer if duration > 0
     if duration > 0
         m.messageTimer = CreateObject("roSGNode", "Timer")

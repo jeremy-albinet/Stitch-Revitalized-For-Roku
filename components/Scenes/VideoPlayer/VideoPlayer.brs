@@ -6,7 +6,7 @@ sub handleContent()
     m.PlayVideo.control = "run"
 end sub
 
-function handleItemSelected()
+sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     ' m.top.playContent = true
@@ -16,14 +16,14 @@ function handleItemSelected()
     m.PlayVideo.contentRequested = selectedItem.getFields()
     m.PlayVideo.functionName = "main"
     m.PlayVideo.control = "run"
-end function
+end sub
 
-function onResponse()
+sub onResponse()
     ' content.ignoreStreamErrors = true
     m.top.content = m.PlayVideo.response
     m.top.metadata = m.PlayVideo.metadata
     playContent()
-end function
+end sub
 
 sub taskStateChanged(event as object)
     ' print "Player: taskStateChanged(), id = "; event.getNode(); ", "; event.getField(); " = "; event.getData()
@@ -36,9 +36,9 @@ end sub
 sub controlChanged()
     'handle orders by the parent/owner
     control = m.top.control
-    if control = "play" then
+    if control = "play"
         playContent()
-    else if control = "stop" then
+    else if control = "stop"
         exitPlayer()
     end if
 end sub
@@ -57,7 +57,7 @@ sub initChat()
     end if
 end sub
 
-function onQualityChangeRequested()
+sub onQualityChangeRequested()
     ' ? "[Video Wrapper] - Quality Change Requested: "; m.video.qualityChangeRequest
     new_content = CreateObject("roSGNode", "TwitchContentNode")
     new_content.setFields(m.top.contentRequested.getFields()) ' Preserve original request fields
@@ -67,7 +67,7 @@ function onQualityChangeRequested()
     exitPlayer() ' This will clean up the old video
     playContent() ' This will play the new m.top.content
     m.allowBreak = true
-end function
+end sub
 
 sub configureVideoForLatency(video as object, isLive as boolean)
     latencyPreference = get_user_setting("preferred.latency", "low")
@@ -213,9 +213,7 @@ sub measureStreamDelay()
             ' ? "[VideoPlayer] ESTIMATED LIVE DELAY: "; Int(m.estimatedLiveDelay); " seconds"
 
             ' Convert to minutes:seconds for readability
-            delayMinutes = Int(m.estimatedLiveDelay / 60)
-            delaySeconds = Int(m.estimatedLiveDelay mod 60)
-            ' ? "[VideoPlayer] Delay: "; delayMinutes; ":"; FormatSeconds(delaySeconds)
+            ' ? "[VideoPlayer] Delay: "; Int(m.estimatedLiveDelay / 60); ":"; FormatSeconds(Int(m.estimatedLiveDelay mod 60))
 
             ' Additional context
             ' if progressionRate < 0.95
@@ -360,7 +358,7 @@ sub playContent()
     end if
 
     contentNodeToPlay = m.top.content ' This is the TwitchContentNode
-    if contentNodeToPlay <> invalid then
+    if contentNodeToPlay <> invalid
         ' ? "[VideoPlayer] Preparing to play content. QualityID: "; contentNodeToPlay.QualityID
         ' ? "[VideoPlayer] Latency Preference: "; get_user_setting("preferred.latency", "low")
 
@@ -482,7 +480,7 @@ end sub
 function onKeyEvent(key, press) as boolean
     if press
         ' ? "[VideoPlayer] Key Event: "; key
-        if key = "back" then
+        if key = "back"
             if m.chatWindow <> invalid and m.chatWindow.visible = true
                 m.chatWindow.callFunc("stopJobs") ' Stop chat jobs if chat is open
             end if
@@ -513,7 +511,7 @@ sub init()
     m.lastRealTime = invalid
     m.lastVideoPosition = invalid
     m.estimatedLiveDelay = invalid
-    
+
     ' Initialize error handler
     m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
     m.bufferCheckTimer = invalid
@@ -574,7 +572,7 @@ sub onVideoStateChange()
     ' This is observed on m.video.
     ' StitchVideo/CustomVideo have their own onVideoStateChange for UI.
     ' ? "[VideoPlayer] Global onVideoStateChange: "; m.video.state
-    
+
     ' Handle buffering states
     if m.video.state = "buffering"
         handleBufferingState()
@@ -586,9 +584,9 @@ sub onVideoStateChange()
             m.bufferCheckTimer = invalid
         end if
     end if
-    
+
     m.lastBufferState = m.video.state
-    
+
     if m.video.state = "finished" and m.allowBreak
         ' ? "[VideoPlayer] Video finished, exiting player."
         exitPlayer()
@@ -607,50 +605,50 @@ sub handleStreamError()
     if m.errorHandler = invalid
         m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
     end if
-    
+
     errorCode = m.video.errorCode
     errorMessage = m.video.errorMessage
     if errorMessage = invalid then errorMessage = "Unknown error"
-    
+
     ' Get error classification for user-friendly messages
     errorType = m.errorHandler.callFunc("classifyError", errorCode, errorMessage)
-    
+
     recovery = m.errorHandler.callFunc("handleVideoError", errorCode, errorMessage, m.video, m.top.contentRequested)
-    
+
     if recovery.shouldRetry
         ' ? "[VideoPlayer] Attempting error recovery: "; recovery.action
-        
+
         if recovery.action = "retry"
             ? "[VideoPlayer] Retry action with delay: "; recovery.delay
             ' Show temporary message while retrying
-            showTemporaryMessage("Reconnecting...", recovery.delay / 1000)
-            
+            showTemporaryMessage("Reconnecting...")
+
             ' Retry with same content after delay
             retryTimer = CreateObject("roSGNode", "Timer")
             retryTimer.duration = recovery.delay / 1000
             retryTimer.repeat = false
             retryTimer.observeField("fire", "retryPlayback")
             retryTimer.control = "start"
-            
+
         else if recovery.action = "change_quality" and recovery.newContent <> invalid
             ' Show quality change message
-            showTemporaryMessage("Switching to lower quality...", 2)
-            
+            showTemporaryMessage("Switching to lower quality...")
+
             ' Switch to different quality
             m.video.qualityChangeRequest = recovery.newContent.qualityID
             onQualityChangeRequested()
-            
+
         else if recovery.action = "refresh_auth"
             ' Show auth message
-            showTemporaryMessage("Refreshing authentication...", 2)
-            
+            showTemporaryMessage("Refreshing authentication...")
+
             ' Refresh authentication and retry
             refreshAuthAndRetry()
-            
+
         else if recovery.action = "force_lower_quality"
             ' Show quality message
-            showTemporaryMessage("Adjusting quality for better playback...", 2)
-            
+            showTemporaryMessage("Adjusting quality for better playback...")
+
             ' Force switch to lowest available quality
             if m.video.qualityOptions <> invalid and m.video.qualityOptions.count() > 0
                 lowestQuality = m.video.qualityOptions[m.video.qualityOptions.count() - 1]
@@ -678,14 +676,14 @@ sub handleBufferingState()
     if m.bufferStartTime = 0
         m.bufferStartTime = CreateObject("roDateTime").AsSeconds()
     end if
-    
+
     ' Check for excessive buffering
     currentTime = CreateObject("roDateTime").AsSeconds()
     bufferDuration = currentTime - m.bufferStartTime
-    
+
     if bufferDuration > 10 ' More than 10 seconds of buffering
         recovery = m.errorHandler.callFunc("handleBufferStall", m.video)
-        
+
         if recovery.shouldRecover
             if recovery.action = "reduce_quality"
                 ' Switch to lower quality
@@ -699,10 +697,10 @@ sub handleBufferingState()
                 adjustBufferConfig()
             end if
         end if
-        
+
         m.bufferStartTime = 0 ' Reset timer
     end if
-    
+
     ' Start a timer to check for stuck buffering
     if m.bufferCheckTimer = invalid
         m.bufferCheckTimer = CreateObject("roSGNode", "Timer")
@@ -737,12 +735,12 @@ function findLowerQuality() as dynamic
     if m.video.qualityOptions = invalid or m.video.qualityOptions.count() = 0
         return invalid
     end if
-    
+
     currentQuality = m.video.selectedQuality
     if currentQuality = invalid
         currentQuality = m.video.qualityOptions[0]
     end if
-    
+
     ' Find current index
     currentIndex = -1
     for i = 0 to m.video.qualityOptions.count() - 1
@@ -751,12 +749,12 @@ function findLowerQuality() as dynamic
             exit for
         end if
     end for
-    
+
     ' Return next lower quality
     if currentIndex >= 0 and currentIndex < m.video.qualityOptions.count() - 1
         return m.video.qualityOptions[currentIndex + 1]
     end if
-    
+
     return invalid
 end function
 
@@ -814,7 +812,7 @@ sub onVideoBack()
     exitPlayer()
 end sub
 
-sub showTemporaryMessage(message as string, durationSeconds as float)
+sub showTemporaryMessage(message as string)
     ' For now, we'll skip temporary messages since we can't call external functions on Video nodes
     ' The error handling still works with the showErrorDialog function
     ? "[VideoPlayer] Status: "; message

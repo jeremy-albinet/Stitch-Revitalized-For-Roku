@@ -67,7 +67,7 @@ sub runDecoder()
                 ' Skip the comment extension block.
                 ' The comment extension block ends when a zero-value byte is found.
                 commentExtensionLastByteIndex = byteIndex + 2
-                while (gifBytes[commentExtensionLastByteIndex] > 0)
+                while gifBytes[commentExtensionLastByteIndex] > 0
                     commentExtensionLastByteIndex += gifBytes[commentExtensionLastByteIndex] + 1
                 end while
                 increment = commentExtensionLastByteIndex - byteIndex + 1
@@ -112,7 +112,7 @@ sub runDecoder()
             ' Determine the image descriptor + the image data size
             imageDataByteStartIndex = localColorTableInfoByteIndex + localColorTableSize + 1
             imageDataByteEndIndex = imageDataByteStartIndex + 1
-            while (gifBytes[imageDataByteEndIndex] > 0)
+            while gifBytes[imageDataByteEndIndex] > 0
                 imageDataByteEndIndex += gifBytes[imageDataByteEndIndex] + 1
             end while
             imageDescriptorAndDataSize = imageDataByteEndIndex - byteIndex + 1

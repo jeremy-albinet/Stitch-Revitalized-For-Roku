@@ -30,11 +30,11 @@ function ArrayUtil() as object
 
         isArray: function(arr) as boolean
             return type(arr) = "roArray"
-        end function
+        end function,
 
         contains: function(arr as object, element as dynamic) as boolean
             return m.indexOf(arr, element) >= 0
-        end function
+        end function,
 
         indexOf: function(arr as object, element as dynamic) as integer
             if not m.isArray(arr) then return -1
@@ -48,7 +48,7 @@ function ArrayUtil() as object
             end for
 
             return -1
-        end function
+        end function,
 
         lastIndexOf: function(arr as object, element as dynamic) as integer
             if not m.isArray(arr) then return -1
@@ -62,7 +62,7 @@ function ArrayUtil() as object
             end for
 
             return -1
-        end function
+        end function,
 
         slice: function(arr as object, fromIndex = 0 as integer, toIndex = invalid as dynamic)
             if not m.isArray(arr) then return invalid
@@ -83,7 +83,7 @@ function ArrayUtil() as object
             end for
 
             return slicedArr
-        end function
+        end function,
 
         fill: function(arr as object, value as dynamic, startIndex = 0 as integer, endIndex = invalid as dynamic)
             if not m.isArray(arr) then return invalid
@@ -100,7 +100,7 @@ function ArrayUtil() as object
             if endIndex < startIndex then endIndex = startIndex
 
             for i = 0 to lastIndex
-                if i >= startIndex and i <= endIndex then
+                if i >= startIndex and i <= endIndex
                     filledArr.push(value)
                 else
                     filledArr.push(arr[i])
@@ -108,7 +108,7 @@ function ArrayUtil() as object
             end for
 
             return filledArr
-        end function
+        end function,
 
         flat: function(arr as object, depth = 1 as integer)
             if not m.isArray(arr) then return invalid
@@ -120,8 +120,8 @@ function ArrayUtil() as object
             flattenArr = []
 
             for each item in arr
-                if m.isArray(item) then
-                    if depth > 1 then
+                if m.isArray(item)
+                    if depth > 1
                         flattenArr.append(m.flat(item, depth - 1))
                     else
                         flattenArr.append(item)
@@ -132,7 +132,7 @@ function ArrayUtil() as object
             end for
 
             return flattenArr
-        end function
+        end function,
 
         map: function(arr as object, func as function)
             if not m.isArray(arr) then return invalid
@@ -147,7 +147,7 @@ function ArrayUtil() as object
             end for
 
             return mappedArr
-        end function
+        end function,
 
         reduce: function(arr as object, func as function, initialValue = invalid as dynamic)
             if not m.isArray(arr) then return invalid
@@ -158,7 +158,7 @@ function ArrayUtil() as object
 
             if size = 0 then return accumulator
 
-            if accumulator = invalid then
+            if accumulator = invalid
                 accumulator = arr[0]
                 startAt = 1
             end if
@@ -168,7 +168,7 @@ function ArrayUtil() as object
             end for
 
             return accumulator
-        end function
+        end function,
 
         filter: function(arr as object, func as function)
             if not m.isArray(arr) then return invalid
@@ -179,13 +179,13 @@ function ArrayUtil() as object
             if size = 0 then return mappedArr
 
             for i = 0 to size - 1
-                if func(arr[i], i, arr) then
+                if func(arr[i], i, arr)
                     mappedArr.push(arr[i])
                 end if
             end for
 
             return mappedArr
-        end function
+        end function,
 
         find: function(arr as object, func as function)
             if not m.isArray(arr) then return invalid
@@ -195,13 +195,13 @@ function ArrayUtil() as object
             if size = 0 then return invalid
 
             for i = 0 to size - 1
-                if func(arr[i], i, arr) then
+                if func(arr[i], i, arr)
                     return arr[i]
                 end if
             end for
 
             return invalid
-        end function
+        end function,
 
         findIndex: function(arr as object, func as function) as integer
             if not m.isArray(arr) then return -1
@@ -211,13 +211,13 @@ function ArrayUtil() as object
             if size = 0 then return -1
 
             for i = 0 to size - 1
-                if func(arr[i], i, arr) then
+                if func(arr[i], i, arr)
                     return i
                 end if
             end for
 
             return -1
-        end function
+        end function,
 
         every: function(arr as object, func as function) as boolean
             if not m.isArray(arr) then return true
@@ -227,13 +227,13 @@ function ArrayUtil() as object
             if size = 0 then return true
 
             for i = 0 to size - 1
-                if func(arr[i], i, arr) = false then
+                if func(arr[i], i, arr) = false
                     return false
                 end if
             end for
 
             return true
-        end function
+        end function,
 
         some: function(arr as object, func as function) as boolean
             if not m.isArray(arr) then return false
@@ -243,13 +243,13 @@ function ArrayUtil() as object
             if size = 0 then return false
 
             for i = 0 to size - 1
-                if func(arr[i], i, arr) then
+                if func(arr[i], i, arr)
                     return true
                 end if
             end for
 
             return false
-        end function
+        end function,
 
         groupBy: function(arr as object, key as string)
             if not m.isArray(arr) then return invalid
@@ -271,7 +271,7 @@ function ArrayUtil() as object
                 groupName = keyValue.toStr()
                 groupArray = accumulator[groupName]
 
-                if m.isArray(groupArray) then
+                if m.isArray(groupArray)
                     groupArray.push(element)
                 else
                     accumulator[groupName] = []

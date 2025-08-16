@@ -11,7 +11,7 @@ sub init()
     m.maxBufferStalls = 5
     m.bufferStallTimeout = 10000 ' 10 seconds
     m.lastBufferTime = 0
-    
+
     ' Error recovery strategies
     m.recoveryStrategies = {
         "connection_error": "retry_with_backoff",
@@ -34,20 +34,20 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
         message: errorMessage,
         timestamp: CreateObject("roDateTime").AsSeconds()
     })
-    
+
     ' Determine error type and recovery strategy
     errorType = classifyError(errorCode, errorMessage)
     strategy = m.recoveryStrategies[errorType]
-    
+
     ' ? "[VideoErrorHandler] Error detected - Code: "; errorCode; ", Type: "; errorType; ", Strategy: "; strategy
-    
+
     recovery = {
         shouldRetry: false,
         action: "none",
         delay: 0,
         newContent: invalid
     }
-    
+
     if strategy = "retry_with_backoff"
         if m.currentRetryCount < m.maxRetries
             m.currentRetryCount = m.currentRetryCount + 1
@@ -59,7 +59,7 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
             recovery.action = "fail"
             ' ? "[VideoErrorHandler] Max retries reached, playback failed"
         end if
-        
+
     else if strategy = "quality_downgrade"
         newQuality = getNextLowerQuality(video)
         if newQuality <> invalid
@@ -72,7 +72,7 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
             recovery.action = "retry"
             recovery.delay = 2000
         end if
-        
+
     else if strategy = "retry_different_quality"
         alternativeQuality = getAlternativeQuality(video, contentRequested)
         if alternativeQuality <> invalid
@@ -82,41 +82,41 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
             recovery.delay = 1500
             ' ? "[VideoErrorHandler] Trying alternative quality: "; alternativeQuality.qualityID
         end if
-        
+
     else if strategy = "refresh_token"
         ' Trigger token refresh
         recovery.shouldRetry = true
         recovery.action = "refresh_auth"
         recovery.delay = 500
         ' ? "[VideoErrorHandler] Requesting authentication refresh"
-        
+
     else if strategy = "switch_to_lower_quality"
         ' Force switch to lower quality for buffer issues
         recovery.shouldRetry = true
         recovery.action = "force_lower_quality"
         recovery.delay = 2000
     end if
-    
+
     return recovery
 end function
 
 function handleBufferStall(video as object) as object
     currentTime = CreateObject("roDateTime").AsSeconds()
-    
+
     ' Check if this is a new buffer stall
     if currentTime - m.lastBufferTime > m.bufferStallTimeout
         m.bufferStallCount = 0
     end if
-    
+
     m.bufferStallCount = m.bufferStallCount + 1
     m.lastBufferTime = currentTime
-    
+
     recovery = {
         shouldRecover: false,
         action: "wait",
         delay: 0
     }
-    
+
     if m.bufferStallCount > m.maxBufferStalls
         ' ? "[VideoErrorHandler] Excessive buffering detected ("; m.bufferStallCount; " stalls)"
         recovery.shouldRecover = true
@@ -129,7 +129,7 @@ function handleBufferStall(video as object) as object
         recovery.action = "adjust_buffer"
         recovery.delay = 0
     end if
-    
+
     return recovery
 end function
 
@@ -172,11 +172,11 @@ function calculateBackoffDelay() as integer
     baseDelay = m.retryDelay * (2 ^ (m.currentRetryCount - 1))
     jitter = Rnd(500) ' Add random jitter up to 500ms
     delay = baseDelay + jitter
-    
+
     if delay > m.maxRetryDelay
         delay = m.maxRetryDelay
     end if
-    
+
     return delay
 end function
 
@@ -184,12 +184,12 @@ function getNextLowerQuality(video as object) as object
     if video.qualityOptions = invalid or video.qualityOptions.count() = 0
         return invalid
     end if
-    
+
     currentQuality = video.selectedQuality
     if currentQuality = invalid
         return invalid
     end if
-    
+
     ' Find current quality index
     currentIndex = -1
     for i = 0 to video.qualityOptions.count() - 1
@@ -198,7 +198,7 @@ function getNextLowerQuality(video as object) as object
             exit for
         end if
     end for
-    
+
     ' Get next lower quality (higher index typically means lower quality)
     if currentIndex >= 0 and currentIndex < video.qualityOptions.count() - 1
         return {
@@ -206,7 +206,7 @@ function getNextLowerQuality(video as object) as object
             isLowerQuality: true
         }
     end if
-    
+
     return invalid
 end function
 
@@ -214,7 +214,7 @@ function getAlternativeQuality(video as object, contentRequested as object) as o
     if video.qualityOptions = invalid or video.qualityOptions.count() = 0
         return invalid
     end if
-    
+
     ' Try to find a mid-range quality as alternative
     qualityCount = video.qualityOptions.count()
     if qualityCount > 2
@@ -224,7 +224,7 @@ function getAlternativeQuality(video as object, contentRequested as object) as o
             isAlternative: true
         }
     end if
-    
+
     return invalid
 end function
 
@@ -241,7 +241,7 @@ function shouldGiveUp() as boolean
         ' Too many errors in this session
         return true
     end if
-    
+
     ' Check for repeated errors in short time
     currentTime = CreateObject("roDateTime").AsSeconds()
     recentErrors = 0
@@ -250,11 +250,11 @@ function shouldGiveUp() as boolean
             recentErrors = recentErrors + 1
         end if
     end for
-    
+
     if recentErrors > 5
         return true
     end if
-    
+
     return false
 end function
 
@@ -265,7 +265,7 @@ function getErrorStatistics() as object
         bufferStalls: m.bufferStallCount,
         errorTypes: {}
     }
-    
+
     for each error in m.errorHistory
         errorType = classifyError(error.code, error.message)
         if stats.errorTypes[errorType] = invalid
@@ -273,7 +273,7 @@ function getErrorStatistics() as object
         end if
         stats.errorTypes[errorType] = stats.errorTypes[errorType] + 1
     end for
-    
+
     return stats
 end function
 
@@ -330,7 +330,7 @@ function getUserFriendlyErrorMessage(errorCode as integer, errorType as string) 
             suggestion: "Try selecting a lower quality setting (720p or below) from the stream options"
         }
     }
-    
+
     ' Default message if error type not found
     if messages[errorType] = invalid
         return {
@@ -339,6 +339,6 @@ function getUserFriendlyErrorMessage(errorCode as integer, errorType as string) 
             suggestion: "Please try again later"
         }
     end if
-    
+
     return messages[errorType]
 end function

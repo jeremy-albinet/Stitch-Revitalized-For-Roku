@@ -8,7 +8,7 @@ sub init()
     m.poster = invalid
 end sub
 
-function start(frames as object, fps as float, poster as object, frameDelay as object)
+sub start(frames as object, fps as float, poster as object, frameDelay as object)
     m.frames = frames
     m.poster = poster
     m.frameDelay = frameDelay
@@ -16,9 +16,9 @@ function start(frames as object, fps as float, poster as object, frameDelay as o
     ? "fps: "; fps
     m.animator.duration = m.frameDelay[0]
     m.animator.control = "start"
-end function
+end sub
 
-function finish()
+sub finish()
     m.animator.control = "stop"
 
     ' Restore first frame
@@ -30,7 +30,7 @@ function finish()
     m.frames = []
     m.frameDelay = []
     m.poster = invalid
-end function
+end sub
 
 sub displayNextFrame()
     m.frameIndex++
