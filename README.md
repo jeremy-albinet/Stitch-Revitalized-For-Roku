@@ -1,3 +1,7 @@
+[![CI](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/ci.yml)
+[![Release](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/release.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/release.yml)
+[![Code Quality](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/code-quality.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/code-quality.yml)
+
 [![stars - Stitch-Revitalized-For-Roku](https://img.shields.io/github/stars/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
 [![forks - Stitch-Revitalized-For-Roku](https://img.shields.io/github/forks/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
 [![GitHub release](https://img.shields.io/github/release/jeremy-albinet/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/)

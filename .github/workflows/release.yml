@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '23.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Create package
+      run: npm run package
+      
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true
+        files: out/Stitch-Revitalized-For-Roku.zip
+        name: Stitch Revitalized v${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Stitch Revitalized v${{ steps.version.outputs.VERSION }}
+          
+          ### Changes
+          See commit history for detailed changes.
+          
+          ### Installation
+          1. Download the `Stitch-Revitalized-For-Roku.zip` file
+          2. Enable Developer Mode on your Roku device
+          3. Upload the ZIP file via the Roku Developer Application Installer
+
