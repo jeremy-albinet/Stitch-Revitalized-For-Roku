@@ -42,6 +42,10 @@ function init()
     m.channelUsername = m.top.findNode("channelUsername")
     m.avatar = m.top.findNode("avatar")
 
+    ' Loading overlay
+    m.loadingOverlay = m.top.findNode("loadingOverlay")
+    m.loadingSpinner = m.top.findNode("loadingSpinner")
+
     ' Quality dialog
     m.qualityDialog = m.top.findNode("QualityDialog")
     ' Set up quality dialog observer once during initialization
@@ -69,51 +73,53 @@ function init()
     m.top.observeField("qualityOptions", "onQualityOptionsChange")
     m.top.observeField("selectedQuality", "onSelectedQualityChange")
 
-    ' Pre-create message overlay to avoid runtime overhead
-    createMessageOverlay()
-    
     ' Initialize UI
     updateProgressBar()
     setupLiveUI()
     updateLatencyIndicator()
+    
+    ' Show loading overlay initially
+    showLoadingOverlay()
 
     ' ? "[StitchVideo] Initialized for live stream"
 end function
 
 sub createMessageOverlay()
-    m.messageOverlay = CreateObject("roSGNode", "Group")
-    m.messageOverlay.visible = false
-    
-    messageBg = CreateObject("roSGNode", "Rectangle")
-    messageBg.width = 600
-    messageBg.height = 150
-    messageBg.color = "0x000000CC"
-    messageBg.translation = [340, 285]
-    
-    messageTitle = CreateObject("roSGNode", "Label")
-    messageTitle.id = "messageTitle"
-    messageTitle.font = "font:MediumBoldSystemFont"
-    messageTitle.text = ""
-    messageTitle.horizAlign = "center"
-    messageTitle.vertAlign = "center"
-    messageTitle.width = 600
-    messageTitle.height = 50
-    messageTitle.translation = [340, 300]
-    
-    messageText = CreateObject("roSGNode", "Label")
-    messageText.id = "messageText"
-    messageText.font = "font:SmallSystemFont"
-    messageText.text = ""
-    messageText.horizAlign = "center"
-    messageText.vertAlign = "center"
-    messageText.width = 600
-    messageText.height = 50
-    messageText.translation = [340, 350]
-    
-    m.messageOverlay.appendChild(messageBg)
-    m.messageOverlay.appendChild(messageTitle)
-    m.messageOverlay.appendChild(messageText)
-    m.top.appendChild(m.messageOverlay)
+    if m.messageOverlay = invalid
+        m.messageOverlay = CreateObject("roSGNode", "Group")
+        m.messageOverlay.visible = false
+        
+        messageBg = CreateObject("roSGNode", "Rectangle")
+        messageBg.width = 600
+        messageBg.height = 150
+        messageBg.color = "0x000000CC"
+        messageBg.translation = [340, 285]
+        
+        messageTitle = CreateObject("roSGNode", "Label")
+        messageTitle.id = "messageTitle"
+        messageTitle.font = "font:MediumBoldSystemFont"
+        messageTitle.text = ""
+        messageTitle.horizAlign = "center"
+        messageTitle.vertAlign = "center"
+        messageTitle.width = 600
+        messageTitle.height = 50
+        messageTitle.translation = [340, 300]
+        
+        messageText = CreateObject("roSGNode", "Label")
+        messageText.id = "messageText"
+        messageText.font = "font:SmallSystemFont"
+        messageText.text = ""
+        messageText.horizAlign = "center"
+        messageText.vertAlign = "center"
+        messageText.width = 600
+        messageText.height = 50
+        messageText.translation = [340, 350]
+        
+        m.messageOverlay.appendChild(messageBg)
+        m.messageOverlay.appendChild(messageTitle)
+        m.messageOverlay.appendChild(messageText)
+        m.top.appendChild(m.messageOverlay)
+    end if
 end sub
 
 sub setupLiveUI()
@@ -160,12 +166,15 @@ end sub
 sub onVideoStateChange()
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
+        hideLoadingOverlay()
         hideMessage()
     else if m.top.state = "paused"
         m.controlButton.uri = "pkg:/images/play.png"
+        hideLoadingOverlay()
     else if m.top.state = "buffering"
-        ' Buffering state - no timer needed
+        showLoadingOverlay()
     else if m.top.state = "error"
+        hideLoadingOverlay()
         if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
             showErrorMessage("Incompatible Video Format", "This stream cannot be played on your device")
         else
@@ -212,7 +221,7 @@ end sub
 sub setupQualityDialog()
     if m.top.qualityOptions <> invalid and m.top.qualityOptions.count() > 0
         m.qualityDialog.title = "Please Choose Your Video Quality"
-        m.qualityDialog.message = "Choose video quality:"
+        m.qualityDialog.message = ["Choose video quality:"]
 
         buttons = []
         for each quality in m.top.qualityOptions
@@ -399,6 +408,7 @@ sub hideErrorMessage()
 end sub
 
 sub showMessage(title as string, message as string, duration as float)
+    createMessageOverlay()
     if m.messageOverlay <> invalid
         titleNode = m.messageOverlay.findNode("messageTitle")
         if titleNode <> invalid
@@ -447,6 +457,24 @@ end sub
 sub onMessageTimeout()
     hideMessage()
     m.messageTimer = invalid
+end sub
+
+sub showLoadingOverlay()
+    if m.loadingOverlay <> invalid
+        m.loadingOverlay.visible = true
+    end if
+    if m.loadingSpinner <> invalid
+        m.loadingSpinner.control = "start"
+    end if
+end sub
+
+sub hideLoadingOverlay()
+    if m.loadingOverlay <> invalid
+        m.loadingOverlay.visible = false
+    end if
+    if m.loadingSpinner <> invalid
+        m.loadingSpinner.control = "stop"
+    end if
 end sub
 
 function onKeyEvent(key, press) as boolean

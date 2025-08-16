@@ -239,7 +239,7 @@ end sub
 sub userMessage(title as string, message as string)
     dialog = createObject("roSGNode", "StandardMessageDialog")
     dialog.title = title
-    dialog.message = message
+    dialog.message = [message]
     dialog.buttons = [tr("OK")]
     dialog.observeField("buttonSelected", "dismiss_dialog")
     m.scene.dialog = dialog
@@ -309,7 +309,7 @@ sub optionDialog(title, message, buttons)
     dialog.observeField("buttonSelected", "optionSelected")
     dialog.observeField("wasClosed", "optionClosed")
     dialog.title = title
-    dialog.message = message
+    dialog.message = [message]
     dialog.buttons = buttons
 
     m.scene.dialog = dialog

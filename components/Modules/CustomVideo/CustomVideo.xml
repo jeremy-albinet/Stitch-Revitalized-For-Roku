@@ -262,10 +262,31 @@
             <SimpleLabel id="thumbnailTime" translation="[10,115]" text="00:00" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
         </Group>
         
-        <!-- Loading Spinner -->
-        <Group id="loadingSpinner" translation="[620,340]" visible="false">
-            <Rectangle color="0x000000AA" width="40" height="40" cornerRadius="20" />
-            <BusySpinner translation="[8,8]" />
+        <!-- Loading Overlay -->
+        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+            <!-- Vertical layout container -->
+            <LayoutGroup 
+                layoutDirection="vert"
+                horizAlignment="center"
+                vertAlignment="center"
+                itemSpacings="[15]">
+                
+                <!-- Spinner -->
+                <BusySpinner 
+                    id="loadingSpinner"
+                    uri="pkg:/images/spinner.png"
+                    spinInterval="1" />
+                
+                <!-- Text -->
+                <SimpleLabel 
+                    id="loadingText"
+                    text="Loading video..."
+                    color="0xFFFFFFFF"
+                    fontSize="18"
+                    fontUri="pkg:/fonts/Archivo-Regular.otf"
+                    horizAlign="center"
+                    width="280" />
+            </LayoutGroup>
         </Group>
     </children>
 </component>

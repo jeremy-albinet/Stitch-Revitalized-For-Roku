@@ -120,5 +120,31 @@
         
         <!-- Quality Dialog -->
         <StandardMessageDialog id="QualityDialog" visible="false" />
+        
+        <!-- Loading Overlay -->
+        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+            <!-- Vertical layout container -->
+            <LayoutGroup 
+                layoutDirection="vert"
+                horizAlignment="center"
+                vertAlignment="center"
+                itemSpacings="[15]">
+                
+                <!-- Spinner -->
+                <BusySpinner 
+                    id="loadingSpinner"
+                    uri="pkg:/images/spinner.png"
+                    spinInterval="1" />
+                
+                <!-- Text -->
+                <SimpleLabel 
+                    text="Loading stream..."
+                    color="0xFFFFFFFF"
+                    fontSize="18"
+                    fontUri="pkg:/fonts/Archivo-Regular.otf"
+                    horizAlign="center"
+                    width="280" />
+            </LayoutGroup>
+        </Group>
     </children>
 </component>
