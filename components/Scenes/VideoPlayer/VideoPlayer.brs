@@ -19,6 +19,32 @@ sub handleItemSelected()
 end sub
 
 sub onResponse()
+    ' Check if response is an error
+    if m.PlayVideo.response <> invalid and m.PlayVideo.response.contentType = "ERROR"
+        ' Display error message to user
+        errorTitle = "Error while loading this video"
+        errorMessage = "Unable to play this content"
+        
+        if m.PlayVideo.response.description <> invalid and m.PlayVideo.response.description <> ""
+            errorMessage = m.PlayVideo.response.description
+        end if
+        
+        ' Map error codes to user-friendly messages
+        if m.PlayVideo.response.errorCode <> invalid
+            if m.PlayVideo.response.errorCode = "vod_manifest_restricted"
+                errorMessage = "This video is only available to subscribers"
+            else if m.PlayVideo.response.errorCode = "vod_manifest_expired"
+                errorMessage = "This video has expired and is no longer available"
+            else if m.PlayVideo.response.errorCode = "vod_manifest_missing"
+                errorMessage = "This video has been deleted"
+            end if
+        end if
+        
+        showErrorDialog(errorTitle, errorMessage)
+        return
+    end if
+    
+    ' Normal playback flow
     ' content.ignoreStreamErrors = true
     m.top.content = m.PlayVideo.response
     m.top.metadata = m.PlayVideo.metadata

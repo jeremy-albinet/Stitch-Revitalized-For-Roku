@@ -156,19 +156,55 @@ sub main()
             method: "GET"
         })
 
-        usher_rsp = invalid
+        usher_response = invalid
         while true
-            usher_rsp = req.send().getString()
-            if usher_rsp <> invalid
+            usher_response = req.send()
+            if usher_response <> invalid
                 exit while
             end if
             sleep(10)
         end while
 
-        ' ? "[GetTwitchContent] Usher response received, parsing streams..."
-        ' ? "[GetTwitchContent] Response length: "; usher_rsp.Len(); " characters"
+        statusCode = usher_response.getResponseCode()
+        usher_rsp = usher_response.getString()
 
-        list = usher_rsp.Split(chr(10))
+        ' Check status code to determine response type
+        if statusCode = 200
+            ' Success - response is M3U8 playlist
+            finalPlaylistContent = usher_rsp
+        else
+            ' Error response - parse JSON for error details
+            try
+                jsonResponse = ParseJson(usher_rsp)
+                if jsonResponse <> invalid and jsonResponse.Count() > 0 and jsonResponse[0].type = "error"
+                    ' Handle Twitch error response
+                    errorMsg = "Unknown error"
+                    if jsonResponse[0].error <> invalid
+                        errorMsg = jsonResponse[0].error
+                    end if
+                    
+                    ' Create an error content node to pass back
+                    content = CreateObject("roSGNode", "TwitchContentNode")
+                    content.setFields({
+                        contentType: "ERROR",
+                        title: "VOD Unavailable",
+                        description: errorMsg,
+                        errorCode: jsonResponse[0].error_code
+                    })
+                    
+                    m.top.response = content
+                    return
+                else
+                    m.top.response = invalid
+                    return
+                end if
+            catch e
+                m.top.response = invalid
+                return
+            end try
+        end if
+
+        list = finalPlaylistContent.Split(chr(10))
         fps = invalid
         stream_objects = []
 
@@ -193,7 +229,11 @@ sub main()
             end if
         end for
 
-        ' ? "[GetTwitchContent] Found "; stream_objects.Count(); " total streams"
+        ' If no streams found, this is a critical error
+        if stream_objects.Count() = 0
+            m.top.response = invalid
+            return
+        end if
 
         stream_bitrates = []
         stream_urls = []
