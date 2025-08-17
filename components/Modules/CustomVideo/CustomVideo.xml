@@ -29,13 +29,11 @@
             <Rectangle 
                 color="0x1A1A1AE6" 
                 width="600" 
-                height="360" 
-                cornerRadius="12" />
+                height="360" />
             <Rectangle 
                 color="0x2D2D2DFF" 
                 width="596" 
                 height="356" 
-                cornerRadius="10"
                 translation="[2,2]" />
             
             <!-- Header -->
@@ -67,14 +65,14 @@
                     <!-- Hours Input Group -->
                     <Group id="hoursInputGroup" translation="[0,30]">
                         <Group id="hour0Group" translation="[0,0]">
-                            <Rectangle id="hour0Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="hour0" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="hour0Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="hour0" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="hour0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                         
                         <Group id="hour1Group" translation="[60,0]">
-                            <Rectangle id="hour1Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="hour1" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="hour1Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="hour1" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="hour1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                     </Group>
@@ -96,14 +94,14 @@
                     <!-- Minutes Input Group -->
                     <Group id="minutesInputGroup" translation="[0,30]">
                         <Group id="minute0Group" translation="[0,0]">
-                            <Rectangle id="minute0Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="minute0" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="minute0Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="minute0" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="minute0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                         
                         <Group id="minute1Group" translation="[60,0]">
-                            <Rectangle id="minute1Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="minute1" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="minute1Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="minute1" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="minute1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                     </Group>
@@ -125,14 +123,14 @@
                     <!-- Seconds Input Group -->
                     <Group id="secondsInputGroup" translation="[0,30]">
                         <Group id="second0Group" translation="[0,0]">
-                            <Rectangle id="second0Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="second0" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="second0Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="second0" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="second0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                         
                         <Group id="second1Group" translation="[60,0]">
-                            <Rectangle id="second1Bg" color="0x404040FF" width="50" height="60" cornerRadius="8" />
-                            <Rectangle id="second1" color="0x9146FFFF" width="50" height="60" cornerRadius="8" visible="false" />
+                            <Rectangle id="second1Bg" color="0x404040FF" width="50" height="60"  />
+                            <Rectangle id="second1" color="0x9146FFFF" width="50" height="60"  visible="false" />
                             <SimpleLabel id="second1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                         </Group>
                     </Group>
@@ -151,16 +149,16 @@
             <!-- Action Buttons Container -->
             <Group id="actionButtonsContainer" translation="[30,280]">
                 <Group id="cancelButtonGroup" translation="[0,0]">
-                    <Rectangle id="cancelButtonBg" color="0x404040FF" width="120" height="50" cornerRadius="8" />
-                    <Rectangle id="cancelButton" color="0x404040FF" width="120" height="50" cornerRadius="8" />
-                    <Rectangle id="cancelButtonFocus" color="0x9146FFFF" width="120" height="50" cornerRadius="8" visible="false" />
+                    <Rectangle id="cancelButtonBg" color="0x404040FF" width="120" height="50"  />
+                    <Rectangle id="cancelButton" color="0x404040FF" width="120" height="50"  />
+                    <Rectangle id="cancelButtonFocus" color="0x9146FFFF" width="120" height="50"  visible="false" />
                     <SimpleLabel id="cancelButtonLabel" translation="[35,18]" text="Cancel" color="0xFFFFFFFF" fontSize="16" fontUri="pkg:/fonts/Archivo-Regular.otf" />
                 </Group>
                 
                 <Group id="acceptButtonGroup" translation="[140,0]">
-                    <Rectangle id="acceptButtonBg" color="0x404040FF" width="120" height="50" cornerRadius="8" />
-                    <Rectangle id="acceptButton" color="0x404040FF" width="120" height="50" cornerRadius="8" />
-                    <Rectangle id="acceptButtonFocus" color="0x9146FFFF" width="120" height="50" cornerRadius="8" visible="false" />
+                    <Rectangle id="acceptButtonBg" color="0x404040FF" width="120" height="50"  />
+                    <Rectangle id="acceptButton" color="0x404040FF" width="120" height="50"  />
+                    <Rectangle id="acceptButtonFocus" color="0x9146FFFF" width="120" height="50"  visible="false" />
                     <SimpleLabel id="acceptButtonLabel" translation="[25,18]" text="Jump" color="0xFFFFFFFF" fontSize="16" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
             </Group>
@@ -180,14 +178,14 @@
                 <SimpleLabel id="timeDuration" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[1100,45]" />
                 
                 <!-- Progress Bar -->
-                <Rectangle id="progressBarBase" color="0x404040FF" width="1160" height="4" cornerRadius="2" translation="[0,65]" />
-                <Rectangle id="progressBarBuffer" color="0x606060FF" width="0" height="4" cornerRadius="2" translation="[0,65]" />
-                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="0" height="4" cornerRadius="2" translation="[0,65]" />
+                <Rectangle id="progressBarBase" color="0x404040FF" width="1160" height="4"  translation="[0,65]" />
+                <Rectangle id="progressBarBuffer" color="0x606060FF" width="0" height="4"  translation="[0,65]" />
+                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="0" height="4"  translation="[0,65]" />
                 
                 <!-- Progress Dot -->
                 <Group id="progressDot" translation="[0,59]">
-                    <Rectangle color="0x9146FFFF" width="16" height="16" cornerRadius="8" />
-                    <Rectangle color="0xFFFFFFFF" width="8" height="8" cornerRadius="4" translation="[4,4]" />
+                    <Rectangle color="0x9146FFFF" width="16" height="16"  />
+                    <Rectangle color="0xFFFFFFFF" width="8" height="8"  translation="[4,4]" />
                 </Group>
             </Group>
             
@@ -195,43 +193,43 @@
             <Group translation="[0,85]">
                 <!-- Back Button (far left) -->
                 <Group id="backGroup" translation="[200,0]" focusable="true">
-                    <Rectangle id="backBg" color="0x404040AA" width="50" height="40" cornerRadius="8" />
-                    <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40" cornerRadius="8" visible="false" />
+                    <Rectangle id="backBg" color="0x404040AA" width="50" height="40"  />
+                    <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[18,12]" text="←" color="0xFFFFFFFF" fontSize="18" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Time Travel Button -->
                 <Group id="timeTravelGroup" translation="[485,0]" focusable="true">
-                    <Rectangle id="timeTravelBg" color="0x404040AA" width="50" height="40" cornerRadius="8" />
-                    <Rectangle id="timeTravelFocus" color="0x9146FFFF" width="50" height="40" cornerRadius="8" visible="false" />
+                    <Rectangle id="timeTravelBg" color="0x404040AA" width="50" height="40"  />
+                    <Rectangle id="timeTravelFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <Poster uri="pkg:/images/TimeTravel.png" width="20" height="20" translation="[15,10]" />
                 </Group>
                 
                 <!-- Rewind Button -->
                 <Group id="rewindGroup" translation="[555,0]">
-                    <Rectangle id="rewindBg" color="0x404040AA" width="50" height="40" cornerRadius="8" />
-                    <Rectangle id="rewindFocus" color="0x9146FFFF" width="50" height="40" cornerRadius="8" visible="false" />
+                    <Rectangle id="rewindBg" color="0x404040AA" width="50" height="40"  />
+                    <Rectangle id="rewindFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[12,12]" text="−10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Play/Pause Button (centered) -->
                 <Group id="playPauseGroup" translation="[615,0]">
-                    <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40" cornerRadius="20" />
-                    <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40" cornerRadius="20" visible="false" />
+                    <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40"  />
+                    <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40"  visible="false" />
                     <Poster id="controlButton" uri="pkg:/images/pause.png" width="20" height="20" translation="[20,10]" />
                 </Group>
                 
                 <!-- Fast Forward Button -->
                 <Group id="fastForwardGroup" translation="[685,0]">
-                    <Rectangle id="fastForwardBg" color="0x404040AA" width="50" height="40" cornerRadius="8" />
-                    <Rectangle id="fastForwardFocus" color="0x9146FFFF" width="50" height="40" cornerRadius="8" visible="false" />
+                    <Rectangle id="fastForwardBg" color="0x404040AA" width="50" height="40"  />
+                    <Rectangle id="fastForwardFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[12,12]" text="+10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Chat Toggle Button -->
                 <Group id="chatGroup" translation="[745,0]">
-                    <Rectangle id="chatBg" color="0x404040AA" width="50" height="40" cornerRadius="8" />
-                    <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40" cornerRadius="8" visible="false" />
+                    <Rectangle id="chatBg" color="0x404040AA" width="50" height="40"  />
+                    <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <Poster uri="pkg:/images/messages.png" width="20" height="20" translation="[15,10]" />
                 </Group>
             </Group>
@@ -247,7 +245,7 @@
             
             <!-- Live Indicator -->
             <Group id="liveIndicator" translation="[1100,15]" visible="false">
-                <Rectangle color="0xFF0000FF" width="50" height="20" cornerRadius="10" />
+                <Rectangle color="0xFF0000FF" width="50" height="20"  />
                 <SimpleLabel translation="[12,3]" text="LIVE" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
             </Group>
             
@@ -255,7 +253,7 @@
 
         <!-- Thumbnail Preview -->
         <Group id="thumbnailPreview" translation="[0,400]" visible="false">
-            <Rectangle color="0x000000E6" width="200" height="130" cornerRadius="8" />
+            <Rectangle color="0x000000E6" width="200" height="130"  />
             <Group id="thumbnails" clippingRect="[4,4,192,112]" translation="[4,4]">
                 <Poster id="thumbnailImage" />
             </Group>
@@ -283,9 +281,7 @@
                     text="Loading video..."
                     color="0xFFFFFFFF"
                     fontSize="18"
-                    fontUri="pkg:/fonts/Archivo-Regular.otf"
-                    horizAlign="center"
-                    width="280" />
+                    fontUri="pkg:/fonts/Archivo-Regular.otf" />
             </LayoutGroup>
         </Group>
     </children>

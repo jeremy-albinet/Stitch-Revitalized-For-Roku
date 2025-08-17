@@ -26,5 +26,14 @@
         <field id="relativePublishDate" type="string" />
         <field id="createdAt" type="string" />
         <field id="QualityId" type="string" />
+        <!-- Streaming metadata fields -->
+        <field id="StreamUrls" type="array" />
+        <field id="StreamQualities" type="array" />
+        <field id="StreamContentIds" type="array" />
+        <field id="StreamBitrates" type="array" />
+        <field id="StreamStickyHttpRedirects" type="array" />
+        <field id="lowLatencyStreamsAvailable" type="bool" />
+        <!-- Error handling fields -->
+        <field id="errorCode" type="string" />
     </interface>
 </component>
