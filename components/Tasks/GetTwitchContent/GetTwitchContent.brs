@@ -12,7 +12,11 @@ sub main()
         ' Set live stream properties
         isLowLatencyStream = false
         if m.top.contentRequested.contentType = "LIVE"
-            content.streamFormat = isLowLatencyStream ? "lhls" : "hls"
+            if isLowLatencyStream
+                content.streamFormat = "lhls"
+            else
+                content.streamFormat = "hls"
+            end if
             content.live = true
         end if
 
@@ -167,6 +171,7 @@ sub main()
 
         statusCode = usher_response.getResponseCode()
         usher_rsp = usher_response.getString()
+        finalPlaylistContent = ""
 
         ' Check status code to determine response type
         if statusCode = 200
@@ -176,13 +181,13 @@ sub main()
             ' Error response - parse JSON for error details
             try
                 jsonResponse = ParseJson(usher_rsp)
-                if jsonResponse <> invalid and jsonResponse.Count() > 0 and jsonResponse[0].type = "error"
+                if jsonResponse <> invalid and Type(jsonResponse) = "roArray" and jsonResponse.Count() > 0 and jsonResponse[0].type = "error"
                     ' Handle Twitch error response
                     errorMsg = "Unknown error"
                     if jsonResponse[0].error <> invalid
                         errorMsg = jsonResponse[0].error
                     end if
-                    
+
                     ' Create an error content node to pass back
                     content = CreateObject("roSGNode", "TwitchContentNode")
                     content.setFields({
@@ -191,7 +196,7 @@ sub main()
                         description: errorMsg,
                         errorCode: jsonResponse[0].error_code
                     })
-                    
+
                     m.top.response = content
                     return
                 else
@@ -453,7 +458,11 @@ sub main()
         ' Set live stream properties
         isLowLatencyStream = false
         if m.top.contentRequested.contentType = "LIVE"
-            content.streamFormat = isLowLatencyStream ? "lhls" : "hls"
+            if isLowLatencyStream
+                content.streamFormat = "lhls"
+            else
+                content.streamFormat = "hls"
+            end if
             content.live = true
         end if
 
