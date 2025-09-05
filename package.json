@@ -22,7 +22,7 @@
         "brighterscript": "^0.70.0",
         "bslib": "npm:@rokucommunity/bslib@^0.1.1",
         "glob": "^11.0.3",
-        "lru-cache": "^11.1.0",
+        "lru-cache": "^11.2.1",
         "rimraf": "^6.0.1"
     },
     "config": {
