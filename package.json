@@ -19,7 +19,7 @@
     "dependencies": {
         "@npmcli/fs": "^4.0.0",
         "@rokucommunity/bslib": "^0.1.1",
-        "brighterscript": "^0.70.0",
+        "brighterscript": "^0.70.1",
         "bslib": "npm:@rokucommunity/bslib@^0.1.1",
         "glob": "^11.0.3",
         "lru-cache": "^11.1.0",
