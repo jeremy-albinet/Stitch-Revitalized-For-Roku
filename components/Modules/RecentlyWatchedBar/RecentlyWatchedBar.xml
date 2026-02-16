@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RecentlyWatchedBar" extends="Group">
+  <interface>
+    <field id="itemHasFocus" type="bool" onChange="onGetFocus" alwaysNotify="true" />
+    <field id="contentSelected" type="node" alwaysNotify="true" />
+    <function name="refreshRecentBar" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />
+  <script type="text/brightscript" uri="RecentlyWatchedBar.brs" />
+
+  <children>
+    <Rectangle
+      id="backgroundBar"
+      visible="true"
+      color="0x1f1f23FF"
+      width="78"
+      height="1000"
+      translation="[0, 5]" />
+
+    <Poster
+      uri="pkg:/images/icons/history.png"
+      width="24"
+      height="24"
+      translation="[28, 22]" />
+  </children>
+</component>

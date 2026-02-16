@@ -1,0 +1,30 @@
+query GamesDirectory_Query(
+            $first: Int!
+        ) {
+            currentUser {
+                id
+                __typename
+                login
+                roles {
+                    isStaff
+                }
+            }
+            games(first: $first) {
+                edges {
+                    node {
+                        ...FocusableCategoryCard_category
+                        id
+                        __typename
+                    }
+                }
+            }
+        }
+
+        fragment FocusableCategoryCard_category on Game {
+            name
+            id
+            __typename
+            displayName
+            viewersCount
+            boxArtURL
+        }

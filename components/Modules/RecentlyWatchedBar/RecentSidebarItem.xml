@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RecentSidebarItem" extends="Group">
+  <interface>
+    <field id="twitch_login" type="string" />
+    <field id="streamerProfileImage" type="uri" alias="streamerProfile.uri" />
+    <field id="display_name" type="string" />
+    <field id="streamer_id" type="string" />
+    <field id="focused" type="bool" value="false" alias="selectionIndicator.visible" />
+    <field id="translation" type="vector2d" alias="parent.translation" />
+  </interface>
+
+  <script type="text/brightscript" uri="RecentSidebarItem.brs" />
+
+  <children>
+    <Group id="parent">
+      <Poster
+        id="selectionIndicator"
+        uri="pkg:/images/purple_circle.png"
+        visible="false"
+        width="52"
+        height="52" />
+      <CirclePoster
+        id="streamerProfile"
+        width="50"
+        height="50"
+        outlinecolor="0x00000000"
+        backgroundVisible="false" />
+    </Group>
+  </children>
+</component>

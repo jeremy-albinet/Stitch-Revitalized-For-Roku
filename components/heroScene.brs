@@ -7,8 +7,11 @@ sub init()
     m.top.backgroundUri = ""
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
     m.activeNode = invalid
-    m.followedStreamBar = m.top.findNode("followedStreamsBar")
-    m.followedStreamBar.observeField("contentSelected", "onFollowSelected")
+    m.recentBar = m.top.findNode("recentlyWatchedBar")
+    if m.recentBar <> invalid
+        m.recentBar.observeField("contentSelected", "onRecentSelected")
+    end if
+'    m.followedStreamBar.observeField("contentSelected", "onFollowSelected")
     m.menu = m.top.findNode("MenuBar")
     m.menu.menuOptionsText = [
         "Following",
@@ -90,14 +93,14 @@ sub VersionJobs()
 end sub
 
 sub refreshFollowBar()
-    m.followedStreamBar.refreshFollowBar = true
+'    m.followedStreamBar.refreshFollowBar = true
 end sub
 
 sub handleDeviceCode()
     if m.getDeviceCodeTask <> invalid
         response = m.getDeviceCodeTask.response
         set_user_setting("device_code", response.device_code)
-        m.followedStreamBar.callFunc("refreshFollowBar")
+'        m.followedStreamBar.callFunc("refreshFollowBar")
     end if
     onMenuSelection()
 end sub
@@ -133,7 +136,7 @@ sub onLoginFinished()
         m.getDeviceCodeTask.functionName = m.getDeviceCodeTask.request.type
         m.getDeviceCodeTask.control = "run"
     else
-        m.followedStreamBar.callFunc("refreshFollowBar")
+'        m.followedStreamBar.callFunc("refreshFollowBar")
     end if
     ' if get_setting("active_user", "$default$") <> "$default$"
     '     if m.activeNode.id.toStr() = "LoginPage" or "StreamerChannelPage"
@@ -172,7 +175,7 @@ sub onMenuSelection()
 end sub
 
 sub onFollowSelected()
-    content = m.followedStreamBar.contentSelected
+'    content = m.followedStreamBar.contentSelected
     if m.activeNode <> invalid
         m.footprints.push(m.activeNode)
         m.activeNode = invalid
@@ -238,6 +241,7 @@ end sub
 function onKeyEvent(key, press) as boolean
     if press
         ? "Hero Scene Key Event: "; key
+        if m.activeNode = invalid then return false
         if key = "replay"
             ? "----------- Currently Focused Child ----------" + chr(34); m.top.focusedChild
             ? "----------- Last Focused Child ----------" + chr(34); lastFocusedChild(m.top.focusedChild)
@@ -245,7 +249,7 @@ function onKeyEvent(key, press) as boolean
         end if
         if key = "up"
             if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
-                m.followedStreamBar.itemHasFocus = false
+'                m.followedStreamBar.itemHasFocus = false
                 m.menu.setFocus(true)
             end if
         end if
@@ -254,17 +258,17 @@ function onKeyEvent(key, press) as boolean
         end if
         if key = "left"
             if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
-                if get_user_setting("FollowBarOption", "true") = "true"
+                if m.recentBar <> invalid
                     m.activeNode.setFocus(false)
-                    m.followedStreamBar.setFocus(true)
-                    m.followedStreamBar.itemHasFocus = true
+                    m.recentBar.setFocus(true)
+                    m.recentBar.itemHasFocus = true
                     return true
                 end if
             end if
         end if
         if key = "right"
-            if get_user_setting("FollowBarOption", "true") = "true"
-                m.followedStreamBar.itemHasFocus = false
+            if m.recentBar <> invalid and m.recentBar.itemHasFocus = true
+                m.recentBar.itemHasFocus = false
                 m.activeNode.setFocus(true)
                 return true
             end if
@@ -278,3 +282,24 @@ function onKeyEvent(key, press) as boolean
     ? "KEY EVENT: "; key press
     return false
 end function
+
+sub onRecentSelected()
+    if m.recentBar = invalid then return
+    content = m.recentBar.contentSelected
+    if content = invalid then return
+
+    ' Ensure focus leaves the sidebar before switching scenes
+    m.recentBar.itemHasFocus = false
+    m.recentBar.setFocus(false)
+
+    if m.activeNode <> invalid
+        m.footprints.push(m.activeNode)
+        m.activeNode = invalid
+    end if
+
+    ' Recently Watched should behave like selecting a channel result elsewhere in the app
+    ' (i.e., open the standard ChannelPage view with VODs/rows), not the chat-focused StreamerChannelPage.
+    m.activeNode = buildNode("ChannelPage")
+    m.activeNode.contentRequested = content
+    m.activeNode.setFocus(true)
+end sub
