@@ -11,6 +11,7 @@
         <field id="doneFocus" type="Boolean" value="false" />
         <field id="clientInfo" type="assocarray" />
         <field id="clientMessage" type="string" value="" />
+        <field id="sendMessage" type="string" value="" onChange="onSendMessage" />
         <field id="width" type="integer" value="275" alias="chatPanel.width, chatBackground.width" onchange="updatePanelTranslation" />
         <field id="height" type="integer" value="720" alias="chatPanel.height, chatBackground.height" onChange="updatePanelTranslation" />
         <field id="forceLive" type="bool" value="false" />
@@ -39,12 +40,14 @@
                 opacity="1"
                 translation="[0,0]" />
         </MaskGroup>
-        <!-- <SimpleLabel
-            translation="[0,0]"
-            text=""
-            color="0xEFEFF1FF"
+        <SimpleLabel
+            id="chatLoadingLabel"
+            translation="[10,10]"
+            text="Chat is loading…"
+            color="0xB3B3B3FF"
             fontSize="12"
-            fontUri="pkg:/fonts/Archivo-Regular.otf" /> -->
+            fontUri="pkg:/fonts/Archivo-Regular.otf"
+            visible="false" />
         <ChatJob
             id="ChatJob"
             control="stop"

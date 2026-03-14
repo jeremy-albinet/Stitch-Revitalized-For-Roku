@@ -9,7 +9,10 @@
         <field id="nextComment" type="string" />
         <field id="nextCommentObj" type="AssocArray" />
         <field id="clientComment" type="string" />
-        <field id="sendMessage" type="string" />
+        <field id="sendMessage" type="string" value="" />
+        <field id="lastSentMessage" type="string" value="" />
+        <field id="clearMsgEvent" type="AssocArray" />
+        <field id="clearChatEvent" type="AssocArray" />
         <field id="forceLive" type="bool" value="false" />
     </interface>
 

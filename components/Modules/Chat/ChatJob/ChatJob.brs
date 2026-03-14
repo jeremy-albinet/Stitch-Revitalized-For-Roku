@@ -1,6 +1,7 @@
 sub init()
     m.top.functionName = "main"
-    m.delay = 29
+    m.delay = Val(get_user_setting("ChatDelay", "29"), 10)
+    if m.delay < 0 then m.delay = 0
 end sub
 
 sub loginToChat(tcpListen)
@@ -43,6 +44,16 @@ sub main()
         waitingCommentAge = 0
         sendWaitingMessage = true
         while true
+            ' Check if there is an outgoing message to send via PRIVMSG
+            if m.top.sendMessage <> "" and m.top.sendMessage <> invalid
+                msgToSend = m.top.sendMessage
+                m.top.sendMessage = ""
+                if m.loggedinUserName <> "" and m.loggedinUserName <> invalid
+                    tcpListen.SendStr("PRIVMSG #" + m.top.channel + " :" + msgToSend + Chr(13) + Chr(10))
+                    ? "[ChatJob] - Sent PRIVMSG: "; msgToSend
+                    m.top.lastSentMessage = msgToSend
+                end if
+            end if
             get = ""
             received = ""
             '? "tcpListen isConnected " tcpListen.IsConnected()
@@ -78,11 +89,27 @@ sub main()
                     if command <> "PRIVMSG" and command <> "USERNOTICE" and command <> "USERSTATE"
                         ? "Chat Command: "; FormatJson(_parsedMessage, 256)
                     end if
-                    if command = "USERNOTICE" or command = "USERSTATE"
-                        ? "pauseable event"
-                        sleep(5)
-                    end if
-                    if command = "RECONNECT"
+                    if command = "NOTICE"
+                        ' Relay IRC notices (slow mode, subscriber-only, etc.) immediately
+                        m.top.nextCommentObj = MessageParser(queue.pop())
+                        m.top.readyForNextComment = false
+                    else if command = "USERNOTICE"
+                        ' Relay sub/gift-sub alert to the chat UI immediately
+                        m.top.nextCommentObj = MessageParser(queue.pop())
+                        m.top.readyForNextComment = false
+                    else if command = "USERSTATE"
+                        queue.pop() ' Discard; no UI needed
+                    else if command = "CLEARMSG"
+                        parsed = MessageParser(queue.pop())
+                        if parsed <> invalid
+                            m.top.clearMsgEvent = parsed
+                        end if
+                    else if command = "CLEARCHAT"
+                        parsed = MessageParser(queue.pop())
+                        if parsed <> invalid
+                            m.top.clearChatEvent = parsed
+                        end if
+                    else if command = "RECONNECT"
                         ? "[ChatJob] Server requested reconnect, reconnecting..."
                         tcpListen.Close()
                         tcpListen = createObject("roStreamSocket")
@@ -334,7 +361,10 @@ function parseCommand(rawCommandComponent)
             command: commandParts[0]
         }
     else if commandParts[0] = "CLEARMSG" or commandParts[0] = "CLEARCHAT"
-        ? "Twitch is requesting a message to be cleared"; formatJSON(commandParts, 256)
+        parsedCommand = {
+            command: commandParts[0],
+            channel: commandParts[1]
+        }
     else if commandParts[0] = "WHISPER"
         ? "WhisperReceived"; formatJSON(commandParts, 256)
     else if commandParts[0] = "421"

@@ -5,6 +5,7 @@
     <interface>
         <field id="channel" type="string" />
         <field id="channel_id" type="string" />
+        <field id="loading" type="bool" value="false" />
     </interface>
 
     <script type="text/brightscript" uri="EmoteJob.brs" />

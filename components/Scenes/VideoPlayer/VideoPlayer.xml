@@ -27,6 +27,23 @@
             functionName="getTwitchBookmarks"
             control="run"
         />
+        <!-- Chat compose overlay (hidden by default) -->
+        <Group id="chatComposeOverlay" visible="false" translation="[0,0]">
+            <Rectangle width="1280" height="720" color="0x00000099" />
+            <Group translation="[240,230]">
+                <Rectangle width="800" height="260" color="0x18181BFF" />
+                <SimpleLabel
+                    translation="[20,15]"
+                    text="Send a message"
+                    color="0xFFFFFFFF"
+                    fontSize="16"
+                    fontUri="pkg:/fonts/Archivo-Bold.otf" />
+                <DynamicMiniKeyboard
+                    id="chatComposeKeyboard"
+                    translation="[20,45]"
+                    buttonHeight="28" />
+            </Group>
+        </Group>
     </children>
 
 </component>

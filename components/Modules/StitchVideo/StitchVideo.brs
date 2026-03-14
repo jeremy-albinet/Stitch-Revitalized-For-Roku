@@ -16,6 +16,7 @@ sub init()
     m.chatGroup = m.top.findNode("chatGroup")
     m.playPauseGroup = m.top.findNode("playPauseGroup")
     m.qualityGroup = m.top.findNode("qualityGroup")
+    m.sendGroup = m.top.findNode("sendGroup")
     m.controlButton = m.top.findNode("controlButton")
     m.messagesButton = m.top.findNode("messagesButton")
     m.qualitySelectButton = m.top.findNode("qualitySelectButton")
@@ -25,6 +26,7 @@ sub init()
     m.chatFocus = m.top.findNode("chatFocus")
     m.playPauseFocus = m.top.findNode("playPauseFocus")
     m.qualityFocus = m.top.findNode("qualityFocus")
+    m.sendFocus = m.top.findNode("sendFocus")
 
     ' Other elements
     m.liveIndicator = m.top.findNode("liveIndicator")
@@ -52,7 +54,7 @@ sub init()
     m.qualityDialog.observeFieldScoped("buttonSelected", "onQualityButtonSelect")
 
     ' State variables
-    m.currentFocusedButton = 2 ' 0=back, 1=chat, 2=play/pause, 3=quality
+    m.currentFocusedButton = 2 ' 0=back, 1=chat, 2=play/pause, 3=quality, 4=send
     m.isOverlayVisible = false
     m.currentPositionSeconds = 0
     m.isLiveStream = true ' StitchVideo is always for live streams
@@ -316,6 +318,8 @@ sub focusButton(buttonIndex)
         m.playPauseFocus.visible = true
     else if buttonIndex = 3 ' Quality
         m.qualityFocus.visible = true
+    else if buttonIndex = 4 ' Send
+        if m.sendFocus <> invalid then m.sendFocus.visible = true
     end if
 end sub
 
@@ -324,6 +328,7 @@ sub clearAllButtonFocus()
     m.chatFocus.visible = false
     m.playPauseFocus.visible = false
     m.qualityFocus.visible = false
+    if m.sendFocus <> invalid then m.sendFocus.visible = false
 end sub
 
 sub executeButtonAction()
@@ -342,6 +347,9 @@ sub executeButtonAction()
         togglePlayPause()
     else if m.currentFocusedButton = 3 ' Quality
         showQualityDialog()
+    else if m.currentFocusedButton = 4 ' Send chat message
+        m.top.openChatCompose = true
+        hideOverlay()
     end if
 end sub
 
@@ -528,16 +536,16 @@ function handleMainKeys(key) as boolean
     end if
 
     if key = "left"
-        ' Live stream navigation: back(0) -> chat(1) -> play/pause(2) -> quality(3)
+        ' Live stream navigation: back(0) -> chat(1) -> play/pause(2) -> quality(3) -> send(4)
         if m.currentFocusedButton > 0
             focusButton(m.currentFocusedButton - 1)
         else
-            focusButton(3) ' Wrap to quality
+            focusButton(4) ' Wrap to send
         end if
         return true
     else if key = "right"
-        ' Live stream navigation: back(0) -> chat(1) -> play/pause(2) -> quality(3)
-        if m.currentFocusedButton < 3
+        ' Live stream navigation: back(0) -> chat(1) -> play/pause(2) -> quality(3) -> send(4)
+        if m.currentFocusedButton < 4
             focusButton(m.currentFocusedButton + 1)
         else
             focusButton(0) ' Wrap to back
