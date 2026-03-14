@@ -203,15 +203,16 @@ function findNodeBySubtype(node, subtype)
     foundNodes = []
 
     for each child in node.getChildren(-1, 0)
-        if lcase(child.subtype()) = "group"
-            return findNodeBySubtype(child, subtype)
-        end if
-
         if lcase(child.subtype()) = lcase(subtype)
             foundNodes.push({
                 node: child,
                 parent: node
             })
+        else if lcase(child.subtype()) = "group"
+            nested = findNodeBySubtype(child, subtype)
+            for each item in nested
+                foundNodes.push(item)
+            end for
         end if
     end for
 
@@ -323,9 +324,6 @@ sub setTwitchContentFields(twitchContentNode, fields)
     if fields.streamerProfileImageUrl <> invalid
         twitchContentNode.streamerProfileImageUrl = fields.streamerProfileImageUrl
     end if
-    if fields.followerCount <> invalid
-        twitchContentNode.followerCount = fields.followerCount
-    end if
     if fields.gameDisplayName <> invalid
         twitchContentNode.gameDisplayName = fields.gameDisplayName
     end if
@@ -414,7 +412,7 @@ function numberToText(number as object) as object
         r = CreateObject("roRegex", "([0-9]+\.[1-9])|([0-9]+)", "")
         result = r.Match(n)[0] + "K"
     else
-        n = (number / 1000 * 1000).toStr()
+        n = (number / 1000000).toStr()
         r = CreateObject("roRegex", "([0-9]+\.[1-9])|([0-9]+)", "")
         result = r.Match(n)[0] + "M"
     end if

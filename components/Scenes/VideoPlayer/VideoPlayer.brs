@@ -74,7 +74,7 @@ sub initChat()
         m.top.chatStarted = true
         m.chatWindow.channel_id = m.top.contentRequested.streamerId
         m.chatWindow.channel = m.top.contentRequested.streamerLogin
-        if get_user_setting("ChatOption", "true") = "true"
+        if get_user_setting("ChatOption", "false") = "true"
             m.chatWindow.visible = true
             m.video.chatIsVisible = m.chatWindow.visible
         else
@@ -96,7 +96,7 @@ sub onQualityChangeRequested()
 end sub
 
 sub configureVideoForLatency(video as object, isLive as boolean)
-    latencyPreference = get_user_setting("preferred.latency", "low")
+    latencyPreference = get_user_setting("preferred.latency", "normal")
     isLowLatency = (latencyPreference = "low")
 
     ' ? "[VideoPlayer] ===== BUFFERING CONFIGURATION ====="
@@ -347,7 +347,7 @@ sub playContent()
         httpAgent.addheader("Referer", "https://android.tv.twitch.tv/")
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-        latencyPreference = get_user_setting("preferred.latency", "low")
+        latencyPreference = get_user_setting("preferred.latency", "normal")
         if isLiveContent and latencyPreference = "low"
             httpAgent.addheader("Cache-Control", "no-cache")
             httpAgent.addheader("Connection", "keep-alive")
@@ -393,7 +393,7 @@ sub playContent()
         if isLiveContent
             contentNodeToPlay.ignoreStreamErrors = false ' Important for HLS error reporting
 
-            latencyPreference = get_user_setting("preferred.latency", "low")
+            latencyPreference = get_user_setting("preferred.latency", "normal")
             isLowLatencyMode = (latencyPreference = "low")
 
             currentQualityID = contentNodeToPlay.QualityID
