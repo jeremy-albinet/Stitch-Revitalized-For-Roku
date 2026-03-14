@@ -12,10 +12,10 @@
     <Rectangle
       visible="true"
       id="headerRectShadow"
-      color="0x26262cFF"
+      color="0x9147FFFF"
       width="1280"
-      height="2"
-      translation="[0, 78]"
+      height="3"
+      translation="[0, 77]"
     />
     <Poster
       id="logo"

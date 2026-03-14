@@ -19,6 +19,14 @@
       height="1000"
       translation="[0, 5]"
     />
+    <!-- Twitch purple right-edge accent -->
+    <Rectangle
+      visible="true"
+      color="0x9147FFFF"
+      width="2"
+      height="1000"
+      translation="[76, 5]"
+    />
 
     <Poster
       uri="pkg:/images/icons/heart-o.png"

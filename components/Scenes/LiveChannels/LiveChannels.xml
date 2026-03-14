@@ -8,11 +8,23 @@
     <script type="text/brightscript" uri="LiveChannels.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <children>
+        <Rectangle
+            width="1280"
+            height="720"
+            color="0x0e0e10FF" />
+        <Label
+            translation="[130, 90]"
+            text="Live Channels"
+            color="0xEFEFF1FF"
+            height="40"
+            width="400">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+        </Label>
         <RowList
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[ 130, 120 ]"
+            translation="[ 130, 140 ]"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"
