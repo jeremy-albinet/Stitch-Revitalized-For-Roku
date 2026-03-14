@@ -144,7 +144,15 @@ sub getChannel7tvEmotes(channel_id)
         if temp.emote_set <> invalid
             if temp.emote_set.emotes <> invalid
                 for each emote in temp.emote_set.emotes
-                    uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.gif"
+                    isAnimated = false
+                    if emote.data <> invalid and emote.data.animated <> invalid
+                        isAnimated = emote.data.animated
+                    end if
+                    if isAnimated
+                        uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.webp"
+                    else
+                        uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.gif"
+                    end if
                     emoteCache[emote.name] = uri
                 end for
             end if
@@ -161,7 +169,15 @@ sub getGlobal7tvEmotes()
     try
         temp = invokerest("https://7tv.io/v3/emote-sets/global")
         for each emote in temp.emotes
-            uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.gif"
+            isAnimated = false
+            if emote.data <> invalid and emote.data.animated <> invalid
+                isAnimated = emote.data.animated
+            end if
+            if isAnimated
+                uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.webp"
+            else
+                uri = "https://cdn.7tv.app/emote/" + emote.id + "/1x.gif"
+            end if
             emoteCache[emote.name] = uri
         end for
     catch e
@@ -176,7 +192,11 @@ sub getGlobalTTVEmotes()
     try
         temp = invokerest("https://api.betterttv.net/3/cached/emotes/global")
         for each emote in temp
-            uri = "https://cdn.betterttv.net/emote/" + emote.id + "/1x.gif"
+            if emote.animated = true
+                uri = "https://cdn.betterttv.net/emote/" + emote.id + "/animated/1x.gif"
+            else
+                uri = "https://cdn.betterttv.net/emote/" + emote.id + "/1x.gif"
+            end if
             emoteCache[emote.code] = uri
         end for
     catch e
@@ -206,18 +226,50 @@ sub getChannelTTVEmotes(channel_id)
         temp = invokerest("https://api.betterttv.net/3/cached/users/twitch/" + channel_id)
         if temp.sharedEmotes <> invalid
             for each emote in temp.sharedEmotes
-                uri = "https://cdn.betterttv.net/emote/" + emote.id + "/1x.gif"
+                if emote.animated = true
+                    uri = "https://cdn.betterttv.net/emote/" + emote.id + "/animated/1x.gif"
+                else
+                    uri = "https://cdn.betterttv.net/emote/" + emote.id + "/1x.gif"
+                end if
+                emoteCache[emote.code] = uri
+            end for
+        end if
+        if temp.channelEmotes <> invalid
+            for each emote in temp.channelEmotes
+                if emote.animated = true
+                    uri = "https://cdn.betterttv.net/emote/" + emote.id + "/animated/1x.gif"
+                else
+                    uri = "https://cdn.betterttv.net/emote/" + emote.id + "/1x.gif"
+                end if
                 emoteCache[emote.code] = uri
             end for
         end if
     catch e
-        ? "Error grabbing channelttv badges"
+        ? "Error grabbing channel BTTV emotes"
+    end try
+    m.global.setField("emoteCache", emoteCache)
+end sub
+
+
+sub getGlobalFFZEmotes()
+    ? "[EmoteJob] - getGlobalFFZEmotes"
+    emoteCache = m.global.emoteCache
+    try
+        temp = invokerest("https://api.betterttv.net/3/cached/frankerfacez/emotes/global")
+        for each emote in temp
+            if emote.images <> invalid and emote.images["1x"] <> invalid
+                emoteCache[emote.code] = emote.images["1x"]
+            end if
+        end for
+    catch e
+        ? "Error grabbing global FFZ emotes"
     end try
     m.global.setField("emoteCache", emoteCache)
 end sub
 
 sub main()
     ? "[EmoteJob] - getAllEmotes"
+    m.top.loading = true
     m.global.setField("emoteCache", {})
     channel_id = m.top.channel_id
     getChannelTwitchEmotes(channel_id)
@@ -228,10 +280,12 @@ sub main()
         getChannelTTVEmotes(channel_id)
     end if
     if get_user_setting("FFZEmote", "true") = "true"
+        getGlobalFFZEmotes()
         getChannelTTVFrankerEmotes(channel_id)
     end if
     if get_user_setting("7tvEmote", "true") = "true"
         getGlobal7tvEmotes()
         getChannel7tvEmotes(channel_id)
     end if
+    m.top.loading = false
 end sub

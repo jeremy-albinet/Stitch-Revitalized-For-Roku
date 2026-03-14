@@ -22,6 +22,7 @@
         <field id="qualityOptions" type="array" />
         <field id="selectedQuality" type="string" value="" />
         <field id="isActualLowLatency" type="bool" value="false" />
+        <field id="openChatCompose" type="bool" value="false" />
         
         <!-- Low-Latency HLS Properties -->
         <field id="enableLowLatencyHLS" type="bool" value="false" />
@@ -84,6 +85,13 @@
                     <Rectangle id="qualityBg" color="0x404040AA" width="50" height="40" />
                     <Rectangle id="qualityFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
                     <Poster id="qualitySelectButton" uri="pkg:/images/icons/sliders.png" width="20" height="20" translation="[15,10]" />
+                </Group>
+                
+                <!-- Send Chat Button (only shown when chat is open) -->
+                <Group id="sendGroup" translation="[760,0]">
+                    <Rectangle id="sendBg" color="0x404040AA" width="50" height="40" />
+                    <Rectangle id="sendFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
+                    <Poster uri="pkg:/images/icons/reply.png" width="20" height="20" translation="[15,10]" />
                 </Group>
             </Group>
             

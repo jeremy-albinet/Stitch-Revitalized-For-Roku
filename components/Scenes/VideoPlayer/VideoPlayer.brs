@@ -277,6 +277,7 @@ sub playContent()
         m.video.unobserveField("toggleChat")
         m.video.unobserveField("QualityChangeRequestFlag") ' StitchVideo specific
         m.video.unobserveField("qualityChangeRequest") ' StitchVideo specific
+        m.video.unobserveField("openChatCompose") ' StitchVideo specific
         m.video.unobserveField("position")
         m.video.unobserveField("state")
         m.video.unobserveField("errorCode")
@@ -365,6 +366,7 @@ sub playContent()
     m.video.observeField("toggleChat", "onToggleChat")
     if isLiveContent
         m.video.observeField("QualityChangeRequestFlag", "onQualityChangeRequested") ' StitchVideo specific
+        m.video.observeField("openChatCompose", "onOpenChatCompose") ' StitchVideo specific
     else
         m.video.observeField("back", "onVideoBack") ' CustomVideo specific
     end if
@@ -478,6 +480,7 @@ sub exitPlayer()
         m.video.unobserveField("toggleChat")
         if m.video.isSubtype("StitchVideo")
             m.video.unobserveField("QualityChangeRequestFlag")
+            m.video.unobserveField("openChatCompose")
         else if m.video.isSubtype("CustomVideo")
             m.video.unobserveField("back")
         end if
@@ -506,6 +509,22 @@ end sub
 function onKeyEvent(key, press) as boolean
     if press
         ' ? "[VideoPlayer] Key Event: "; key
+
+        ' Chat compose overlay key handling
+        if m.chatComposeActive
+            if key = "back"
+                hideChatCompose()
+                return true
+            else if key = "play" or key = "OK"
+                ' OK on the keyboard itself is handled by the keyboard node;
+                ' but if focus escapes to VideoPlayer, treat as submit
+                submitChatMessage()
+                return true
+            end if
+            ' Let the keyboard handle all other keys
+            return false
+        end if
+
         if key = "back"
             if m.chatWindow <> invalid and m.chatWindow.visible = true
                 m.chatWindow.callFunc("stopJobs") ' Stop chat jobs if chat is open
@@ -543,7 +562,45 @@ sub init()
     m.bufferCheckTimer = invalid
     m.lastBufferState = ""
     m.bufferStartTime = 0
+
+    ' Chat compose overlay
+    m.chatComposeOverlay = m.top.findNode("chatComposeOverlay")
+    m.chatComposeKeyboard = m.top.findNode("chatComposeKeyboard")
+    m.chatComposeActive = false
 end sub
+
+sub showChatCompose()
+    if m.chatComposeOverlay = invalid then return
+    if m.chatWindow = invalid or not m.chatWindow.visible then return
+    m.chatComposeActive = true
+    m.chatComposeOverlay.visible = true
+    if m.chatComposeKeyboard <> invalid
+        m.chatComposeKeyboard.text = ""
+        m.chatComposeKeyboard.setFocus(true)
+    end if
+end sub
+
+sub hideChatCompose()
+    if m.chatComposeOverlay = invalid then return
+    m.chatComposeActive = false
+    m.chatComposeOverlay.visible = false
+    if m.video <> invalid
+        m.video.setFocus(true)
+    end if
+end sub
+
+sub submitChatMessage()
+    if m.chatComposeKeyboard = invalid then return
+    msg = m.chatComposeKeyboard.text
+    if msg <> invalid and msg <> "" and msg.trim() <> ""
+        if m.chatWindow <> invalid
+            m.chatWindow.sendMessage = msg.trim()
+        end if
+    end if
+    hideChatCompose()
+end sub
+
+
 
 sub onToggleChat()
     ' ? "[VideoPlayer] onToggleChat received from video component"
@@ -553,6 +610,13 @@ sub onToggleChat()
             m.video.chatIsVisible = m.chatWindow.visible ' Update video component's knowledge
         end if
         m.video.toggleChat = false ' Reset the flag on the video component
+    end if
+end sub
+
+sub onOpenChatCompose()
+    if m.video <> invalid and m.video.openChatCompose = true
+        m.video.openChatCompose = false
+        showChatCompose()
     end if
 end sub
 

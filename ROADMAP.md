@@ -18,26 +18,33 @@ This roadmap describes the path toward full parity with the official Twitch app 
 
 ---
 
-## 🔜 Near-term (v2.4 — next milestone)
+## ✅ Completed (v2.4 — this release)
 
 ### Chat — Sending Messages
-- [ ] Add a text input overlay within the VideoPlayer scene (triggered by pressing **OK** or **Play** while in watch mode)
-- [ ] Send `PRIVMSG` over the existing IRC socket in `ChatJob`
-- [ ] Display a "Sent" confirmation inline in the chat panel
-- [ ] Handle `NOTICE` replies from Twitch IRC (e.g. slow mode, subscriber-only mode errors)
+- [x] Add a text input overlay within the VideoPlayer scene (triggered by pressing the **Send** button in the control overlay while chat is open)
+- [x] Send `PRIVMSG` over the existing IRC socket in `ChatJob`
+- [x] Display a "Sent ✓" confirmation inline in the chat panel
+- [x] Handle `NOTICE` replies from Twitch IRC (e.g. slow mode, subscriber-only mode errors)
 
 ### Chat — Quality of Life
-- [ ] Show a "Chat is loading…" indicator while `EmoteJob` is running
-- [ ] Configurable chat delay override (currently fixed at 29 s for VOD sync; expose as a setting)
-- [ ] Render `/me` action messages in italics with the user's color applied to the whole line
-- [ ] Show `USERNOTICE` subscription/gift-sub alert banners in the chat panel
-- [ ] `CLEARMSG` / `CLEARCHAT` support — remove or cross-out deleted messages
+- [x] Show a "Chat is loading…" indicator while `EmoteJob` is running
+- [x] Configurable chat delay override (exposed as a setting; default 29 s)
+- [x] Render `/me` action messages with the user's color applied to the whole line
+- [x] Show `USERNOTICE` subscription/gift-sub/raid alert banners in the chat panel
+- [x] `CLEARMSG` / `CLEARCHAT` support — cross-out deleted messages / clear on ban
 
 ### Emote Improvements
-- [ ] Animated WEBP/GIF emotes from 7TV (currently only static `1x.gif` is fetched)
-- [ ] BTTV animated emotes (switch from `1x.gif` to `animated/1x.gif` when available)
-- [ ] FrankerFaceZ global emote set (currently only per-channel FFZ emotes are fetched)
-- [ ] Twitch channel point/reward emotes (`channelPointsCustomReward` tag in PRIVMSG)
+- [x] Animated WEBP/GIF emotes from 7TV (check `animated` flag, prefer `.webp`)
+- [x] BTTV animated emotes (use `animated/1x.gif` endpoint when `animated: true`)
+- [x] FrankerFaceZ global emote set (via BetterTTV CDN global FFZ endpoint)
+- [x] Twitch channel point/reward emotes (`custom-reward-id` tag — highlights message with a reward background)
+- [ ] Emote picker overlay so users can browse and insert emotes while composing a message
+
+---
+
+## 🔜 Near-term (v2.5 — next milestone)
+
+### Chat — Remaining
 - [ ] Emote picker overlay so users can browse and insert emotes while composing a message
 
 ---
