@@ -81,11 +81,10 @@ function focusedMenuItem()
 end function
 
 sub VersionJobs()
-    if m.global.appinfo.version.major.toInt() = 2 and m.global.appinfo.version.minor.toInt() = 3
-        ' Clean Up Job for switching default profile name to "$default$" as "default" is technically a possible twitch user.
-        if get_setting("active_user") <> invalid and get_setting("active_user") = "default"
-            set_setting("active_user", "$default$")
-        end if
+    ' Migrate old "default" active_user profile name to "$default$"
+    ' ("default" is a valid Twitch username, so it cannot be used as the sentinel value)
+    if get_setting("active_user") <> invalid and get_setting("active_user") = "default"
+        set_setting("active_user", "$default$")
     end if
 end sub
 sub refreshFollowBar()
@@ -274,6 +273,5 @@ function onKeyEvent(key, press) as boolean
     '     return true
     ' end if
     if not press then return false
-    ? "KEY EVENT: "; key press
     return false
 end function

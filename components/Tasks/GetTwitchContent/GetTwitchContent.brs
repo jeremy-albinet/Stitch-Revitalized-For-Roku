@@ -9,17 +9,6 @@ sub main()
         content = CreateObject("roSGNode", "TwitchContentNode")
         content.setFields(m.top.contentRequested)
 
-        ' Set live stream properties
-        isLowLatencyStream = false
-        if m.top.contentRequested.contentType = "LIVE"
-            if isLowLatencyStream
-                content.streamFormat = "lhls"
-            else
-                content.streamFormat = "hls"
-            end if
-            content.live = true
-        end if
-
         ' Try to get a working clip URL with enhanced method
         workingUrl = findWorkingClipUrl(clipSlug, m.top.contentRequested.previewImageUrl)
 
@@ -90,7 +79,7 @@ sub main()
         end if
 
         ' Check user's latency preference
-        latencyPreference = get_user_setting("preferred.latency", "low")
+        latencyPreference = get_user_setting("preferred.latency", "normal")
         lowLatencyEnabled = (latencyPreference = "low")
 
         ' ? "[GetTwitchContent] ===== LATENCY CONFIGURATION ====="
