@@ -88,7 +88,6 @@ sub VersionJobs()
         end if
     end if
 end sub
-
 sub refreshFollowBar()
     m.followedStreamBar.refreshFollowBar = true
 end sub
@@ -106,7 +105,7 @@ function buildNode(name)
     if name <> invalid
         newNode = createObject("roSGNode", name)
         newNode.id = name
-        newNode.translation = "[0, 0]"
+        newNode.translation = [0, 0]
         newNode.observeField("backPressed", "onBackPressed")
         newNode.observeField("contentSelected", "onContentSelected")
         if name <> "GamePage" and name <> "ChannelPage" and name <> "VideoPlayer" and name <> "StreamerChannelPage"

@@ -161,13 +161,20 @@ sub main()
         })
 
         usher_response = invalid
-        while true
+        maxRetries = 3
+        retryCount = 0
+        while retryCount < maxRetries
             usher_response = req.send()
             if usher_response <> invalid
                 exit while
             end if
-            sleep(10)
+            retryCount++
+            sleep(1000)
         end while
+        if usher_response = invalid
+            m.top.response = invalid
+            return
+        end if
 
         statusCode = usher_response.getResponseCode()
         usher_rsp = usher_response.getString()

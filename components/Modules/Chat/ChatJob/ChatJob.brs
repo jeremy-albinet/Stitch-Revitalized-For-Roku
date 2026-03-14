@@ -54,6 +54,7 @@ sub main()
                 end while
             end if
             if tcpListen.GetCountRcvBuf() = 0 and tcpListen.IsReadable()
+                tcpListen.Close()
                 tcpListen = createObject("roStreamSocket")
                 tcpListen.SetSendToAddress(addr)
                 tcpListen.Connect()
@@ -80,6 +81,16 @@ sub main()
                     if command = "USERNOTICE" or command = "USERSTATE"
                         ? "pauseable event"
                         sleep(5)
+                    end if
+                    if command = "RECONNECT"
+                        ? "[ChatJob] Server requested reconnect, reconnecting..."
+                        tcpListen.Close()
+                        tcpListen = createObject("roStreamSocket")
+                        tcpListen.SetSendToAddress(addr)
+                        tcpListen.Connect()
+                        loginToChat(tcpListen)
+                        tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
+                        queue.clear()
                     end if
                 end if
                 currentTimestamp = CreateObject("roDateTime").AsSeconds()
