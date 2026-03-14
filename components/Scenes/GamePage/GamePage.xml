@@ -8,19 +8,22 @@
     <script type="text/brightscript" uri="GamePage.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <children>
-        <rectangle id="background" width="1920" height="1080" />
-        <SimpleLabel
+        <rectangle id="background" width="1280" height="720" color="0x0e0e10FF" />
+        <Label
             id="Header"
-            translation="[75,20]"
+            translation="[130, 90]"
             text="Browse"
-            fontSize="48"
-            fontUri="pkg:/fonts/Archivo-Bold.otf" />
+            color="0xEFEFF1FF"
+            height="40"
+            width="400">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+        </Label>
         <RowList
             id="homeRowList"
             visible="true"
             rowLabelOffset="[[0,5]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[ 100, 120 ]"
+            translation="[ 130, 140 ]"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"

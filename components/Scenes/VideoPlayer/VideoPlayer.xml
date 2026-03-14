@@ -29,18 +29,43 @@
         />
         <!-- Chat compose overlay (hidden by default) -->
         <Group id="chatComposeOverlay" visible="false" translation="[0,0]">
-            <Rectangle width="1280" height="720" color="0x00000099" />
-            <Group translation="[240,230]">
-                <Rectangle width="800" height="260" color="0x18181BFF" />
+            <Rectangle width="1280" height="720" color="0x000000BF" />
+            <Group translation="[190,200]">
+                <!-- Card shadow/border -->
+                <Rectangle width="904" height="324" color="0x9147FF33" />
+                <!-- Main card -->
+                <Rectangle
+                    translation="[2, 2]"
+                    width="900"
+                    height="320"
+                    color="0x18181BFF" />
+                <!-- Purple accent bar at top of card -->
+                <Rectangle
+                    translation="[2, 2]"
+                    width="900"
+                    height="4"
+                    color="0x9147FFFF" />
+                <!-- Header icon + title -->
+                <Poster
+                    translation="[20, 20]"
+                    uri="pkg:/images/icons/comments.png"
+                    width="22"
+                    height="22" />
                 <SimpleLabel
-                    translation="[20,15]"
+                    translation="[50, 18]"
                     text="Send a message"
-                    color="0xFFFFFFFF"
-                    fontSize="16"
+                    color="0xEFEFF1FF"
+                    fontSize="18"
                     fontUri="pkg:/fonts/Archivo-Bold.otf" />
+                <!-- Separator -->
+                <Rectangle
+                    translation="[20, 52]"
+                    width="860"
+                    height="1"
+                    color="0x3b3b44FF" />
                 <DynamicMiniKeyboard
                     id="chatComposeKeyboard"
-                    translation="[20,45]"
+                    translation="[20,66]"
                     buttonHeight="28" />
             </Group>
         </Group>
