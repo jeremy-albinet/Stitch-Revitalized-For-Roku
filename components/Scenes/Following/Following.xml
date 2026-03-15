@@ -7,22 +7,40 @@
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <children>
+        <Rectangle
+            width="1280"
+            height="720"
+            color="0x0e0e10FF" />
+        <Label
+            translation="[130, 90]"
+            text="Following"
+            color="0xEFEFF1FF"
+            height="40"
+            width="400">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+        </Label>
+        <Rectangle
+            id="titleSeparator"
+            translation="[130, 147]"
+            width="1080"
+            height="1"
+            color="0x3b3b44FF" />
         <Label
             id="countLabel"
             text=""
-            translation="[130, 90]"
+            translation="[130, 118]"
             width="1000"
-            height="30"
+            height="26"
             color="0xC8C8D0FF"
             horizAlign="left"
             vertAlign="center">
-            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
         </Label>
         <RowList
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[ 130, 140 ]"
+            translation="[ 130, 150 ]"
             itemComponentName="VideoItem"
             numRows="50"
             rowItemSize="[[320,180]]"
@@ -34,6 +52,7 @@
             vertFocusAnimationStyle="fixedFocus"
             rowFocusAnimationStyle="floatingFocus"
         />
+        <BusySpinner id="loadingSpinner" translation="[640, 400]" />
     </children>
 
 </component>

@@ -9,28 +9,92 @@
 
     <script type="text/brightscript" uri="LoginPage.brs" />
     <children>
+        <!-- Full-screen dark background -->
+        <Rectangle
+            width="1280"
+            height="720"
+            color="0x0e0e10FF" />
+
+        <!-- Centered login card -->
+        <Rectangle
+            translation="[240, 90]"
+            width="800"
+            height="540"
+            color="0x18181bFF" />
+
+        <!-- Twitch purple accent bar at top of card -->
+        <Rectangle
+            translation="[240, 90]"
+            width="800"
+            height="5"
+            color="0x9147FFFF" />
+
+        <!-- Logo centered in card -->
+        <Poster
+            translation="[568, 126]"
+            uri="pkg:/images/logo.png"
+            width="144"
+            height="48" />
+
+        <!-- Separator below logo -->
+        <Rectangle
+            translation="[340, 200]"
+            width="600"
+            height="1"
+            color="0x3b3b44FF" />
+
+        <!-- "Sign in to Twitch" title -->
+        <Label
+            translation="[240, 216]"
+            width="800"
+            height="46"
+            text="Sign in to Twitch"
+            horizAlign="center"
+            color="0xEFEFF1FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+        </Label>
+
+        <!-- Instructions text (topText) -->
         <SimpleLabel
             id="topText"
-            translation="[100,172]"
+            translation="[240, 276]"
             text="LoginPageTopText"
-            color="0xEFEFF1FF"
-            fontSize="18"
+            color="0xC8C8D0FF"
+            fontSize="16"
             fontUri="pkg:/fonts/Archivo-Regular.otf" />
+
+        <!-- Activation code background card -->
+        <Rectangle
+            id="codeCard"
+            translation="[340, 322]"
+            width="600"
+            height="76"
+            color="0x26262cFF" />
+        <Rectangle
+            translation="[340, 322]"
+            width="4"
+            height="76"
+            color="0x9147FFFF" />
+
+        <!-- Activation code label -->
         <SimpleLabel
-            translation="[300,302]"
+            translation="[356, 334]"
             id="code"
             text=""
-            color="0xEFEFF1FF"
+            color="0x9147FFFF"
             fontSize="36"
             fontUri="pkg:/fonts/Archivo-Bold.otf" />
+
+        <!-- Bottom instruction text -->
         <SimpleLabel
             id="bottomText"
-            translation="[100,402]"
+            translation="[240, 422]"
             text="LoginPageBottomText"
-            color="0xEFEFF1FF"
-            fontSize="18"
+            color="0xC8C8D0FF"
+            fontSize="15"
             fontUri="pkg:/fonts/Archivo-Regular.otf" />
-        <ButtonGroup id="buttonGroup" visible="false" translation="[100,172]" />
+
+        <ButtonGroup id="buttonGroup" visible="false" translation="[240, 276]" />
     </children>
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
 </component>

@@ -94,8 +94,8 @@ end function
 
 function getTokenFromRegistry()
     return {
-        access_token: get_user_setting("refresh_token", ""),
-        refresh_token: get_user_setting("access_token", ""),
+        access_token: get_user_setting("access_token", ""),
+        refresh_token: get_user_setting("refresh_token", ""),
         login: get_user_setting("login", ""),
         device_id: get_user_setting("device_code", "")
     }

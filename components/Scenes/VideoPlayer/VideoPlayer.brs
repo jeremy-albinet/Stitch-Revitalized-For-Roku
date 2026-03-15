@@ -74,7 +74,7 @@ sub initChat()
         m.top.chatStarted = true
         m.chatWindow.channel_id = m.top.contentRequested.streamerId
         m.chatWindow.channel = m.top.contentRequested.streamerLogin
-        if get_user_setting("ChatOption", "true") = "true"
+        if get_user_setting("ChatOption", "false") = "true"
             m.chatWindow.visible = true
             m.video.chatIsVisible = m.chatWindow.visible
         else
@@ -96,7 +96,7 @@ sub onQualityChangeRequested()
 end sub
 
 sub configureVideoForLatency(video as object, isLive as boolean)
-    latencyPreference = get_user_setting("preferred.latency", "low")
+    latencyPreference = get_user_setting("preferred.latency", "normal")
     isLowLatency = (latencyPreference = "low")
 
     ' ? "[VideoPlayer] ===== BUFFERING CONFIGURATION ====="
@@ -277,6 +277,7 @@ sub playContent()
         m.video.unobserveField("toggleChat")
         m.video.unobserveField("QualityChangeRequestFlag") ' StitchVideo specific
         m.video.unobserveField("qualityChangeRequest") ' StitchVideo specific
+        m.video.unobserveField("openChatCompose") ' StitchVideo specific
         m.video.unobserveField("position")
         m.video.unobserveField("state")
         m.video.unobserveField("errorCode")
@@ -335,7 +336,7 @@ sub playContent()
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
         httpAgent.addheader("X-Device-Id", CreateObject("roDeviceInfo").GetRandomUUID())
-        authToken = get_user_setting("auth_token", "")
+        authToken = get_user_setting("access_token", "")
         if authToken <> ""
             httpAgent.addheader("Authorization", "Bearer " + authToken)
         end if
@@ -346,7 +347,7 @@ sub playContent()
         httpAgent.addheader("Referer", "https://android.tv.twitch.tv/")
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-        latencyPreference = get_user_setting("preferred.latency", "low")
+        latencyPreference = get_user_setting("preferred.latency", "normal")
         if isLiveContent and latencyPreference = "low"
             httpAgent.addheader("Cache-Control", "no-cache")
             httpAgent.addheader("Connection", "keep-alive")
@@ -365,6 +366,7 @@ sub playContent()
     m.video.observeField("toggleChat", "onToggleChat")
     if isLiveContent
         m.video.observeField("QualityChangeRequestFlag", "onQualityChangeRequested") ' StitchVideo specific
+        m.video.observeField("openChatCompose", "onOpenChatCompose") ' StitchVideo specific
     else
         m.video.observeField("back", "onVideoBack") ' CustomVideo specific
     end if
@@ -391,7 +393,7 @@ sub playContent()
         if isLiveContent
             contentNodeToPlay.ignoreStreamErrors = false ' Important for HLS error reporting
 
-            latencyPreference = get_user_setting("preferred.latency", "low")
+            latencyPreference = get_user_setting("preferred.latency", "normal")
             isLowLatencyMode = (latencyPreference = "low")
 
             currentQualityID = contentNodeToPlay.QualityID
@@ -478,6 +480,7 @@ sub exitPlayer()
         m.video.unobserveField("toggleChat")
         if m.video.isSubtype("StitchVideo")
             m.video.unobserveField("QualityChangeRequestFlag")
+            m.video.unobserveField("openChatCompose")
         else if m.video.isSubtype("CustomVideo")
             m.video.unobserveField("back")
         end if
@@ -506,6 +509,37 @@ end sub
 function onKeyEvent(key, press) as boolean
     if press
         ' ? "[VideoPlayer] Key Event: "; key
+
+        ' Emote picker overlay key handling
+        if m.emotePickerActive
+            if key = "back"
+                hideEmotePicker()
+                showChatCompose()
+                return true
+            end if
+            ' All other keys are handled by the EmotePicker component itself.
+            return false
+        end if
+
+        ' Chat compose overlay key handling
+        if m.chatComposeActive
+            if key = "back"
+                hideChatCompose()
+                return true
+            else if key = "options"
+                ' The ✸ (Options/asterisk) button opens the emote picker.
+                showEmotePicker()
+                return true
+            else if key = "play" or key = "OK"
+                ' OK on the keyboard itself is handled by the keyboard node;
+                ' but if focus escapes to VideoPlayer, treat as submit
+                submitChatMessage()
+                return true
+            end if
+            ' Let the keyboard handle all other keys
+            return false
+        end if
+
         if key = "back"
             if m.chatWindow <> invalid and m.chatWindow.visible = true
                 m.chatWindow.callFunc("stopJobs") ' Stop chat jobs if chat is open
@@ -543,7 +577,91 @@ sub init()
     m.bufferCheckTimer = invalid
     m.lastBufferState = ""
     m.bufferStartTime = 0
+
+    ' Chat compose overlay
+    m.chatComposeOverlay = m.top.findNode("chatComposeOverlay")
+    m.chatComposeKeyboard = m.top.findNode("chatComposeKeyboard")
+    m.chatComposeActive = false
+
+    ' Emote picker overlay
+    m.emotePickerOverlay = m.top.findNode("emotePickerOverlay")
+    m.emotePickerActive = false
+    if m.emotePickerOverlay <> invalid
+        m.emotePickerOverlay.observeField("emoteSelected", "onEmoteSelected")
+    end if
 end sub
+
+sub showChatCompose()
+    if m.chatComposeOverlay = invalid then return
+    if m.chatWindow = invalid or not m.chatWindow.visible then return
+    m.chatComposeActive = true
+    m.chatComposeOverlay.visible = true
+    if m.chatComposeKeyboard <> invalid
+        m.chatComposeKeyboard.text = ""
+        m.chatComposeKeyboard.setFocus(true)
+    end if
+end sub
+
+sub hideChatCompose()
+    if m.chatComposeOverlay = invalid then return
+    m.chatComposeActive = false
+    m.chatComposeOverlay.visible = false
+    if m.video <> invalid
+        m.video.setFocus(true)
+    end if
+end sub
+
+sub showEmotePicker()
+    if m.emotePickerOverlay = invalid then return
+    ' Hide the compose overlay while browsing emotes.
+    m.chatComposeActive = false
+    m.chatComposeOverlay.visible = false
+    m.emotePickerActive = true
+    m.emotePickerOverlay.visible = true
+    m.emotePickerOverlay.setFocus(true)
+end sub
+
+sub hideEmotePicker()
+    if m.emotePickerOverlay = invalid then return
+    m.emotePickerActive = false
+    m.emotePickerOverlay.visible = false
+end sub
+
+' Called when the user selects an emote from the picker.  The emote code is
+' appended to whatever text is already in the compose keyboard, then the
+' compose overlay is shown again so the user can continue editing.
+sub onEmoteSelected()
+    if m.emotePickerOverlay = invalid then return
+    emoteCode = m.emotePickerOverlay.emoteSelected
+    if emoteCode = invalid or emoteCode = "" then
+        showChatCompose()
+        return
+    end if
+    ' Append emote code to any existing keyboard text.
+    if m.chatComposeKeyboard <> invalid
+        currentText = m.chatComposeKeyboard.text
+        if currentText = invalid then currentText = ""
+        if currentText <> "" and Right(currentText, 1) <> " "
+            currentText = currentText + " "
+        end if
+        m.chatComposeKeyboard.text = currentText + emoteCode
+    end if
+    hideEmotePicker()
+    showChatCompose()
+end sub
+
+sub submitChatMessage()
+    if m.chatComposeKeyboard = invalid then return
+    msg = m.chatComposeKeyboard.text
+    if msg <> invalid and msg <> "" and msg.trim() <> ""
+        if m.chatWindow <> invalid
+            m.chatWindow.sendMessage = msg.trim()
+        end if
+    end if
+    hideChatCompose()
+end sub
+
+
 
 sub onToggleChat()
     ' ? "[VideoPlayer] onToggleChat received from video component"
@@ -553,6 +671,13 @@ sub onToggleChat()
             m.video.chatIsVisible = m.chatWindow.visible ' Update video component's knowledge
         end if
         m.video.toggleChat = false ' Reset the flag on the video component
+    end if
+end sub
+
+sub onOpenChatCompose()
+    if m.video <> invalid and m.video.openChatCompose = true
+        m.video.openChatCompose = false
+        showChatCompose()
     end if
 end sub
 

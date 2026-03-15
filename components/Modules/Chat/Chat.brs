@@ -1,11 +1,16 @@
 sub init()
     m.chatPanel = m.top.findNode("chatPanel")
     m.maskgroup = m.top.findNode("maskGroup")
+    m.chatLoadingLabel = m.top.findNode("chatLoadingLabel")
     setChatPanelSize()
     setSizingParameters()
     ' determines how far down the screen the first message will appear
     ' set to 700 to have first message at bottom of screen.
     m.translation = m.lower_bound - m.line_height
+    ' Track messages by id for CLEARMSG support: {msg-id -> group node}
+    m.messageNodeById = {}
+    ' Track messages by username for CLEARCHAT support: {username -> [group nodes]}
+    m.messageNodesByUser = {}
 end sub
 
 sub updatePanelTranslation()
@@ -76,16 +81,134 @@ sub onEnterChannel()
         m.chat.forceLive = m.top.forceLive
         ' m.chat.observeField("nextComment", "onNewComment")
         m.chat.observeField("nextCommentObj", "onNewCommentObj")
+        m.chat.observeField("lastSentMessage", "onMessageSent")
+        m.chat.observeField("clearMsgEvent", "onClearMsg")
+        m.chat.observeField("clearChatEvent", "onClearChat")
         ' m.chat.observeField("clientComment", "onNewComment")
         m.chat.channel = m.top.channel
         m.chat.control = "stop"
         m.chat.control = "run"
     end if
     m.EmoteJob = m.top.findnode("EmoteJob")
+    m.EmoteJob.observeField("loading", "onEmoteJobLoading")
     m.EmoteJob.channel_id = m.top.channel_id
     m.EmoteJob.channel = m.top.channel
     m.EmoteJob.control = "run"
 end sub
+
+sub onEmoteJobLoading()
+    if m.chatLoadingLabel <> invalid
+        m.chatLoadingLabel.visible = m.EmoteJob.loading
+    end if
+end sub
+
+sub onSendMessage()
+    if m.chat <> invalid and m.top.sendMessage <> "" and m.top.sendMessage <> invalid
+        m.chat.sendMessage = m.top.sendMessage
+        m.top.sendMessage = ""
+    end if
+end sub
+
+sub onMessageSent()
+    if m.chat.lastSentMessage <> "" and m.chat.lastSentMessage <> invalid
+        showSystemMessage("Sent ✓ " + m.chat.lastSentMessage)
+    end if
+end sub
+
+sub onClearMsg()
+    ev = m.chat.clearMsgEvent
+    if ev = invalid then return
+    targetId = ""
+    if ev?.tags?.target_msg_id <> invalid
+        targetId = ev.tags.target_msg_id
+    end if
+    if targetId <> "" and m.messageNodeById.DoesExist(targetId)
+        node = m.messageNodeById[targetId]
+        strikeGroup = node.findNode("strikeLine_" + targetId)
+        if strikeGroup = invalid
+            nodeRect = node.localBoundingRect()
+            strike = createObject("roSGNode", "Rectangle")
+            strike.id = "strikeLine_" + targetId
+            strike.width = nodeRect.width + 20
+            strike.height = 2
+            strike.color = "0xFF4444FF"
+            strike.translation = [0, nodeRect.height / 2]
+            node.appendChild(strike)
+        end if
+    end if
+end sub
+
+sub onClearChat()
+    ev = m.chat.clearChatEvent
+    if ev = invalid then return
+    targetUser = ev.parameters.trim()
+    if targetUser = "" or targetUser = invalid
+        ' Full chat clear — remove all messages
+        for each chatmessage in m.chatPanel.getChildren(-1, 0)
+            m.chatPanel.removeChild(chatmessage)
+        end for
+        m.messageNodeById = {}
+        m.messageNodesByUser = {}
+        m.translation = m.lower_bound - m.line_height
+    else
+        ' Per-user timeout/ban — strike out that user's messages
+        if m.messageNodesByUser.DoesExist(targetUser)
+            for each node in m.messageNodesByUser[targetUser]
+                nodeRect = node.localBoundingRect()
+                strike = createObject("roSGNode", "Rectangle")
+                strike.width = nodeRect.width + 20
+                strike.height = 2
+                strike.color = "0xFF4444FF"
+                strike.translation = [0, nodeRect.height / 2]
+                node.appendChild(strike)
+            end for
+        end if
+    end if
+end sub
+
+sub showSystemMessage(text as string)
+    group = createObject("roSGNode", "Group")
+    label = createObject("roSGNode", "SimpleLabel")
+    label.fontSize = m.font_size
+    label.fontUri = "pkg:/fonts/Archivo-Regular.otf"
+    label.color = "0xFFFFFFCC"
+    label.visible = true
+    label.text = text
+    group.appendChild(label)
+    appendChatGroup(group)
+    ' Auto-remove after 4 seconds
+    removeTimer = createObject("roSGNode", "Timer")
+    removeTimer.duration = 4
+    removeTimer.repeat = false
+    removeTimer.observeField("fire", "onSystemMessageTimeout")
+    m.pendingSystemGroup = group
+    removeTimer.control = "start"
+end sub
+
+sub onSystemMessageTimeout()
+    if m.pendingSystemGroup <> invalid
+        m.chatPanel.removeChild(m.pendingSystemGroup)
+        m.pendingSystemGroup = invalid
+    end if
+end sub
+
+sub appendChatGroup(group as object)
+    group.translation = [m.left_bound, m.translation]
+    m.chatPanel.appendChild(group)
+    y_translation = group.localBoundingRect().height + m.line_gap
+    if m.translation + y_translation > m.chatPanel.height
+        for each chatmessage in m.chatPanel.getChildren(-1, 0)
+            if (chatmessage.translation[1] + chatmessage.localBoundingRect().height) < 0
+                m.chatPanel.removeChild(chatmessage)
+            else
+                chatmessage.translation = [chatmessage.translation[0], (chatmessage.translation[1] - y_translation)]
+            end if
+        end for
+    else
+        m.translation += y_translation
+    end if
+end sub
+
 
 function extractMessage(section) as object
     m.userstate_change = false
@@ -171,7 +294,7 @@ end function
 
 
 
-function wordOrImage(word, isUrl = false)
+function wordOrImage(word, isUrl = false, color = "")
     if m.global.emoteCache.DoesExist(word)
         return buildEmote(m.global.emoteCache[word])
     else
@@ -180,6 +303,9 @@ function wordOrImage(word, isUrl = false)
         message_text.fontUri = "pkg:/fonts/Archivo-Regular.otf"
         message_text.visible = true
         message_text.text = word + " "
+        if color <> ""
+            message_text.color = "0x" + color + "FF"
+        end if
         if isUrl
             message_text.color = m.global.constants.colors.twitch.purple9
         end if
@@ -190,6 +316,10 @@ end function
 '
 
 function buildMessage(message, x_translation)
+    return buildMessage_colored(message, x_translation, "")
+end function
+
+function buildMessage_colored(message, x_translation, color)
     message_group = createObject("roSGNode", "Group")
     words = message.Split(" ")
     line_available_space = m.right_bound - x_translation
@@ -203,14 +333,8 @@ function buildMessage(message, x_translation)
         urlRegex = createObject("roRegex", "https?:\/\/[a-zA-Z0-9\.]+", "i")
         isUrl = urlRegex.IsMatch(word)
 
-        block = wordOrImage(word, isUrl)
+        block = wordOrImage(word, isUrl, color)
         block_width = block.localBoundingRect().width
-        '* '  "Useful for Debug"
-        ' ? "left_bound: " m.left_bound
-        ' ? "right_bound: " m.right_bound
-        ' ? "x_translation: " x_translation
-        ' ? "Block Width: " block_width
-        ' ? "line_available_space: " line_available_space
         if block_width > m.right_bound
             ? "break it up!"
             block = createObject("roSGNode", "Group")
@@ -223,6 +347,9 @@ function buildMessage(message, x_translation)
                 charNode.fontUri = "pkg:/fonts/Archivo-Regular.otf"
                 charNode.visible = true
                 charNode.text = char
+                if color <> ""
+                    charNode.color = "0x" + color + "FF"
+                end if
                 if isUrl
                     charNode.color = m.global.constants.colors.twitch.purple9
                 end if
@@ -256,16 +383,99 @@ sub onNewCommentObj()
     m.chat.readyForNextComment = false
     if m.chat.nextCommentObj <> invalid
         comment = m.chat.nextCommentObj
-        display_name = comment.tags.display_name
+        command = comment?.command?.command
+
+        ' Handle NOTICE messages (slow mode, subscriber-only, etc.)
+        if command = "NOTICE"
+            noticeText = comment.parameters.trim()
+            if noticeText <> ""
+                showSystemMessage("📢 " + noticeText)
+            end if
+            m.chat.readyForNextComment = true
+            return
+        end if
+
+        ' Handle USERNOTICE (sub/resub/gift-sub alerts)
+        if command = "USERNOTICE"
+            msgId = ""
+            if comment?.tags?.msg_id <> invalid
+                msgId = comment.tags.msg_id
+            end if
+            systemMsg = ""
+            senderName = ""
+            if comment?.tags?.display_name <> invalid
+                senderName = comment.tags.display_name
+            end if
+            if msgId = "sub"
+                systemMsg = "🎉 " + senderName + " just subscribed!"
+            else if msgId = "resub"
+                months = ""
+                if comment?.tags?.msg_param_cumulative_months <> invalid
+                    months = " (" + comment.tags.msg_param_cumulative_months + " months)"
+                end if
+                systemMsg = "🎉 " + senderName + " resubscribed!" + months
+            else if msgId = "subgift"
+                recipient = ""
+                if comment?.tags?.msg_param_recipient_display_name <> invalid
+                    recipient = comment.tags.msg_param_recipient_display_name
+                end if
+                systemMsg = "🎁 " + senderName + " gifted a sub to " + recipient + "!"
+            else if msgId = "submysterygift"
+                count = "1"
+                if comment?.tags?.msg_param_mass_gift_count <> invalid
+                    count = comment.tags.msg_param_mass_gift_count
+                end if
+                systemMsg = "🎁 " + senderName + " gifted " + count + " sub(s)!"
+            else if msgId = "raid"
+                viewers = ""
+                if comment?.tags?.msg_param_viewerCount <> invalid
+                    viewers = " (" + comment.tags.msg_param_viewerCount + " viewers)"
+                end if
+                systemMsg = "⚔️ " + senderName + " is raiding!" + viewers
+            else if msgId = "ritual"
+                systemMsg = "✨ " + senderName + " is new here! Say hi!"
+            else
+                systemMsg = "📣 " + senderName
+                if comment.parameters <> "" and comment.parameters <> invalid
+                    systemMsg += ": " + comment.parameters.trim()
+                end if
+            end if
+            if systemMsg <> ""
+                showSystemMessage(systemMsg)
+            end if
+            m.chat.readyForNextComment = true
+            return
+        end if
+
+        display_name = ""
+        if comment?.tags?.display_name <> invalid
+            display_name = comment.tags.display_name
+        end if
         message = comment.parameters.trim()
         color = ""
         if comment?.tags?.color <> invalid
             color = comment.tags.color.replace("#", "")
         end if
+
+        ' Detect /me action messages: body starts with chr(1)+"ACTION "
+        isAction = false
+        if message.left(7) = Chr(1) + "ACTION"
+            isAction = true
+            message = message.mid(7).trim()
+            if message.right(1) = Chr(1)
+                message = message.left(message.len() - 1)
+            end if
+        end if
+
+        ' Detect channel point reward messages
+        isReward = false
+        if comment?.tags?.custom_reward_id <> invalid and comment.tags.custom_reward_id <> ""
+            isReward = true
+        end if
+
         badges = []
         if comment?.tags?.badges <> invalid
             for each key in comment.tags.badges
-                ' badgeID = key + "/" + comment.tags.badges[key]
                 badgeID = key
                 badges.push(badgeID)
             end for
@@ -284,7 +494,7 @@ sub onNewCommentObj()
 
         quoteRegex = createObject("roRegex", "[\x{2018}\x{2019}]", "")
         message = quoteRegex.replace(message, "'")
-        ' This Section grabs missing emotes on the fly... not sure if there is a better way to optimize.
+        ' Grab missing Twitch emotes on the fly
         for each emoticon in emote_set.Items()
             e_start = emoticon.value.starts[0]
             emote_word = Mid(message, (e_start + 1), emoticon.value.length)
@@ -303,43 +513,68 @@ sub onNewCommentObj()
         end if
 
         x_translation = m.left_bound
+        group = createObject("roSGNode", "Group")
+
+        ' Channel point reward highlight background
+        if isReward
+            rewardBg = createObject("roSGNode", "Rectangle")
+            rewardBg.color = "0x1A0A3FFF"
+            rewardBg.width = m.chatPanel.width - m.left_bound
+            rewardBg.height = m.message_height * 2
+            rewardBg.translation = [0, 0]
+            group.appendChild(rewardBg)
+        end if
 
         badge_group = buildBadges(badges)
         badge_group.translation = [x_translation, 0]
         x_translation += badge_group.localBoundingRect().width + 1
 
-        username = buildUsername(display_name, color)
-        username.translation = [x_translation, 0]
-        x_translation += username.localBoundingRect().width + 1
-
-        colon = buildColon()
-        colon.translation = [x_translation, 0]
-        x_translation += colon.localBoundingRect().width + 1
-
-        message_group = buildMessage(message, x_translation)
-        message_group.translation = [0, 0]
-        x_translation += message_group.localBoundingRect().width + 1
-
-        group = createObject("roSGNode", "Group")
-
-        group.appendChild(badge_group)
-        group.appendChild(username)
-        group.appendChild(colon)
-        group.appendChild(message_group)
-        group.translation = [m.left_bound, m.translation]
-        m.chatPanel.appendChild(group)
-        y_translation = group.localBoundingRect().height + m.line_gap
-        if m.translation + y_translation > m.chatPanel.height
-            for each chatmessage in m.chatPanel.getChildren(-1, 0)
-                if (chatmessage.translation[1] + chatmessage.localBoundingRect().height) < 0 ' Wait until it's off the screen to remove it.
-                    m.chatPanel.removeChild(chatmessage)
-                else
-                    chatmessage.translation = [chatmessage.translation[0], (chatmessage.translation[1] - y_translation)]
-                end if
-            end for
+        if isAction
+            ' /me: render "* username message" all in the user's color
+            username_label = buildUsername("* " + display_name + " ", color)
+            username_label.translation = [x_translation, 0]
+            x_translation += username_label.localBoundingRect().width + 1
+            message_group = buildMessage_colored(message, x_translation, color)
+            message_group.translation = [0, 0]
+            group.appendChild(badge_group)
+            group.appendChild(username_label)
+            group.appendChild(message_group)
         else
-            m.translation += (y_translation)
+            username = buildUsername(display_name, color)
+            username.translation = [x_translation, 0]
+            x_translation += username.localBoundingRect().width + 1
+
+            colon = buildColon()
+            colon.translation = [x_translation, 0]
+            x_translation += colon.localBoundingRect().width + 1
+
+            message_group = buildMessage(message, x_translation)
+            message_group.translation = [0, 0]
+
+            group.appendChild(badge_group)
+            group.appendChild(username)
+            group.appendChild(colon)
+            group.appendChild(message_group)
         end if
+
+        ' Track by msg-id for CLEARMSG
+        msgId = ""
+        if comment?.tags?.id <> invalid
+            msgId = comment.tags.id
+            if msgId <> ""
+                m.messageNodeById[msgId] = group
+            end if
+        end if
+        ' Track by username for CLEARCHAT
+        trackUser = display_name.lower()
+        if trackUser <> ""
+            if not m.messageNodesByUser.DoesExist(trackUser)
+                m.messageNodesByUser[trackUser] = []
+            end if
+            m.messageNodesByUser[trackUser].push(group)
+        end if
+
+        appendChatGroup(group)
     end if
     m.chat.readyForNextComment = true
 end sub

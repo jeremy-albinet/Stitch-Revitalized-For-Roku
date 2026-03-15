@@ -2,6 +2,7 @@ sub init()
     m.top.observeField("focusedChild", "onGetfocus")
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
+    m.loadingSpinner = m.top.findNode("loadingSpinner")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     m.rowlist.observeField("itemHasFocus", "handleItemFocus")
     m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
@@ -47,6 +48,7 @@ end function
 
 
 sub handleRecommendedSections()
+    if m.loadingSpinner <> invalid then m.loadingSpinner.visible = false
     if m.GetContentTask.response.data <> invalid and m.GetContentTask.response.data.directoriesWithTags <> invalid
         contentCollection = buildContentNodeFromShelves(m.GetContentTask.response.data.directoriesWithTags.edges)
         if m.GetContentTask.response.data.directoriesWithTags.pageInfo <> invalid

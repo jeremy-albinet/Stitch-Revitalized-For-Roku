@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="EmotePicker" extends="Group">
+    <interface>
+        <!-- Set when user selects an emote (emote code/name string). -->
+        <field id="emoteSelected" type="string" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="EmotePicker.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+    <children>
+        <!-- Full screen dim -->
+        <Rectangle width="1280" height="720" color="0x000000BF" />
+        <!-- Card border/shadow -->
+        <Rectangle translation="[98, 58]" width="1084" height="608" color="0x9147FF33" />
+        <!-- Main card -->
+        <Rectangle translation="[100, 60]" width="1080" height="604" color="0x18181BFF" />
+        <!-- Purple accent bar at top of card -->
+        <Rectangle translation="[100, 60]" width="1080" height="4" color="0x9147FFFF" />
+        <!-- Header title -->
+        <SimpleLabel
+            translation="[122, 76]"
+            text="Pick an Emote"
+            color="0xEFEFF1FF"
+            fontSize="18"
+            fontUri="pkg:/fonts/Archivo-Bold.otf" />
+        <!-- Provider filter tabs -->
+        <ButtonGroupHoriz id="providerTabs" translation="[120, 108]" />
+        <!-- Separator -->
+        <Rectangle translation="[120, 146]" width="1040" height="1" color="0x3b3b44FF" />
+        <!-- Emote grid (scrollable) -->
+        <MarkupGrid
+            id="emoteGrid"
+            translation="[120, 156]"
+            itemComponentName="EmotePickerItem"
+            numColumns="4"
+            itemSize="[248, 44]"
+            itemSpacing="[8, 4]" />
+        <!-- Footer navigation hint -->
+        <SimpleLabel
+            translation="[120, 644]"
+            text="OK: Insert  •  ↑: Filter tabs  •  Back: Cancel"
+            color="0x808080FF"
+            fontSize="14"
+            fontUri="pkg:/fonts/Archivo-Regular.otf" />
+    </children>
+</component>

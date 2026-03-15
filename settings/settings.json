@@ -49,7 +49,7 @@
         "description": "This disables the chat window from sending/receiving web requests.",
         "settingName": "ChatWebOption",
         "type": "bool",
-        "default": "false"
+        "default": "true"
     },
     {
         "title": "Chat Font Size",
@@ -181,6 +181,50 @@
             {
                 "title": "Followers (Low to High)",
                 "id": "ASC_followerCount"
+            }
+        ]
+    },
+    {
+        "title": "Show Followed Streams Sidebar",
+        "description": "Shows or hides the left-side followed streams bar while browsing.",
+        "settingName": "FollowBarOption",
+        "type": "bool",
+        "default": "true"
+    },
+    {
+        "title": "Chat Delay (VOD Sync)",
+        "description": "Seconds of delay applied to chat messages to keep them in sync with VOD playback. 0 = live (no delay). Ignored for live streams.",
+        "settingName": "ChatDelay",
+        "type": "radio",
+        "default": "29",
+        "options": [
+            {
+                "title": "0 s (no delay / live)",
+                "id": "0"
+            },
+            {
+                "title": "5 s",
+                "id": "5"
+            },
+            {
+                "title": "10 s",
+                "id": "10"
+            },
+            {
+                "title": "20 s",
+                "id": "20"
+            },
+            {
+                "title": "29 s (default)",
+                "id": "29"
+            },
+            {
+                "title": "45 s",
+                "id": "45"
+            },
+            {
+                "title": "60 s",
+                "id": "60"
             }
         ]
     }

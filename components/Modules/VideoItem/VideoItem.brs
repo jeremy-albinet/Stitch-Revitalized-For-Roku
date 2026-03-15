@@ -52,9 +52,9 @@ sub GameSettings()
     m.itemposter.loadwidth = 188
     m.itemposter.loadheight = 250
     m.itemlabel.maxwidth = 188
-    m.itemlabel.translation = "[0,270]"
-    m.itemSubtitle.translation = "[0, 280]"
-    m.itemThirdTitle.translation = "[0, 290]"
+    m.itemlabel.translation = "[0,260]"
+    m.itemSubtitle.translation = "[0, 284]"
+    m.itemThirdTitle.translation = "[0, 304]"
     m.liveicon.visible = false
     m.itemViewers.visible = false
     m.viewsRect.visible = false
@@ -73,6 +73,9 @@ sub LiveSettings()
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
+    m.itemlabel.translation = "[0, 186]"
+    m.itemSubtitle.translation = "[0, 212]"
+    m.itemThirdTitle.translation = "[0, 234]"
     m.timestampLabel.visible = false
     m.timestampRect.visible = false
 
@@ -102,6 +105,9 @@ sub VodSettings()
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
+    m.itemlabel.translation = "[0, 186]"
+    m.itemSubtitle.translation = "[0, 212]"
+    m.itemThirdTitle.translation = "[0, 234]"
 end sub
 
 sub ClipSettings()
@@ -117,6 +123,9 @@ sub ClipSettings()
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
+    m.itemlabel.translation = "[0, 186]"
+    m.itemSubtitle.translation = "[0, 212]"
+    m.itemThirdTitle.translation = "[0, 234]"
 end sub
 
 sub UserSettings()
@@ -126,9 +135,9 @@ sub UserSettings()
     m.circlePoster.uri = m.top.itemContent.streamerProfileImageUrl
     m.circlePoster.visible = true
     m.itemlabel.maxwidth = 150
-    m.itemlabel.translation = "[0,160]"
-    m.itemSubtitle.translation = "[0, 170]"
-    m.itemThirdTitle.translation = "[0, 180]"
+    m.itemlabel.translation = "[0,158]"
+    m.itemSubtitle.translation = "[0, 182]"
+    m.itemThirdTitle.translation = "[0, 202]"
     m.liveicon.visible = false
     m.itemViewers.visible = false
     m.viewsRect.visible = false
