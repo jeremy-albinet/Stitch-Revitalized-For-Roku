@@ -2,6 +2,7 @@ sub init()
     m.top.observeField("focusedChild", "onGetfocus")
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowList = m.top.findNode("homeRowList")
+    m.loadingSpinner = m.top.findNode("loadingSpinner")
 
     ' Guard check for missing node
     if m.rowlist = invalid
@@ -44,6 +45,7 @@ function buildContentNodeFromShelves(shelves as object) as object
 end function
 
 sub handleRecommendedSections()
+    if m.loadingSpinner <> invalid then m.loadingSpinner.visible = false
     if m.GetContentTask?.response?.data?.streams <> invalid
         contentCollection = buildContentNodeFromShelves(m.GetContentTask.response.data.streams.edges)
         if m.GetContentTask.response.data.streams.pageInfo <> invalid

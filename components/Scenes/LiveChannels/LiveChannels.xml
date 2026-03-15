@@ -20,6 +20,12 @@
             width="400">
             <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
         </Label>
+        <Rectangle
+            id="titleSeparator"
+            translation="[130, 133]"
+            width="1080"
+            height="1"
+            color="0x3b3b44FF" />
         <RowList
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
@@ -36,6 +42,7 @@
             rowFocusAnimationStyle="floatingFocus"
             showRowLabel="[ false ]"
         />
+        <BusySpinner id="loadingSpinner" translation="[640, 400]" />
     </children>
 
 </component>

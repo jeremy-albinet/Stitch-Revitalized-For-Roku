@@ -44,7 +44,7 @@
       <Label id="streamerName" translation="[90, 0]">
         <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
       </Label>
-      <Label id="gameId" height="20" color="0xC26BE1FF" translation="[90, 20]">
+      <Label id="gameId" height="20" color="0xBF94FFFF" translation="[90, 20]">
         <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="14" />
       </Label>
       <!-- <SimpleLabel

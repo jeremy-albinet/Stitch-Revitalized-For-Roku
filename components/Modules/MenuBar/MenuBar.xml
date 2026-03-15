@@ -14,8 +14,8 @@
       id="headerRectShadow"
       color="0x9147FFFF"
       width="1280"
-      height="3"
-      translation="[0, 77]"
+      height="4"
+      translation="[0, 76]"
     />
     <Poster
       id="logo"
