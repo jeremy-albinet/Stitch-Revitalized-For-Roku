@@ -50,9 +50,9 @@
             color="0x0e0e10ff"
             visible="false"
             opacity="0.75"
-            width="512"
-            height="288"
-            scaleRotateCenter="[ 256.0, 144.0 ]" />
+            width="320"
+            height="180"
+            scaleRotateCenter="[ 160.0, 90.0 ]" />
         <EmojiLabel
             id="itemLabel"
             height="30"
@@ -66,7 +66,7 @@
             height="26"
             width="320"
             horizAlign="left"
-            color="0xFFFFFFFF"
+            color="0xadadb8FF"
             translation="[0, 212]">
             <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
         </Label>
@@ -75,7 +75,7 @@
             height="26"
             width="320"
             horizAlign="left"
-            color="0xFFFFFFFF"
+            color="0xadadb8FF"
             translation="[0, 234]">
             <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
         </Label>

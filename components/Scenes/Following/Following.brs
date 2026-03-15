@@ -3,6 +3,7 @@ sub init()
     ? "init"; TimeStamp()
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
+    m.loadingSpinner = m.top.findNode("loadingSpinner")
     ' m.allChannels = m.top.findNode("allChannels")
     ' m.allChannels.observeField("itemSelected", "handleItemSelected")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
@@ -19,6 +20,7 @@ end sub
 
 sub decideRoute()
     ? "DecideRoute"; TimeStamp()
+    if m.loadingSpinner <> invalid then m.loadingSpinner.visible = false
     if get_setting("active_user") <> invalid and get_setting("active_user") <> "$default$"
         ? "Route -> handleRecommendedSections"
         handleRecommendedSections()

@@ -3,6 +3,7 @@ sub init()
     m.top.observeField("focusedChild", "onGetfocus")
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
+    m.loadingSpinner = m.top.findNode("loadingSpinner")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
     ' observe content so we can know when feed content will be parsed
@@ -184,6 +185,7 @@ sub updateRowList(jsonContent)
     m.rowlist.numRows = contentCollection.getChildCount()
     m.rowlist.rowlabelcolor = m.global.constants.colors.twitch.purple10
     m.rowlist.visible = true
+    if m.loadingSpinner <> invalid then m.loadingSpinner.visible = false
 end sub
 
 sub handleItemSelected()
