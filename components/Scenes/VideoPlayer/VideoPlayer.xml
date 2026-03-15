@@ -32,12 +32,12 @@
             <Rectangle width="1280" height="720" color="0x000000BF" />
             <Group translation="[190,200]">
                 <!-- Card shadow/border -->
-                <Rectangle width="904" height="324" color="0x9147FF33" />
+                <Rectangle width="904" height="370" color="0x9147FF33" />
                 <!-- Main card -->
                 <Rectangle
                     translation="[2, 2]"
                     width="900"
-                    height="320"
+                    height="366"
                     color="0x18181BFF" />
                 <!-- Purple accent bar at top of card -->
                 <Rectangle
@@ -57,6 +57,13 @@
                     color="0xEFEFF1FF"
                     fontSize="18"
                     fontUri="pkg:/fonts/Archivo-Bold.otf" />
+                <!-- Emote picker shortcut hint -->
+                <SimpleLabel
+                    translation="[690, 20]"
+                    text="✸ for emotes"
+                    color="0x808080FF"
+                    fontSize="14"
+                    fontUri="pkg:/fonts/Archivo-Regular.otf" />
                 <!-- Separator -->
                 <Rectangle
                     translation="[20, 52]"
@@ -69,6 +76,8 @@
                     buttonHeight="28" />
             </Group>
         </Group>
+        <!-- Emote picker overlay (hidden by default) -->
+        <EmotePicker id="emotePickerOverlay" visible="false" />
     </children>
 
 </component>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="EmotePickerItem" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onItemContentChanged" />
+        <field id="focusPercent" type="float" value="0" onChange="onFocusChanged" />
+        <field id="width" type="float" value="248" />
+        <field id="height" type="float" value="44" />
+    </interface>
+    <script type="text/brightscript" uri="EmotePickerItem.brs" />
+    <children>
+        <Rectangle id="focusBg" width="248" height="44" color="0x9147FF55" visible="false" />
+        <Poster
+            id="emoteImage"
+            width="32"
+            height="32"
+            translation="[6, 6]"
+            loadDisplayMode="scaleToFit" />
+        <SimpleLabel
+            id="emoteName"
+            translation="[46, 12]"
+            width="196"
+            color="0xEFEFF1FF"
+            fontSize="16"
+            fontUri="pkg:/fonts/Archivo-Regular.otf" />
+    </children>
+</component>
