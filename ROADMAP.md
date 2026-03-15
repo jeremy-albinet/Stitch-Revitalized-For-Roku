@@ -42,14 +42,19 @@ This roadmap describes the path toward full parity with the official Twitch app 
 
 ---
 
-## 🔜 Near-term (v2.5 — next milestone)
+## ✅ Completed (v2.5 — this release)
 
-### Chat — Remaining
-- [ ] Emote picker overlay so users can browse and insert emotes while composing a message
+### Chat — Emote Picker
+- [x] Emote picker overlay so users can browse and insert emotes while composing a message
+  - Press the **✸ (Options)** button while the chat compose overlay is open to launch the picker
+  - Filter emotes by provider using the **All / Twitch / BTTV / FFZ / 7TV** tabs
+  - Navigate the emote grid with the d-pad; press **OK** to insert the selected emote into the message
+  - Press **Back** to return to the compose keyboard without inserting anything
+  - Bumped app version to 2.5.0
 
 ---
 
-## 📅 Medium-term (v2.5 – v2.6)
+## 🔜 Near-term (v2.6 — next milestone)
 
 ### Feature Parity with Twitch for Android
 - [ ] **Clips** — record and submit a clip from the current stream via the `createClip` Helix API endpoint

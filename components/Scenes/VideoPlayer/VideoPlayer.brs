@@ -510,10 +510,25 @@ function onKeyEvent(key, press) as boolean
     if press
         ' ? "[VideoPlayer] Key Event: "; key
 
+        ' Emote picker overlay key handling
+        if m.emotePickerActive
+            if key = "back"
+                hideEmotePicker()
+                showChatCompose()
+                return true
+            end if
+            ' All other keys are handled by the EmotePicker component itself.
+            return false
+        end if
+
         ' Chat compose overlay key handling
         if m.chatComposeActive
             if key = "back"
                 hideChatCompose()
+                return true
+            else if key = "options"
+                ' The ✸ (Options/asterisk) button opens the emote picker.
+                showEmotePicker()
                 return true
             else if key = "play" or key = "OK"
                 ' OK on the keyboard itself is handled by the keyboard node;
@@ -567,6 +582,13 @@ sub init()
     m.chatComposeOverlay = m.top.findNode("chatComposeOverlay")
     m.chatComposeKeyboard = m.top.findNode("chatComposeKeyboard")
     m.chatComposeActive = false
+
+    ' Emote picker overlay
+    m.emotePickerOverlay = m.top.findNode("emotePickerOverlay")
+    m.emotePickerActive = false
+    if m.emotePickerOverlay <> invalid
+        m.emotePickerOverlay.observeField("emoteSelected", "onEmoteSelected")
+    end if
 end sub
 
 sub showChatCompose()
@@ -587,6 +609,45 @@ sub hideChatCompose()
     if m.video <> invalid
         m.video.setFocus(true)
     end if
+end sub
+
+sub showEmotePicker()
+    if m.emotePickerOverlay = invalid then return
+    ' Hide the compose overlay while browsing emotes.
+    m.chatComposeActive = false
+    m.chatComposeOverlay.visible = false
+    m.emotePickerActive = true
+    m.emotePickerOverlay.visible = true
+    m.emotePickerOverlay.setFocus(true)
+end sub
+
+sub hideEmotePicker()
+    if m.emotePickerOverlay = invalid then return
+    m.emotePickerActive = false
+    m.emotePickerOverlay.visible = false
+end sub
+
+' Called when the user selects an emote from the picker.  The emote code is
+' appended to whatever text is already in the compose keyboard, then the
+' compose overlay is shown again so the user can continue editing.
+sub onEmoteSelected()
+    if m.emotePickerOverlay = invalid then return
+    emoteCode = m.emotePickerOverlay.emoteSelected
+    if emoteCode = invalid or emoteCode = "" then
+        showChatCompose()
+        return
+    end if
+    ' Append emote code to any existing keyboard text.
+    if m.chatComposeKeyboard <> invalid
+        currentText = m.chatComposeKeyboard.text
+        if currentText = invalid then currentText = ""
+        if currentText <> "" and Right(currentText, 1) <> " "
+            currentText = currentText + " "
+        end if
+        m.chatComposeKeyboard.text = currentText + emoteCode
+    end if
+    hideEmotePicker()
+    showChatCompose()
 end sub
 
 sub submitChatMessage()
