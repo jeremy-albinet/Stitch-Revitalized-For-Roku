@@ -14,7 +14,7 @@
         "@rokucommunity/bslint": "^0.8.41",
         "brighterscript-formatter": "^1.7.19",
         "ghooks": "^2.0.4",
-        "ropm": "^0.10.37"
+        "ropm": "^0.11.5"
     },
     "dependencies": {
         "@npmcli/fs": "^5.0.0",
