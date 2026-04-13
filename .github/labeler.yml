@@ -1,0 +1,58 @@
+ui-components:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'components/Scenes/**'
+      - 'components/Modules/**'
+      - 'components/SceneManager/**'
+
+twitch-api:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'components/Tasks/twitch-api-sdk/**'
+      - 'components/Tasks/GetTwitchContent/**'
+
+video-playback:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'components/Scenes/VideoPlayer/**'
+      - 'components/Tasks/PlayerTask/**'
+      - 'components/Modules/VideoErrorHandler/**'
+      - 'components/Modules/StitchVideo/**'
+      - 'components/Modules/CustomVideo/**'
+
+chat:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'components/Modules/Chat/**'
+
+navigation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'components/Modules/MenuBar/**'
+      - 'components/Modules/FollowedStreamsBar/**'
+      - 'components/heroScene.brs'
+      - 'components/heroScene.xml'
+
+utilities:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'source/utils/**'
+      - 'source/constants.brs'
+
+config:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'settings/**'
+      - 'manifest'
+
+assets:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'images/**'
+      - 'fonts/**'
+      - 'locale/**'
+
+devops:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
