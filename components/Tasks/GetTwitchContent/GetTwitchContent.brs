@@ -563,9 +563,11 @@ sub main()
                     sleep(10)
                     retries++
                 end while
-                variantBody = variantRsp.getString()
-                if variantBody <> invalid and variantBody.InStr("#EXT-X-MAP:") > -1
-                    isTransmux = true
+                if variantRsp <> invalid
+                    variantBody = variantRsp.getString()
+                    if variantBody <> invalid and variantBody.InStr("#EXT-X-MAP:") > -1
+                        isTransmux = true
+                    end if
                 end if
             catch e
             end try
