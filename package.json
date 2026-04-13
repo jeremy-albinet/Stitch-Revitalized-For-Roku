@@ -21,7 +21,7 @@
         "@rokucommunity/bslib": "^0.1.1",
         "brighterscript": "^0.71.0",
         "bslib": "npm:@rokucommunity/bslib@^0.1.1",
-        "glob": "^11.1.0",
+        "glob": "^13.0.6",
         "lru-cache": "^11.3.3",
         "rimraf": "^6.1.3"
     },
