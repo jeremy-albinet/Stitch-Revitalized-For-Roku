@@ -8,26 +8,31 @@
         "lint:fix": "bslint --fix",
         "fmt": "brighterscript-formatter --write '**/*.{brs,bs}'",
         "fmt:check": "brighterscript-formatter --check '**/*.{brs,bs}'"
-
     },
     "devDependencies": {
-        "@rokucommunity/bslint": "^0.8.34",
-        "brighterscript-formatter": "^1.7.17",
+        "@rokucommunity/bslint": "^0.8.41",
+        "brighterscript-formatter": "^1.7.19",
         "ghooks": "^2.0.4",
-        "ropm": "^0.10.37"
+        "ropm": "^0.11.5"
     },
     "dependencies": {
-        "@npmcli/fs": "^4.0.0",
-        "@rokucommunity/bslib": "^0.1.1",
-        "brighterscript": "^0.70.0",
-        "bslib": "npm:@rokucommunity/bslib@^0.1.1",
-        "glob": "^11.0.3",
-        "lru-cache": "^11.1.0",
-        "rimraf": "^6.0.1"
+        "brighterscript": "^0.71.0"
     },
     "config": {
         "ghooks": {
             "pre-commit": ""
+        }
+    },
+    "overrides": {
+        "form-data": "^4.0.5",
+        "qs": "^6.14.1",
+        "tough-cookie": "^4.1.3",
+        "lodash": "4.18.1",
+        "@xml-tools/common": {
+            "lodash": "4.18.1"
+        },
+        "@xml-tools/ast": {
+            "lodash": "4.18.1"
         }
     }
 }

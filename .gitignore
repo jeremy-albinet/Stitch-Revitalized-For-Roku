@@ -13,3 +13,6 @@ bsconfig.json
 
 # Roku device specific configs
 bsconfig.local.json
+
+# Local developer docs (device credentials, personal config)
+DEV.md

@@ -48,6 +48,13 @@ sub onResponse()
     ' content.ignoreStreamErrors = true
     m.top.content = m.PlayVideo.response
     m.top.metadata = m.PlayVideo.metadata
+
+    ' Warn before playing Enhanced Broadcasting (transmux) streams
+    if m.top.content <> invalid and m.top.content.isTransmux = true
+        showTransmuxWarning()
+        return
+    end if
+
     playContent()
 end sub
 
@@ -1037,6 +1044,40 @@ sub onErrorDialogDismissed()
     end if
     m.errorDialog = invalid
     exitPlayer()
+end sub
+
+sub showTransmuxWarning()
+    m.transmuxButtonIndex = -1
+    dialog = createObject("roSGNode", "StandardMessageDialog")
+    dialog.title = "Stream Not Supported"
+    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a new format that is not yet compatible with Roku.", "", "We're working with Twitch and Roku to fix this."]
+    dialog.buttons = ["Go Back", "Try Anyway"]
+    dialog.observeField("buttonSelected", "onTransmuxDialogButton")
+    dialog.observeField("wasClosed", "onTransmuxDialogClosed")
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = dialog
+    end if
+end sub
+
+sub onTransmuxDialogButton()
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid
+        m.transmuxButtonIndex = scene.dialog.buttonSelected
+        scene.dialog.close = true
+    end if
+end sub
+
+sub onTransmuxDialogClosed()
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = invalid
+    end if
+    if m.transmuxButtonIndex = 1
+        playContent()
+    else
+        exitPlayer()
+    end if
 end sub
 
 sub onDurationChanged()

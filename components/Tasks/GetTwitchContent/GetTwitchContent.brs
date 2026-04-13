@@ -209,7 +209,17 @@ sub main()
             end try
         end if
 
+        ' Detect Enhanced Broadcasting (transmux) from master manifest
+        isTransmux = false
         list = finalPlaylistContent.Split(chr(10))
+        for each manifestLine in list
+            if manifestLine.InStr("#EXT-X-TWITCH-INFO:") = 0 and manifestLine.InStr("TRANSCODESTACK=") > -1
+                if manifestLine.InStr("transmux") > -1
+                    isTransmux = true
+                end if
+            end if
+        end for
+
         fps = invalid
         stream_objects = []
 
@@ -532,6 +542,39 @@ sub main()
             end if
 
             ' ? "[GetTwitchContent] Content node configured with URL: "; content.url
+        end if
+
+        ' Detect fMP4 from the variant playlist if not already flagged via master manifest
+        if not isTransmux and content.url <> invalid and content.url <> ""
+            try
+                variantReq = HttpRequest({
+                    url: content.url,
+                    headers: {
+                        "Accept": "*/*",
+                        "User-Agent": "Mozilla/5.0"
+                    },
+                    method: "GET"
+                })
+                variantRsp = invalid
+                retries = 0
+                while retries < 300
+                    variantRsp = variantReq.send()
+                    if variantRsp <> invalid then exit while
+                    sleep(10)
+                    retries++
+                end while
+                if variantRsp <> invalid
+                    variantBody = variantRsp.getString()
+                    if variantBody <> invalid and variantBody.InStr("#EXT-X-MAP:") > -1
+                        isTransmux = true
+                    end if
+                end if
+            catch e
+            end try
+        end if
+
+        if isTransmux
+            content.isTransmux = true
         end if
 
         m.top.metadata = metadata
