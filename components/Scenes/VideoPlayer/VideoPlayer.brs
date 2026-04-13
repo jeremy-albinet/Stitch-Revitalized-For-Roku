@@ -852,6 +852,10 @@ sub onTransmuxDialogButton()
 end sub
 
 sub onTransmuxDialogClosed()
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = invalid
+    end if
     if m.transmuxButtonIndex = 1
         playContent()
     else
