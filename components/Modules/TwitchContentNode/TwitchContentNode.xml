@@ -33,6 +33,8 @@
         <field id="StreamBitrates" type="array" />
         <field id="StreamStickyHttpRedirects" type="array" />
         <field id="lowLatencyStreamsAvailable" type="bool" />
+        <!-- Enhanced Broadcasting detection -->
+        <field id="isTransmux" type="bool" value="false" />
         <!-- Error handling fields -->
         <field id="errorCode" type="string" />
     </interface>
