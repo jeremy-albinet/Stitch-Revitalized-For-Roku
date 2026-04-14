@@ -639,12 +639,10 @@ sub onPositionChanged()
         if m.lastGoodPosition = invalid
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
-            ' If we just reconnected and we see progress, clear cooldown early
-            if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
         else if m.video.position > m.lastGoodPosition
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
-            ' If we just reconnected and we see progress, clear cooldown early
+            ' Actual forward progress — safe to clear reconnect cooldown
             if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
         end if
     end if
@@ -663,9 +661,6 @@ sub onVideoStateChange()
     ' Handle buffering states
     if m.video.state = "buffering"
         handleBufferingState()
-        if m.watchdogTimer <> invalid
-            m.watchdogTimer.control = "stop"
-        end if
     else if m.lastBufferState = "buffering" and m.video.state = "playing"
         ' Recovered from buffering
         m.errorHandler.callFunc("resetErrorState")
@@ -673,18 +668,11 @@ sub onVideoStateChange()
             m.bufferCheckTimer.control = "stop"
             m.bufferCheckTimer = invalid
         end if
-
-        ' Restart watchdog on successful resume
-        if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
-            if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
-            m.stallSeconds = 0
-            m.watchdogTimer.control = "start"
-        end if
     end if
 
     m.lastBufferState = m.video.state
 
-    ' Start/stop watchdog based on state (LIVE only)
+    ' Start/stop LIVE watchdog based on video state (single decision point)
     if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
         if m.video.state = "playing"
             if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
@@ -899,6 +887,14 @@ sub beginLiveReconnect(reason as string)
     m.reconnectTimer.control = "start"
 end sub
 
+sub cleanupReconnectTask()
+    if m.PlayVideo <> invalid
+        m.PlayVideo.unobserveField("response")
+        m.PlayVideo.control = "stop"
+        m.PlayVideo = invalid
+    end if
+end sub
+
 sub doLiveReconnect()
     if m.isExiting then return
 
@@ -906,6 +902,9 @@ sub doLiveReconnect()
         m.reconnectTimer.control = "stop"
         m.reconnectTimer = invalid
     end if
+
+    ' Clean up any prior reconnect task before creating a new one
+    cleanupReconnectTask()
 
     ' Re-fetch playlist/auth via GetTwitchContent
     m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
@@ -916,21 +915,31 @@ sub doLiveReconnect()
 end sub
 
 sub onLiveReconnectResponse()
-    if m.isExiting then return
+    if m.isExiting
+        cleanupReconnectTask()
+        return
+    end if
 
     if m.PlayVideo = invalid or m.PlayVideo.response = invalid
+        cleanupReconnectTask()
         beginLiveReconnect("refresh_failed")
         return
     end if
 
     if m.PlayVideo.response.contentType = "ERROR"
+        cleanupReconnectTask()
         beginLiveReconnect("refresh_failed")
         return
     end if
 
+    ' Capture response before cleanup
+    refreshedContent = m.PlayVideo.response
+    refreshedMetadata = m.PlayVideo.metadata
+    cleanupReconnectTask()
+
     ' Apply fresh content + metadata
-    m.top.content = m.PlayVideo.response
-    m.top.metadata = m.PlayVideo.metadata
+    m.top.content = refreshedContent
+    m.top.metadata = refreshedMetadata
 
     ' Reset stall tracking
     m.lastGoodPosition = invalid
