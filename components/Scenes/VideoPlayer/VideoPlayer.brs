@@ -279,6 +279,12 @@ function FormatSeconds(seconds as integer) as string
 end function
 
 sub playContent()
+    ' Reset stall tracking on every (re)start so the watchdog doesn't
+    ' compare against a stale position from a previous playback session.
+    m.lastGoodPosition = invalid
+    m.stallSeconds = 0
+    m.reconnectAttempts = 0
+
     ' Clean up existing video node and its observers
     if m.video <> invalid
         m.video.unobserveField("toggleChat")
@@ -576,7 +582,6 @@ sub init()
     m.reconnectCooldownSec = 45
     m.lastReconnectSuccessSec = 0
     m.lastGoodPosition = invalid
-    m.lastPositionTickTime = invalid
     m.stallSeconds = 0
     m.reconnectTimer = invalid
 
@@ -633,13 +638,11 @@ sub onPositionChanged()
     if m.video <> invalid and m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
         if m.lastGoodPosition = invalid
             m.lastGoodPosition = m.video.position
-            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
             m.stallSeconds = 0
             ' If we just reconnected and we see progress, clear cooldown early
             if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
         else if m.video.position > m.lastGoodPosition
             m.lastGoodPosition = m.video.position
-            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
             m.stallSeconds = 0
             ' If we just reconnected and we see progress, clear cooldown early
             if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
@@ -674,7 +677,6 @@ sub onVideoStateChange()
         ' Restart watchdog on successful resume
         if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
             if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
-            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
             m.stallSeconds = 0
             m.watchdogTimer.control = "start"
         end if
@@ -686,7 +688,6 @@ sub onVideoStateChange()
     if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
         if m.video.state = "playing"
             if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
-            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
             m.stallSeconds = 0
             m.watchdogTimer.control = "start"
         else
@@ -843,14 +844,12 @@ sub onWatchdogFire()
     ' If position advanced, reset stall tracking
     if m.lastGoodPosition = invalid
         m.lastGoodPosition = m.video.position
-        m.lastPositionTickTime = nowSec
         m.stallSeconds = 0
         return
     end if
 
     if m.video.position > m.lastGoodPosition
         m.lastGoodPosition = m.video.position
-        m.lastPositionTickTime = nowSec
         m.stallSeconds = 0
         return
     end if
@@ -886,6 +885,7 @@ sub beginLiveReconnect(reason as string)
     end for
     if delaySec > 16 then delaySec = 16
 
+    ? "[VideoPlayer] beginLiveReconnect reason="; reason; " attempt="; m.reconnectAttempts; "/"; m.maxReconnectAttempts
     showTemporaryMessage("Reconnecting... (" + m.reconnectAttempts.toStr() + "/" + m.maxReconnectAttempts.toStr() + ")")
 
     if m.watchdogTimer <> invalid
@@ -934,7 +934,6 @@ sub onLiveReconnectResponse()
 
     ' Reset stall tracking
     m.lastGoodPosition = invalid
-    m.lastPositionTickTime = invalid
     m.stallSeconds = 0
 
     ' Restart playback in-place without exiting the scene
