@@ -333,8 +333,8 @@ sub setConstants()
                 magenta: "0xc53dffFF"
             },
             icons: {
-                arrow_down: "pkg:/images/icons/chevron-up.png",
-                arrow_up: "pkg:/images/icons/chevron-down.png",
+                arrow_down: "pkg:/images/icons/chevron-down.png",
+                arrow_up: "pkg:/images/icons/chevron-up.png",
                 back: "pkg:/images/icons/reply.png",
                 login: "pkg:/images/icons/sign-in.png",
                 messages: "pkg:/images/icons/comments.png",
