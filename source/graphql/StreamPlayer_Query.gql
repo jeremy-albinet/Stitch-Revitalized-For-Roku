@@ -1,0 +1,24 @@
+query StreamPlayer_Query(
+            $login: String!
+            $playerType: String!
+            $platform: String!
+            $skipPlayToken: Boolean!
+            ) {
+            ...StreamPlayer_token
+            }
+
+            fragment StreamPlayer_token on Query {
+            user(login: $login) {
+                login
+                stream @skip(if: $skipPlayToken) {
+                    playbackAccessToken(params: {platform: $platform, playerType: $playerType}) {
+                        signature
+                        value
+                    }
+                    id
+                    __typename
+                }
+                id
+                __typename
+            }
+        }

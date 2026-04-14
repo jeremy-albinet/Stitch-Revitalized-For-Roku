@@ -1,0 +1,161 @@
+query ChannelInterstitial_Query(
+            $login: String!
+            $platform: String!
+            $playerType: String!
+            $skipPlayToken: Boolean!
+            ) {
+            channel: user(login: $login) {
+                ...InterstitialLayout_channel
+                ...StreamDetails_channel
+                ...StreamPlayer_channel
+                id
+                __typename
+                login
+                displayName
+                broadcastSettings {
+                    isMature
+                    id
+                    __typename
+                }
+                stream {
+                    createdAt
+                    restrictionType
+                    self {
+                        canWatch
+                    }
+                    id
+                    __typename
+                    type
+                }
+                hosting {
+                    displayName
+                    id
+                    __typename
+                    login
+                    stream {
+                        id
+                        __typename
+                        type
+                    }
+                }
+            }
+            currentUser {
+                ...StreamPlayer_currentUser
+                id
+                __typename
+                login
+                roles {
+                    isStaff
+                }
+            }
+            ...StreamPlayer_token
+        }
+
+        fragment BroadcasterOverview_channel on User {
+            login
+            displayName
+            followers {
+                totalCount
+            }
+            primaryColorHex
+            primaryTeam {
+                displayName
+                id
+                __typename
+            }
+            profileImageURL(width: 70)
+        }
+
+        fragment ChannelDescription_channel on User {
+            description
+            displayName
+            login
+        }
+
+        fragment FocusableFollowButton_channel on User {
+            login
+            id
+            __typename
+            self {
+                follower {
+                    followedAt
+                }
+            }
+        }
+
+        fragment InterstitialButtonRow_channel on User {
+            ...FocusableFollowButton_channel
+            login
+        }
+
+        fragment InterstitialLayout_channel on User {
+            ...BroadcasterOverview_channel
+            ...ChannelDescription_channel
+            ...InterstitialButtonRow_channel
+        }
+
+        fragment StreamDetails_channel on User {
+            broadcastSettings {
+                game {
+                    boxArtURL
+                    displayName
+                    id
+                    __typename
+                }
+                title
+                id
+                __typename
+            }
+            stream {
+                viewersCount
+                id
+                __typename
+            }
+        }
+
+        fragment StreamPlayer_channel on User {
+            id
+            __typename
+            login
+            roles {
+                isPartner
+            }
+            self {
+                subscriptionBenefit {
+                    id
+                    __typename
+                }
+            }
+            stream {
+                id
+                __typename
+                game {
+                    name
+                    id
+                    __typename
+                }
+                previewImageURL
+            }
+        }
+
+        fragment StreamPlayer_currentUser on User {
+            hasTurbo
+            id
+            __typename
+        }
+
+        fragment StreamPlayer_token on Query {
+            user(login: $login) {
+                login
+                stream @skip(if: $skipPlayToken) {
+                    playbackAccessToken(params: {platform: $platform, playerType: $playerType}) {
+                        signature
+                        value
+                    }
+                    id
+                    __typename
+                }
+                id
+                __typename
+            }
+        }

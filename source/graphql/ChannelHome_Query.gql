@@ -1,0 +1,415 @@
+query ChannelHome_Query(
+            $login: String!
+            $platform: String!
+            $playerType: String!
+            $skipPlayToken: Boolean!
+        ) {
+            channel: user(login: $login) {
+                id
+                __typename
+                login
+                stream {
+                id
+                __typename
+                }
+                videoShelves {
+                edges {
+                    node {
+                    id
+                    __typename
+                    title
+                    items {
+                        __typename
+                        ... on Clip {
+                        id
+                        __typename
+                        ...FocusableClipCard_clip
+                        }
+                        ... on Video {
+                        id
+                        __typename
+                        ...FocusableVodCard_video
+                        }
+                    }
+                    }
+                }
+                }
+                ...ProfileBanner_channel
+            }
+            currentUser {
+                ...ProfileBanner_currentUser
+                id
+                __typename
+            }
+            ...StreamPlayer_token
+            ...VodPreviewPlayerWrapper_previewToken
+            }
+
+            fragment BannerChannelStatus_channel on User {
+            displayName
+            id
+            __typename
+            login
+            stream {
+                id
+                __typename
+                type
+            }
+            }
+
+            fragment FocusableClipCard_clip on Clip {
+            broadcaster {
+                login
+                id
+                __typename
+            }
+            createdAt
+            durationSeconds
+            game {
+                boxArtURL
+                displayName
+                id
+                __typename
+            }
+            id
+            __typename
+            slug
+            thumbnailURL
+            title
+            viewCount
+            }
+
+            fragment FocusableFollowChannelButton_channel on User {
+            login
+            displayName
+            id
+            __typename
+            self {
+                follower {
+                followedAt
+                }
+            }
+            }
+
+            fragment FocusableVodCard_video on Video {
+            vodCreatedAt: createdAt
+            lengthSeconds
+            game {
+                boxArtURL
+                displayName
+                name
+                id
+                __typename
+            }
+            id
+            __typename
+            previewThumbnailURL
+            self {
+                viewingHistory {
+                position
+                }
+            }
+            vodTitle: title
+            vodViewCount: viewCount
+            }
+
+            fragment PreviewButton_channel on User {
+            id
+            __typename
+            login
+            stream {
+                id
+                __typename
+                type
+            }
+            videos(first: 1, sort: TIME) {
+                edges {
+                node {
+                    id
+                    __typename
+                }
+                }
+            }
+            }
+
+            fragment ProfileBanner_channel on User {
+            ...useBannerButtonsRowFragment_channel
+            ...BannerChannelStatus_channel
+            ...ProfilePlayer_channel
+            ...PreviewButton_channel
+            description
+            displayName
+            followers {
+                totalCount
+            }
+            stream {
+                id
+                __typename
+                type
+            }
+            videos(first: 1, sort: TIME) {
+                edges {
+                node {
+                    id
+                    __typename
+                }
+                }
+            }
+            id
+            __typename
+            login
+            profileImageURL(width: 70)
+            profileViewCount
+            }
+
+            fragment ProfileBanner_currentUser on User {
+            ...ProfilePlayer_currentUser
+            }
+
+            fragment ProfilePlayer_channel on User {
+            ...StreamPreviewPlayer_channel
+            id
+            __typename
+            login
+            stream {
+                id
+                __typename
+                type
+                viewersCount
+            }
+            videos(first: 1, sort: TIME) {
+                edges {
+                node {
+                    id
+                    __typename
+                    previewThumbnailURL
+                    ...VodPreviewPlayer_video
+                }
+                }
+            }
+            }
+
+            fragment ProfilePlayer_currentUser on User {
+            ...StreamPreviewPlayer_currentUser
+            ...VodPreviewPlayer_currentUser
+            }
+
+            fragment StreamPlayer_channel on User {
+            ...useChannelSubscriptionPolling_subscription
+            id
+            __typename
+            login
+            roles {
+                isPartner
+            }
+            self {
+                subscriptionBenefit {
+                id
+                __typename
+                }
+            }
+            stream {
+                contentClassificationLabels {
+                id
+                __typename
+                }
+                id
+                __typename
+                game {
+                name
+                id
+                __typename
+                }
+                previewImageURL
+            }
+            }
+
+            fragment StreamPlayer_currentUser on User {
+            hasTurbo
+            id
+            __typename
+            }
+
+            fragment StreamPlayer_token on Query {
+            user(login: $login) {
+                login
+                stream @skip(if: $skipPlayToken) {
+                playbackAccessToken(params: {platform: $platform, playerType: $playerType}) {
+                    signature
+                    value
+                    expiresAt
+                    authorization {
+                    isForbidden
+                    forbiddenReasonCode
+                    }
+                }
+                id
+                __typename
+                }
+                id
+                __typename
+            }
+            }
+
+            fragment StreamPreviewPlayer_channel on User {
+            ...StreamPlayer_channel
+            id
+            __typename
+            login
+            stream {
+                id
+                __typename
+                type
+                viewersCount
+                contentClassificationLabels {
+                id
+                __typename
+                localizedName
+                }
+                contentClassificationLabelPolicyProperties {
+                contentGateProperties {
+                    contentGate
+                }
+                signPostProperties {
+                    signPost
+                    contentClassificationLabels
+                }
+                }
+                restrictionType
+                self {
+                canWatch
+                }
+            }
+            displayName
+            }
+
+            fragment StreamPreviewPlayer_currentUser on User {
+            id
+            __typename
+            ...StreamPlayer_currentUser
+            }
+
+            fragment VodPlayerBase_currentUser on User {
+            id
+            __typename
+            hasTurbo
+            }
+
+            fragment VodPlayerBase_video on Video {
+            contentClassificationLabels {
+                id
+                __typename
+            }
+            broadcastType
+            id
+            __typename
+            game {
+                name
+                id
+                __typename
+            }
+            owner {
+                id
+                __typename
+                login
+                roles {
+                isPartner
+                }
+                self {
+                subscriptionBenefit {
+                    id
+                    __typename
+                }
+                }
+            }
+            }
+
+            fragment VodPlayerOverlay_video on Video {
+            createdAt
+            lengthSeconds
+            viewCount
+            }
+
+            fragment VodPreviewPlayerWrapper_previewToken on Query {
+            user(login: $login) {
+                videos(first: 1) {
+                edges {
+                    node {
+                    id
+                    __typename
+                    playbackAccessToken(params: {platform: $platform, playerType: $playerType}) @skip(if: $skipPlayToken) {
+                        signature
+                        value
+                        expiresAt
+                        authorization {
+                        isForbidden
+                        forbiddenReasonCode
+                        }
+                    }
+                    }
+                }
+                }
+                id
+                __typename
+            }
+            }
+
+            fragment VodPreviewPlayer_currentUser on User {
+            id
+            __typename
+            ...VodPlayerBase_currentUser
+            }
+
+            fragment VodPreviewPlayer_video on Video {
+            contentClassificationLabels {
+                isEnabled
+                localizedName
+                id
+                __typename
+            }
+            contentClassificationLabelPolicyProperties {
+                contentGateProperties {
+                contentGate
+                }
+                signPostProperties {
+                signPost
+                contentClassificationLabels
+                }
+            }
+            creator {
+                displayName
+                id
+                __typename
+            }
+            ...VodPlayerBase_video
+            ...VodPlayerOverlay_video
+            muteInfo {
+                mutedSegmentConnection {
+                nodes {
+                    duration
+                }
+                }
+            }
+            owner {
+                id
+                __typename
+            }
+            }
+
+            fragment useBannerButtonsRowFragment_channel on User {
+            ...FocusableFollowChannelButton_channel
+            displayName
+            id
+            __typename
+            login
+            }
+
+            fragment useChannelSubscriptionPolling_subscription on User {
+            login
+            self {
+                subscriptionBenefit {
+                id
+                __typename
+                }
+            }
+            }
