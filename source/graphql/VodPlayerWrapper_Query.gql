@@ -1,0 +1,18 @@
+query VodPlayerWrapper_Query(
+            $videoId: ID!
+            $platform: String!
+            $playerType: String!
+            $skipPlayToken: Boolean!
+            ) {
+            ...VodPlayerWrapper_token
+            }
+            fragment VodPlayerWrapper_token on Query {
+            video(id: $videoId) @skip(if: $skipPlayToken) {
+                playbackAccessToken(params: {platform: $platform, playerType: $playerType}) {
+                    signature
+                   value
+                }
+                id
+                __typename
+            }
+        }

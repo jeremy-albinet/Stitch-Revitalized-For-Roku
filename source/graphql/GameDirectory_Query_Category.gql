@@ -1,0 +1,61 @@
+query GameDirectory_Query(
+            $gameAlias: String!
+            $channelsCount: Int!
+            ) {
+            currentUser {
+                id
+                __typename
+                login
+                roles {
+                isStaff
+                }
+            }
+            game(name: $gameAlias) {
+                boxArtURL
+                displayName
+                name
+                streams(first: $channelsCount) {
+                edges {
+                    node {
+                    id
+                    __typename
+                    previewImageURL
+                    ...FocusableStreamCard_stream
+                    }
+                }
+                }
+                id
+                __typename
+            }
+            }
+
+            fragment FocusableStreamCard_stream on Stream {
+            broadcaster {
+                displayName
+                login
+                hosting {
+                id
+                __typename
+                }
+                broadcastSettings {
+                title
+                id
+                __typename
+                }
+                profileImageURL(width: 50)
+                id
+                __typename
+            }
+            game {
+                displayName
+                name
+                id
+                __typename
+            }
+            id
+            __typename
+            previewImageURL
+            type
+            viewersCount
+            createdAt
+            }

@@ -1,0 +1,167 @@
+query Search_Query(
+            $userQuery: String!
+            $platform: String!
+            $noQuery: Boolean!
+        ) {
+            currentUser {
+                id
+                __typename
+                login
+                roles {
+                    isStaff
+                }
+            }
+            searchFor(userQuery: $userQuery, platform: $platform) @skip(if: $noQuery) {
+                ...SearchResults_results
+            }
+        }
+
+        fragment FocusableCategoryCard_category on Game {
+            name
+            id
+            __typename
+            displayName
+            viewersCount
+            boxArtURL
+        }
+
+        fragment FocusableOfflineChannelCard_channel on User {
+            displayName
+            followers {
+                totalCount
+            }
+            lastBroadcast {
+                startedAt
+                id
+                __typename
+            }
+            login
+            profileImageURL(width: 300)
+        }
+
+        fragment FocusableStreamCard_stream on Stream {
+            broadcaster {
+                displayName
+                login
+                hosting {
+                    id
+                    __typename
+                }
+                broadcastSettings {
+                    title
+                    id
+                    __typename
+                }
+                profileImageURL(width: 50)
+                id
+                __typename
+            }
+            game {
+                displayName
+                boxArtURL
+                name
+                id
+                __typename
+            }
+            id
+            createdAt
+            __typename
+            previewImageURL
+            type
+            viewersCount
+        }
+
+        fragment FocusableVodCard_video on Video {
+            createdAt
+            lengthSeconds
+            owner {
+                id
+                __typename
+                login
+                displayName
+                }
+            game {
+                boxArtURL
+                name
+                displayName
+                id
+                __typename
+            }
+            id
+            __typename
+            previewThumbnailURL
+            self {
+                viewingHistory {
+                    position
+                }
+            }
+            title
+            viewCount
+        }
+
+        fragment SearchResults_results on SearchFor {
+            channels {
+                items {
+                    id
+                    __typename
+                    bannerImageURL
+                    ...FocusableOfflineChannelCard_channel
+                    stream {
+                            id
+                        __typename
+                        previewImageURL
+                        ...FocusableStreamCard_stream
+                        game {
+                            id
+                        __typename
+                        }
+                    }
+                }
+            }
+            relatedLiveChannels {
+                items {
+                    id
+                    __typename
+                    bannerImageURL
+                    ...FocusableOfflineChannelCard_channel
+                    stream {
+                        id
+                        __typename
+                        previewImageURL
+                        ...FocusableStreamCard_stream
+                        game {
+                            id
+                            __typename
+                        }
+                    }
+                }
+            }
+            games {
+                items {
+                    id
+                    __typename
+                    ...FocusableCategoryCard_category
+                    streams(first: 1) {
+                        edges {
+                            node {
+                                previewImageURL
+                                id
+                                __typename
+                            }
+                        }
+                    }
+                }
+            }
+            videos {
+                items {
+                    ...FocusableVodCard_video
+                    id
+                    __typename
+                    game {
+                        id
+                        __typename
+                    }
+                    previewThumbnailURL
+                }
+            }
+        }
