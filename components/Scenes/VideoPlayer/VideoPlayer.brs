@@ -654,6 +654,8 @@ sub onPositionChanged()
 end sub
 
 sub onVideoStateChange()
+    if m.video = invalid then return
+
     ' This is observed on m.video.
     ' StitchVideo/CustomVideo have their own onVideoStateChange for UI.
     ' ? "[VideoPlayer] Global onVideoStateChange: "; m.video.state
@@ -888,10 +890,10 @@ sub beginLiveReconnect(reason as string)
 end sub
 
 sub cleanupReconnectTask()
-    if m.PlayVideo <> invalid
-        m.PlayVideo.unobserveField("response")
-        m.PlayVideo.control = "stop"
-        m.PlayVideo = invalid
+    if m.reconnectTask <> invalid
+        m.reconnectTask.unobserveField("response")
+        m.reconnectTask.control = "stop"
+        m.reconnectTask = invalid
     end if
 end sub
 
@@ -907,11 +909,11 @@ sub doLiveReconnect()
     cleanupReconnectTask()
 
     ' Re-fetch playlist/auth via GetTwitchContent
-    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
-    m.PlayVideo.observeField("response", "onLiveReconnectResponse")
-    m.PlayVideo.contentRequested = m.top.contentRequested.getFields()
-    m.PlayVideo.functionName = "main"
-    m.PlayVideo.control = "run"
+    m.reconnectTask = CreateObject("roSGNode", "GetTwitchContent")
+    m.reconnectTask.observeField("response", "onLiveReconnectResponse")
+    m.reconnectTask.contentRequested = m.top.contentRequested.getFields()
+    m.reconnectTask.functionName = "main"
+    m.reconnectTask.control = "run"
 end sub
 
 sub onLiveReconnectResponse()
@@ -920,21 +922,21 @@ sub onLiveReconnectResponse()
         return
     end if
 
-    if m.PlayVideo = invalid or m.PlayVideo.response = invalid
+    if m.reconnectTask = invalid or m.reconnectTask.response = invalid
         cleanupReconnectTask()
         beginLiveReconnect("refresh_failed")
         return
     end if
 
-    if m.PlayVideo.response.contentType = "ERROR"
+    if m.reconnectTask.response.contentType = "ERROR"
         cleanupReconnectTask()
         beginLiveReconnect("refresh_failed")
         return
     end if
 
     ' Capture response before cleanup
-    refreshedContent = m.PlayVideo.response
-    refreshedMetadata = m.PlayVideo.metadata
+    refreshedContent = m.reconnectTask.response
+    refreshedMetadata = m.reconnectTask.metadata
     cleanupReconnectTask()
 
     ' Apply fresh content + metadata
