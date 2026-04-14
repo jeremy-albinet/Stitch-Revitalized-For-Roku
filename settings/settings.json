@@ -44,13 +44,7 @@
         "type": "bool",
         "default": "false"
     },
-    {
-        "title": "Enable Chat Job",
-        "description": "This disables the chat window from sending/receiving web requests.",
-        "settingName": "ChatWebOption",
-        "type": "bool",
-        "default": "false"
-    },
+
     {
         "title": "Chat Font Size",
         "description": "Base font size for chat while watching a stream. Emotes/Badges/Etc scale based on this value.",

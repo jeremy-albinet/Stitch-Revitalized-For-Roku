@@ -349,7 +349,7 @@ sub playContent()
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
         httpAgent.addheader("X-Device-Id", CreateObject("roDeviceInfo").GetRandomUUID())
-        authToken = get_user_setting("auth_token", "")
+        authToken = get_user_setting("access_token", "")
         if authToken <> ""
             httpAgent.addheader("Authorization", "Bearer " + authToken)
         end if

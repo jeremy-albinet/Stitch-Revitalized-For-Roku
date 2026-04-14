@@ -71,16 +71,12 @@ end sub
 
 sub onEnterChannel()
     ' ? "Chat >> onEnterChannel > " m.top.channel
-    if get_user_setting("ChatWebOption", "true") = "true"
-        m.chat = m.top.findnode("ChatJob")
-        m.chat.forceLive = m.top.forceLive
-        ' m.chat.observeField("nextComment", "onNewComment")
-        m.chat.observeField("nextCommentObj", "onNewCommentObj")
-        ' m.chat.observeField("clientComment", "onNewComment")
-        m.chat.channel = m.top.channel
-        m.chat.control = "stop"
-        m.chat.control = "run"
-    end if
+    m.chat = m.top.findnode("ChatJob")
+    m.chat.forceLive = m.top.forceLive
+    m.chat.observeField("nextCommentObj", "onNewCommentObj")
+    m.chat.channel = m.top.channel
+    m.chat.control = "stop"
+    m.chat.control = "run"
     m.EmoteJob = m.top.findnode("EmoteJob")
     m.EmoteJob.channel_id = m.top.channel_id
     m.EmoteJob.channel = m.top.channel
