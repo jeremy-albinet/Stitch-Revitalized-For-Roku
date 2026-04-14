@@ -1,0 +1,48 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+template: |
+  ## Changes
+
+  $CHANGES
+
+  $CONTRIBUTORS
+categories:
+  - title: "\U0001F680 Features"
+    labels: [feature, enhancement]
+    commits: [feat]
+  - title: "\U0001F41B Bug Fixes"
+    labels: [bug, bugfix]
+    commits: [fix]
+  - title: "\U0001F4DA Documentation"
+    labels: [documentation]
+    commits: [docs]
+  - title: "\U0001F9F0 Maintenance"
+    labels: [chore, maintenance]
+    commits: [chore, refactor, ci, build]
+  - title: "\u26A1 Performance"
+    labels: [performance]
+    commits: [perf]
+exclude-labels:
+  - skip-changelog
+exclude-contributors:
+  - dependabot
+  - dependabot[bot]
+version-resolver:
+  major:
+    labels: [major]
+  minor:
+    labels: [minor, feature, enhancement]
+  patch:
+    labels: [patch, bug, bugfix]
+  default: patch
+autolabeler:
+  - label: feature
+    branch: ['/^feat\/.*/']
+  - label: bug
+    branch: ['/^fix\/.*/']
+  - label: documentation
+    branch: ['/^docs\/.*/']
+  - label: chore
+    branch: ['/^chore\/.*/']
+  - label: performance
+    branch: ['/^perf\/.*/']
