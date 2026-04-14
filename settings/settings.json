@@ -183,5 +183,12 @@
                 "id": "ASC_followerCount"
             }
         ]
+    },
+    {
+        "title": "Show Followed Streams Sidebar",
+        "description": "Shows or hides the left-side followed streams bar while browsing.",
+        "settingName": "FollowBarOption",
+        "type": "bool",
+        "default": "true"
     }
 ]

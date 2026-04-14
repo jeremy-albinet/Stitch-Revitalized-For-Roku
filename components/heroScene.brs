@@ -106,7 +106,7 @@ function buildNode(name)
     if name <> invalid
         newNode = createObject("roSGNode", name)
         newNode.id = name
-        newNode.translation = "[0, 0]"
+        newNode.translation = [0, 0]
         newNode.observeField("backPressed", "onBackPressed")
         newNode.observeField("contentSelected", "onContentSelected")
         if name <> "GamePage" and name <> "ChannelPage" and name <> "VideoPlayer" and name <> "StreamerChannelPage"
@@ -275,6 +275,5 @@ function onKeyEvent(key, press) as boolean
     '     return true
     ' end if
     if not press then return false
-    ? "KEY EVENT: "; key press
     return false
 end function
