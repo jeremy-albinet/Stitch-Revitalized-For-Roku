@@ -279,8 +279,9 @@ function FormatSeconds(seconds as integer) as string
 end function
 
 sub playContent()
-    ' Reset stall tracking on every (re)start so the watchdog doesn't
-    ' compare against a stale position from a previous playback session.
+    ' Reset reconnect/watchdog state on every (re)start so stale values
+    ' from a prior playback session don't cause false triggers.
+    m.isExiting = false
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectAttempts = 0
@@ -488,7 +489,7 @@ sub exitPlayer()
         m.isExiting = true
     end if
 
-    ' Stop watchdog/reconnect timers
+    ' Stop watchdog/reconnect timers and clean up any in-flight reconnect task
     if m.watchdogTimer <> invalid
         m.watchdogTimer.control = "stop"
     end if
@@ -496,6 +497,7 @@ sub exitPlayer()
         m.reconnectTimer.control = "stop"
         m.reconnectTimer = invalid
     end if
+    cleanupReconnectTask()
 
     if m.delayMeasureTimer <> invalid
         m.delayMeasureTimer.control = "stop"
@@ -642,8 +644,6 @@ sub onPositionChanged()
         else if m.video.position > m.lastGoodPosition
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
-            ' Actual forward progress — safe to clear reconnect cooldown
-            if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
         end if
     end if
 
