@@ -476,6 +476,21 @@ sub playContent()
 end sub
 
 sub exitPlayer()
+    ' If allowBreak is true, this is a real user/back exit. During internal
+    ' reconnects we set allowBreak=false before calling exitPlayer().
+    if m.allowBreak
+        m.isExiting = true
+    end if
+
+    ' Stop watchdog/reconnect timers
+    if m.watchdogTimer <> invalid
+        m.watchdogTimer.control = "stop"
+    end if
+    if m.reconnectTimer <> invalid
+        m.reconnectTimer.control = "stop"
+        m.reconnectTimer = invalid
+    end if
+
     if m.delayMeasureTimer <> invalid
         m.delayMeasureTimer.control = "stop"
         m.delayMeasureTimer = invalid
@@ -550,6 +565,25 @@ sub init()
     m.bufferCheckTimer = invalid
     m.lastBufferState = ""
     m.bufferStartTime = 0
+
+    ' ===== Robust LIVE stall watchdog / reconnect =====
+    ' Detects the common Twitch post-ad freeze where state stays "playing"
+    ' but position stops advancing. When detected, it re-fetches the Twitch
+    ' playlist/auth (GetTwitchContent) and restarts playback with backoff.
+    m.isExiting = false
+    m.reconnectAttempts = 0
+    m.maxReconnectAttempts = 6
+    m.reconnectCooldownSec = 45
+    m.lastReconnectSuccessSec = 0
+    m.lastGoodPosition = invalid
+    m.lastPositionTickTime = invalid
+    m.stallSeconds = 0
+    m.reconnectTimer = invalid
+
+    m.watchdogTimer = CreateObject("roSGNode", "Timer")
+    m.watchdogTimer.repeat = true
+    m.watchdogTimer.duration = 2 ' seconds
+    m.watchdogTimer.observeField("fire", "onWatchdogFire")
 end sub
 
 sub onToggleChat()
@@ -595,6 +629,23 @@ sub onPositionChanged()
     ' StitchVideo/CustomVideo have their own onPositionChange for UI.
     ' Can be used for global logic if needed, e.g. global bookmarking not tied to UI.
 
+    ' LIVE watchdog: keep track of forward progress (post-ad freezes often stop position)
+    if m.video <> invalid and m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
+        if m.lastGoodPosition = invalid
+            m.lastGoodPosition = m.video.position
+            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
+            m.stallSeconds = 0
+            ' If we just reconnected and we see progress, clear cooldown early
+            if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
+        else if m.video.position > m.lastGoodPosition
+            m.lastGoodPosition = m.video.position
+            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
+            m.stallSeconds = 0
+            ' If we just reconnected and we see progress, clear cooldown early
+            if m.lastReconnectSuccessSec <> 0 then m.lastReconnectSuccessSec = 0
+        end if
+    end if
+
     ' Measure delay every 30 seconds for debugging
     if m.video <> invalid and Int(m.video.position) mod 30 = 0
         measureStreamDelay()
@@ -609,6 +660,9 @@ sub onVideoStateChange()
     ' Handle buffering states
     if m.video.state = "buffering"
         handleBufferingState()
+        if m.watchdogTimer <> invalid
+            m.watchdogTimer.control = "stop"
+        end if
     else if m.lastBufferState = "buffering" and m.video.state = "playing"
         ' Recovered from buffering
         m.errorHandler.callFunc("resetErrorState")
@@ -616,9 +670,29 @@ sub onVideoStateChange()
             m.bufferCheckTimer.control = "stop"
             m.bufferCheckTimer = invalid
         end if
+
+        ' Restart watchdog on successful resume
+        if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
+            if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
+            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
+            m.stallSeconds = 0
+            m.watchdogTimer.control = "start"
+        end if
     end if
 
     m.lastBufferState = m.video.state
+
+    ' Start/stop watchdog based on state (LIVE only)
+    if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" and m.watchdogTimer <> invalid
+        if m.video.state = "playing"
+            if m.lastGoodPosition = invalid then m.lastGoodPosition = m.video.position
+            m.lastPositionTickTime = CreateObject("roDateTime").AsSeconds()
+            m.stallSeconds = 0
+            m.watchdogTimer.control = "start"
+        else
+            m.watchdogTimer.control = "stop"
+        end if
+    end if
 
     if m.video.state = "finished" and m.allowBreak
         ' ? "[VideoPlayer] Video finished, exiting player."
@@ -752,9 +826,138 @@ sub onBufferTimeout()
     m.bufferCheckTimer = invalid
 end sub
 
+' ===== LIVE stall watchdog / reconnect =====
+sub onWatchdogFire()
+    if m.isExiting then return
+    if m.video = invalid or m.top.contentRequested = invalid then return
+    if m.top.contentRequested.contentType <> "LIVE" then return
+    if m.video.state <> "playing" then return
+
+    nowSec = CreateObject("roDateTime").AsSeconds()
+
+    ' Cooldown after a successful reconnect to avoid immediate re-triggers while Twitch stabilizes
+    if m.lastReconnectSuccessSec <> 0 and (nowSec - m.lastReconnectSuccessSec) < m.reconnectCooldownSec
+        return
+    end if
+
+    ' If position advanced, reset stall tracking
+    if m.lastGoodPosition = invalid
+        m.lastGoodPosition = m.video.position
+        m.lastPositionTickTime = nowSec
+        m.stallSeconds = 0
+        return
+    end if
+
+    if m.video.position > m.lastGoodPosition
+        m.lastGoodPosition = m.video.position
+        m.lastPositionTickTime = nowSec
+        m.stallSeconds = 0
+        return
+    end if
+
+    ' Position didn't advance since last tick
+    m.stallSeconds = m.stallSeconds + 2
+
+    ' Common post-ad freeze: state remains "playing" but position is stuck
+    if m.stallSeconds >= 8
+        ? "[VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
+        beginLiveReconnect("stall")
+    end if
+end sub
+
+sub beginLiveReconnect(reason as string)
+    if m.isExiting then return
+
+    ' If a reconnect is already scheduled/in-flight, don't stack them
+    if m.reconnectTimer <> invalid then return
+
+    m.reconnectAttempts = m.reconnectAttempts + 1
+    if m.reconnectAttempts > m.maxReconnectAttempts
+        showErrorDialog("Stream frozen", "Twitch playback froze after an ad and could not be recovered.")
+        m.allowBreak = true
+        exitPlayer()
+        return
+    end if
+
+    ' Exponential backoff: 1,2,4,8,16,16...
+    delaySec = 1
+    for i = 1 to m.reconnectAttempts - 1
+        delaySec = delaySec * 2
+    end for
+    if delaySec > 16 then delaySec = 16
+
+    showTemporaryMessage("Reconnecting... (" + m.reconnectAttempts.toStr() + "/" + m.maxReconnectAttempts.toStr() + ")")
+
+    if m.watchdogTimer <> invalid
+        m.watchdogTimer.control = "stop"
+    end if
+
+    m.reconnectTimer = CreateObject("roSGNode", "Timer")
+    m.reconnectTimer.duration = delaySec
+    m.reconnectTimer.repeat = false
+    m.reconnectTimer.observeField("fire", "doLiveReconnect")
+    m.reconnectTimer.control = "start"
+end sub
+
+sub doLiveReconnect()
+    if m.isExiting then return
+
+    if m.reconnectTimer <> invalid
+        m.reconnectTimer.control = "stop"
+        m.reconnectTimer = invalid
+    end if
+
+    ' Re-fetch playlist/auth via GetTwitchContent
+    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
+    m.PlayVideo.observeField("response", "onLiveReconnectResponse")
+    m.PlayVideo.contentRequested = m.top.contentRequested.getFields()
+    m.PlayVideo.functionName = "main"
+    m.PlayVideo.control = "run"
+end sub
+
+sub onLiveReconnectResponse()
+    if m.isExiting then return
+
+    if m.PlayVideo = invalid or m.PlayVideo.response = invalid
+        beginLiveReconnect("refresh_failed")
+        return
+    end if
+
+    if m.PlayVideo.response.contentType = "ERROR"
+        beginLiveReconnect("refresh_failed")
+        return
+    end if
+
+    ' Apply fresh content + metadata
+    m.top.content = m.PlayVideo.response
+    m.top.metadata = m.PlayVideo.metadata
+
+    ' Reset stall tracking
+    m.lastGoodPosition = invalid
+    m.lastPositionTickTime = invalid
+    m.stallSeconds = 0
+
+    ' Restart playback in-place without exiting the scene
+    m.allowBreak = false
+    exitPlayer()
+    m.allowBreak = true
+    playContent()
+
+    ' Mark successful reconnect (cooldown prevents immediate re-triggers)
+    m.lastReconnectSuccessSec = CreateObject("roDateTime").AsSeconds()
+
+    ' Success -> reset attempt counter and restart watchdog
+    m.reconnectAttempts = 0
+    if m.watchdogTimer <> invalid
+        m.watchdogTimer.control = "start"
+    end if
+end sub
+
 sub retryPlayback()
     ' ? "[VideoPlayer] Retrying playback..."
+    m.allowBreak = false
     exitPlayer()
+    m.allowBreak = true
     playContent()
 end sub
 
