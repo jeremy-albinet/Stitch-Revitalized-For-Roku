@@ -17,28 +17,12 @@ end sub
 
 sub updatePage()
     m.username.text = m.top.contentRequested.streamerDisplayName
-    m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' ' observe content so we can know when feed content will be parsed
-    m.GetContentTask.observeField("response", "updateChannelInfo")
-    m.GetContentTask.request = {
-        type: "getChannelHomeQuery",
-        params: {
-            id: m.top.contentRequested.streamerLogin
-        }
-    }
-    m.GetContentTask.functionName = m.getcontenttask.request.type
-    m.getcontentTask.control = "run"
-    m.GetShellTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' ' observe content so we can know when feed content will be parsed
-    m.GetShellTask.observeField("response", "updateChannelShell")
-    m.GetShellTask.request = {
-        type: "getChannelShell",
-        params: {
-            id: m.top.contentRequested.streamerLogin
-        }
-    }
-    m.getshellTask.functionName = m.getshelltask.request.type
-    m.getshellTask.control = "run"
+    m.GetContentTask = createApiTask("getChannelHomeQuery", "updateChannelInfo", {
+        params: { id: m.top.contentRequested.streamerLogin }
+    })
+    m.GetShellTask = createApiTask("getChannelShell", "updateChannelShell", {
+        params: { id: m.top.contentRequested.streamerLogin }
+    })
 end sub
 
 sub updateChannelShell()

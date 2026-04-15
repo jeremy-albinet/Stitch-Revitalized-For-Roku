@@ -4,14 +4,7 @@ sub init()
     m.rowlist = m.top.findNode("homeRowList")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     m.rowlist.observeField("itemHasFocus", "handleItemFocus")
-    m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' observe content so we can know when feed content will be parsed
-    m.GetContentTask.observeField("response", "handleRecommendedSections")
-    m.GetContentTask.request = {
-        type: "getBrowsePageQuery"
-    }
-    m.GetContentTask.functionName = m.GetContentTask.request.type
-    m.GetContentTask.control = "run"
+    m.GetContentTask = createApiTask("getBrowsePageQuery", "handleRecommendedSections")
 end sub
 
 function buildContentNodeFromShelves(games)
@@ -70,15 +63,7 @@ end sub
 
 sub appendMoreRows()
     if m.top.maxedOut = false
-        m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-        ' observe content so we can know when feed content will be parsed
-        m.GetContentTask.observeField("response", "handleRecommendedSections")
-        m.GetContentTask.request = {
-            type: "getBrowsePageQuery",
-            cursor: m.top.cursor
-        }
-        m.GetContentTask.functionName = m.GetContentTask.request.type
-        m.GetContentTask.control = "run"
+        m.GetContentTask = createApiTask("getBrowsePageQuery", "handleRecommendedSections", { cursor: m.top.cursor })
     end if
 end sub
 
