@@ -257,16 +257,15 @@ function inArray(haystack, needle) as boolean
     return false
 end function
 
-function toString(input, replaceInvalid = false) as string
+function toString(input) as string
     if LCase(type(input)) = "rostring" or LCase(type(input)) = "string"
         return input
     end if
 
-    if replaceInvalid
-        if input = invalid
-            return ""
-        end if
+    if input = invalid
+        return ""
     end if
+
     return str(input)
 end function
 
