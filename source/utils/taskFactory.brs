@@ -3,7 +3,7 @@
 ' callback: the callback sub name for the response (e.g. "decideRoute")
 ' params: optional associative array of request parameters
 ' Returns the task node.
-function createApiTask(functionName as string, callback as string, params = invalid as object) as object
+function createApiTask(functionName as string, callback as string, params = invalid) as object
     task = CreateObject("roSGNode", "TwitchApiTask")
     task.observeField("response", callback)
     request = { type: functionName }
@@ -46,7 +46,7 @@ end function
 ' Stops a task or timer, unobserves its field, and returns invalid.
 ' Use: m.task = destroyTask(m.task, "response")
 '      m.timer = destroyTask(m.timer, "fire")
-function destroyTask(task as object, observedField as string) as dynamic
+function destroyTask(task, observedField as string) as dynamic
     if task <> invalid
         task.unobserveField(observedField)
         task.control = "stop"
