@@ -153,27 +153,12 @@ sub updateRowList(jsonContent)
     showRowLabel = []
     rowHeights = []
     for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        if row.title <> ""
-            hasRowLabel = true
-        else
-            hasRowLabel = false
-        end if
+        hasRowLabel = row.title <> ""
         showRowLabel.push(hasRowLabel)
-        if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
-            rowItemSize.push([320, 180])
-            if hasRowLabel
-                rowHeights.push(275)
-            else
-                rowHeights.push(235)
-            end if
-        end if
-        if row.getchild(0).contentType = "GAME"
-            rowItemSize.push([188, 250])
-            if hasRowLabel
-                rowHeights.push(325)
-            else
-                rowHeights.push(305)
-            end if
+        config = getRowConfig(row.getchild(0).contentType, hasRowLabel)
+        if config <> invalid
+            rowItemSize.push(config.itemSize)
+            rowHeights.push(config.rowHeight)
         end if
     end for
     m.rowlist.visible = false
