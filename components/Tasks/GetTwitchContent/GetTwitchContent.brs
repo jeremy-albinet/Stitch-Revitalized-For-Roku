@@ -227,7 +227,7 @@ sub main()
                     info_parsed = stream_info[info].Split("=")
                     if info_parsed.Count() >= 2
                         key = info_parsed[0].replace("#EXT-X-STREAM-INF:", "")
-                        value = toString(info_parsed[1], true).replace(chr(34), "")
+                        value = toString(info_parsed[1]).replace(chr(34), "")
                         streamobject[key] = value
                     end if
                 end for
