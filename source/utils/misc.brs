@@ -69,6 +69,7 @@ function formatTime(time) as string
 end function
 
 function div_ceiling(a as integer, b as integer) as integer
+    if a = 0 then return 0
     if a < b then return 1
     if int(a / b) = a / b
         return a / b

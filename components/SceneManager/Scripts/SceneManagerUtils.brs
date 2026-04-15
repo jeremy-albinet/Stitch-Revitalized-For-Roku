@@ -271,6 +271,10 @@ function toString(input) as string
         return input
     end if
 
+    if input = invalid
+        return ""
+    end if
+
     return str(input)
 end function
 

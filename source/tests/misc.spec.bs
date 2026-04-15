@@ -265,6 +265,11 @@ namespace tests
             m.assertEqual(div_ceiling(5, 5), 1)
         end sub
 
+        @it("returns 0 when a is 0")
+        sub divCeiling_zero()
+            m.assertEqual(div_ceiling(0, 5), 0)
+        end sub
+
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         @describe("versionChecker")
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
