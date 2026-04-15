@@ -3,17 +3,18 @@ const path = require('path');
 const { spawnSync, spawn } = require('child_process');
 
 const host = process.env.ROKU_HOST || 'localhost';
+const sideloadPort = process.env.ROKU_SIDELOAD_PORT || '8888';
 const password = process.env.ROKU_PASSWORD || 'rokudev';
 
 const zip = path.join(__dirname, '..', 'out', 'Stitch-Revitalized-For-Roku.zip');
 
-console.log(`Deploying to ${host}...`);
+console.log(`Deploying to ${host}:${sideloadPort}...`);
 const deploy = spawnSync('curl', [
     '-s', '--max-time', '30', '--digest',
     '-u', `rokudev:${password}`,
     '-F', 'mysubmit=Install',
     '-F', `archive=@${zip}`,
-    `http://${host}/plugin_install`,
+    `http://${host}:${sideloadPort}/plugin_install`,
     '-o', '/dev/null',
 ], { stdio: 'inherit' });
 if (deploy.status !== 0) {
