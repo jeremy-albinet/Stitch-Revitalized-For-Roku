@@ -78,28 +78,7 @@ sub appendMoreRows()
     end if
 end sub
 
-function buildRowData(contentCollection)
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    ? "Cat CC: "; contentCollection
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        config = getRowConfig(row.getchild(0).contentType, hasRowLabel)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-    return {
-        rowHeights: rowHeights,
-        showRowLabel: showRowLabel,
-        rowItemSize: rowItemSize,
-        content: contentCollection,
-        numRows: contentCollection.getChildCount()
-    }
-end function
+
 
 sub updateRowList(content as object)
     if content <> invalid and m.rowList <> invalid
