@@ -80,9 +80,16 @@ namespace tests
         @describe("getRowConfig edge cases")
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+        @it("returns LIVE/VOD config for CLIP content type")
+        sub clipType()
+            config = getRowConfig("CLIP", true)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
+        end sub
+
         @it("returns invalid for unknown content type")
         sub unknownType()
-            m.assertInvalid(getRowConfig("CLIP", true))
+            m.assertInvalid(getRowConfig("UNKNOWN", true))
         end sub
 
         @it("returns invalid when contentType is invalid")
