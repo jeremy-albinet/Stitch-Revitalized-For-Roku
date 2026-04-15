@@ -48,8 +48,9 @@ end sub
 sub setBannerImage()
     bannerGroup = m.top.findNode("banner")
     poster = createObject("roSGNode", "Poster")
-    if m.GetShellTask.response.data.userOrError.bannerImageUrl <> invalid
-        poster.uri = m.GetShellTask.response.data.userOrError.bannerImageUrl
+    rsp = m.GetShellTask.response
+    if rsp?.bannerImageUrl <> invalid
+        poster.uri = rsp.bannerImageUrl
     else
         poster.uri = "pkg:/images/default_banner.png"
     end if
@@ -67,41 +68,27 @@ sub setBannerImage()
 end sub
 
 sub updateChannelInfo()
-    ' m.GetcontentTask.response.data.channel
-    ' id                : 71092938
-    ' __typename        : User
-    ' login             : xqc
-    ' stream            :
-    ' videoShelves      : @{edges=System.Object[]}
-    ' self              : @{follower=; subscriptionBenefit=}
-    ' displayName       : xQc
-    ' hosting           :
-    ' videos            : @{edges=System.Object[]}
-    ' roles             : @{isPartner=True}
-    ' broadcastSettings : @{isMature=False; id=71092938; __typename=BroadcastSettings}
-    ' description       : THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.
-    ' followers         : @{totalCount=11870230}
-    ' profileImageURL   : https://static-cdn.jtvnw.net/jtv_user_pictures/xqc-profile_image-9298dca608632101-70x70.jpeg
-    ' profileViewCount  :
-    m.description.infoText = m.GetcontentTask.response.data.channel.description
-    m.followers.text = numberToText(m.GetcontentTask.response.data.channel.followers.totalCount) + " " + tr("followers")
-    m.avatar.uri = m.GetcontentTask.response.data.channel.profileImageUrl
-    channelContent = buildContentNodeFromShelves(m.GetcontentTask.response.data)
+    rsp = m.GetcontentTask.response
+    if rsp = invalid then return
+    m.description.infoText = rsp.description
+    m.followers.text = numberToText(rsp.followerCount) + " " + tr("followers")
+    if rsp.profileImageUrl <> invalid
+        m.avatar.uri = rsp.profileImageUrl
+    end if
+    channelContent = buildContentNodeFromShelves(rsp)
     updateRowList(channelContent)
-    ' ? "Resp: "; m.GetcontentTask.response
-    ' ? "Resp: "; m.GetcontentTask.response.data
 end sub
 
-function buildContentNodeFromShelves(inputData)
-    shelves = inputData.channel.videoShelves.edges
+function buildContentNodeFromShelves(rsp)
     contentCollection = createObject("RoSGNode", "ContentNode")
-    if inputData.channel.stream <> invalid
+    if rsp.isLive
         row = createObject("RoSGNode", "ContentNode")
         row.title = "Live Stream"
         rowItem = m.top.contentRequested
         row.appendChild(rowItem)
         contentCollection.appendChild(row)
     end if
+    shelves = rsp.videoShelves
     for each shelf in shelves
         row = createObject("RoSGNode", "ContentNode")
         row.title = shelf.node.title
