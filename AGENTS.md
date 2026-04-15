@@ -19,7 +19,12 @@ npm run fmt:check    # Check formatting (fails on diff)
 
 CI runs on PRs: `lint` → `fmt:check` → `package`. All three must pass.
 
-There is no test framework. No unit/integration tests exist.
+```bash
+npm test                                         # Run Rooibos tests on simulator (default)
+ROKU_HOST=192.168.x.x ROKU_PASSWORD=pw npm test  # Run on physical TV
+```
+
+Tests live in `source/tests/` as `*.spec.bs` files. Build config: `bsconfig.test.json`.
 
 ## Project Structure
 ```
@@ -174,7 +179,7 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 - Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`, `perf:`, `docs:`
 - Concise subject line (imperative mood, no period)
 - Never mention AI tooling in commits
-- Never commit `DEV.md` or `bsconfig.json`
+- Never commit `DEV.md`
 - Do not commit automatically — wait for explicit instruction
 
 ## Development Principles
@@ -199,7 +204,8 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 | `source/constants.brs` | Global constants initialization |
 | `settings/settings.json` | User-facing settings schema |
 | `manifest` | Roku channel metadata and version |
-| `bsconfig.json` | BrighterScript compiler config (gitignored, device-specific) |
+| `bsconfig.json` | BrighterScript compiler config (gitignored, device-specific — do not commit) |
+| `bsconfig.test.json` | Test build config (extends bsconfig.json, adds rooibos plugin) |
 
 ## QA & Debugging
 
@@ -276,11 +282,7 @@ curl -s -X POST http://localhost:8060/keypress/Right
 
 #### Known brs-engine Quirks
 
-The brs-desktop simulator uses brs-engine, which has compatibility gaps with real Roku hardware. We maintain a **patched** brs-engine build at `~/github/brs-engine/` with fixes for critical issues. The app also includes defensive workarounds.
-
-**Engine-level issues (fixed in our patched brs-engine build):**
-- RowList/ArrayGrid/PosterGrid `setValue("itemContent", ...)` causes infinite recursion → depth guard added
-- ContentNode parentField notifications cascade unbounded → reentrancy guard added
+The brs-desktop simulator uses brs-engine, which has compatibility gaps with real Roku hardware. The app includes defensive workarounds.
 
 **App-side workarounds (in our BrightScript code):**
 - **XML `alias` attributes** don't work → use `findNode()` + onChange callbacks instead (see CirclePoster)
@@ -308,14 +310,6 @@ end try
 ' Safe findNode() with nil-check
 m.timer = m.top.findNode("timer")
 if m.timer <> invalid then m.timer.observeField("fire", "callback")
-```
-
-**brs-engine build & deploy:**
-```bash
-cd ~/github/brs-engine/packages/scenegraph
-rm -rf ../../node_modules/.cache
-npm run build  # webpack succeeds; tsc step may fail (pre-existing TS errors) — OK
-cp lib/brs-sg.js "/Applications/BrightScript Simulator.app/Contents/Resources/app/app/lib/brs-sg.js"
 ```
 
 ---

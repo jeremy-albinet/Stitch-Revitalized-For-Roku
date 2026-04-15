@@ -1,0 +1,32 @@
+{
+    "rootDir": "./",
+    "stagingDir": "./out/.staging",
+    "sourceMap": false,
+    "retainStagingDir": true,
+    "files": [
+        "source/**/*",
+        "!source/tests/**/*",
+        "components/**/*",
+        "images/**/*",
+        "fonts/**/*",
+        "vendor/**/*",
+        "lib/**/*",
+        "modules/**/*",
+        "locale/**/*",
+        "settings/**/*",
+        "manifest",
+        "env"
+    ],
+    "diagnosticFilters": [
+        {
+            "src": "vendor/**/*",
+            "codes": [
+                1000,
+                1011,
+                1013,
+                1045
+            ]
+        }
+    ],
+    "plugins": []
+}
