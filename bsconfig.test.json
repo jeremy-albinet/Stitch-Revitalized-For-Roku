@@ -1,0 +1,37 @@
+{
+    "extends": "bsconfig.json",
+    "files": [
+        "source/**/*",
+        "source/tests/**/*.spec.bs",
+        "components/**/*",
+        "images/**/*",
+        "fonts/**/*",
+        "vendor/**/*",
+        "lib/**/*",
+        "modules/**/*",
+        "locale/**/*",
+        "settings/**/*",
+        "manifest",
+        "env"
+    ],
+    "allowBrighterScriptInBrightScript": true,
+    "plugins": [
+        "rooibos-roku"
+    ],
+    "rooibos": {
+        "testsFilePattern": "**/*.spec.bs",
+        "showOnlyFailures": false,
+        "catchCrashes": true,
+        "printTestTimes": true,
+        "colorizeOutput": true,
+        "reporters": [
+            "mocha"
+        ],
+        "failFast": false,
+        "keepAppOpen": false,
+        "sendHomeOnFinish": true,
+        "isGlobalMethodMockingEnabled": false,
+        "isRecordingCodeCoverage": false,
+        "lineWidth": 80
+    }
+}
