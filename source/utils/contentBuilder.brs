@@ -7,7 +7,7 @@
 function getRowConfig(contentType, hasRowLabel as boolean, tallRows = false as boolean) as object
     if contentType = invalid then return invalid
 
-    if contentType = "LIVE" or contentType = "VOD"
+    if contentType = "LIVE" or contentType = "VOD" or contentType = "CLIP"
         itemSize = [320, 180]
         if tallRows
             if hasRowLabel
