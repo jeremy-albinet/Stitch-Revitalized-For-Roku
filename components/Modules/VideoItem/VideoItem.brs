@@ -32,6 +32,7 @@ sub showcontent()
 end sub
 
 sub GlobalSettings()
+    if m.global = invalid or m.global.constants = invalid then return
     m.itemSubtitle.color = m.global.constants.colors.hinted.grey9
     m.itemThirdTitle.color = m.global.constants.colors.hinted.grey9
 

@@ -135,7 +135,7 @@ end sub
 sub onGetFocus()
     if m.rowlist.focusedChild = invalid
         m.rowlist.setFocus(true)
-    else if m.top.focusedChild.id = "homeRowList"
+    else if m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
         m.rowlist.focusedChild.setFocus(true)
         if m.rowlist.rowItemFocused[0] <> invalid
             if m.rowlist.content.getChildCount() > 0

@@ -105,6 +105,7 @@ end sub
 function buildNode(name)
     if name <> invalid
         newNode = createObject("roSGNode", name)
+        if newNode = invalid then return invalid
         newNode.id = name
         newNode.translation = [0, 0]
         newNode.observeField("backPressed", "onBackPressed")
@@ -185,6 +186,7 @@ sub onFollowSelected()
 end sub
 
 sub onContentSelected()
+    if m.activeNode = invalid or m.activeNode.contentSelected = invalid then return
     id = invalid
     if m.activeNode.contentSelected.contentType = "STREAMER"
         id = "StreamerChannelPage"
