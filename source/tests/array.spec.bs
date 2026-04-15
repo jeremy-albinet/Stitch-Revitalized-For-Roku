@@ -1,0 +1,199 @@
+namespace tests
+
+    @suite("ArrayUtil")
+    class ArrayUtilTests extends rooibos.BaseTestSuite
+
+        private util as dynamic
+
+        protected override sub setup()
+            m.util = ArrayUtil()
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("isArray")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for roArray")
+        sub isArray_roArray()
+            m.assertTrue(m.util.isArray([1, 2, 3]))
+        end sub
+
+        @it("returns false for string")
+        sub isArray_string()
+            m.assertFalse(m.util.isArray("not an array"))
+        end sub
+
+        @it("returns false for invalid")
+        sub isArray_invalid()
+            m.assertFalse(m.util.isArray(invalid))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("indexOf")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("finds element at correct index")
+        sub indexOf_found()
+            m.assertEqual(m.util.indexOf([10, 20, 30], 20), 1)
+        end sub
+
+        @it("returns -1 when element not found")
+        sub indexOf_notFound()
+            m.assertEqual(m.util.indexOf([10, 20, 30], 99), -1)
+        end sub
+
+        @it("returns -1 for empty array")
+        sub indexOf_empty()
+            m.assertEqual(m.util.indexOf([], 1), -1)
+        end sub
+
+        @it("returns -1 for non-array")
+        sub indexOf_nonArray()
+            m.assertEqual(m.util.indexOf("string", 1), -1)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("lastIndexOf")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("finds last occurrence")
+        sub lastIndexOf_duplicate()
+            m.assertEqual(m.util.lastIndexOf([1, 2, 3, 2, 1], 2), 3)
+        end sub
+
+        @it("returns -1 when not found")
+        sub lastIndexOf_notFound()
+            m.assertEqual(m.util.lastIndexOf([1, 2, 3], 99), -1)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("contains")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true when element exists")
+        sub contains_exists()
+            m.assertTrue(m.util.contains([1, 2, 3], 2))
+        end sub
+
+        @it("returns false when element missing")
+        sub contains_missing()
+            m.assertFalse(m.util.contains([1, 2, 3], 99))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("slice")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("slices from start to end index")
+        sub slice_range()
+            result = m.util.slice([1, 2, 3, 4, 5], 1, 3)
+            m.assertEqual(result.count(), 3)
+            m.assertEqual(result[0], 2)
+            m.assertEqual(result[2], 4)
+        end sub
+
+        @it("slices from index to end when no toIndex")
+        sub slice_toEnd()
+            result = m.util.slice([1, 2, 3, 4], 2)
+            m.assertEqual(result.count(), 2)
+            m.assertEqual(result[0], 3)
+        end sub
+
+        @it("handles negative fromIndex")
+        sub slice_negativeFrom()
+            result = m.util.slice([1, 2, 3, 4, 5], -2)
+            m.assertEqual(result.count(), 2)
+            m.assertEqual(result[0], 4)
+        end sub
+
+        @it("returns invalid for non-array")
+        sub slice_nonArray()
+            m.assertInvalid(m.util.slice("string", 0))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("every")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true when all elements match")
+        sub every_allMatch()
+            isPositive = function(val, _i, _arr)
+                return val > 0
+            end function
+            m.assertTrue(m.util.every([1, 2, 3], isPositive))
+        end sub
+
+        @it("returns false when one element fails")
+        sub every_oneFails()
+            isPositive = function(val, _i, _arr)
+                return val > 0
+            end function
+            m.assertFalse(m.util.every([1, -2, 3], isPositive))
+        end sub
+
+        @it("returns true for empty array")
+        sub every_empty()
+            isPositive = function(val, _i, _arr)
+                return val > 0
+            end function
+            m.assertTrue(m.util.every([], isPositive))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("some")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true when at least one matches")
+        sub some_oneMatch()
+            isNegative = function(val, _i, _arr)
+                return val < 0
+            end function
+            m.assertTrue(m.util.some([1, -2, 3], isNegative))
+        end sub
+
+        @it("returns false when none match")
+        sub some_noneMatch()
+            isNegative = function(val, _i, _arr)
+                return val < 0
+            end function
+            m.assertFalse(m.util.some([1, 2, 3], isNegative))
+        end sub
+
+        @it("returns false for empty array")
+        sub some_empty()
+            isNegative = function(val, _i, _arr)
+                return val < 0
+            end function
+            m.assertFalse(m.util.some([], isNegative))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("groupBy")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("groups elements by key")
+        sub groupBy_basic()
+            items = [
+                { "type": "fruit", "name": "apple" },
+                { "type": "veggie", "name": "carrot" },
+                { "type": "fruit", "name": "banana" }
+            ]
+            result = m.util.groupBy(items, "type")
+            m.assertEqual(result.fruit.count(), 2)
+            m.assertEqual(result.veggie.count(), 1)
+        end sub
+
+        @it("returns empty object for empty array")
+        sub groupBy_empty()
+            result = m.util.groupBy([], "key")
+            m.assertEqual(result.count(), 0)
+        end sub
+
+        @it("returns invalid for non-array")
+        sub groupBy_nonArray()
+            m.assertInvalid(m.util.groupBy("string", "key"))
+        end sub
+
+    end class
+
+end namespace

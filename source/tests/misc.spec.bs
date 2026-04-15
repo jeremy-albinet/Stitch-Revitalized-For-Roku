@@ -1,0 +1,432 @@
+namespace tests
+
+    @suite("MiscUtils")
+    class MiscUtilsTests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("isValid")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for a valid string")
+        sub isValid_string()
+            m.assertTrue(isValid("hello"))
+        end sub
+
+        @it("returns true for a valid integer")
+        sub isValid_integer()
+            m.assertTrue(isValid(42))
+        end sub
+
+        @it("returns true for a valid array")
+        sub isValid_array()
+            m.assertTrue(isValid([1, 2, 3]))
+        end sub
+
+        @it("returns true for a valid associative array")
+        sub isValid_aa()
+            m.assertTrue(isValid({ "key": "value" }))
+        end sub
+
+        @it("returns false for invalid")
+        sub isValid_invalid()
+            m.assertFalse(isValid(invalid))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("isValidAndNotEmpty")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for non-empty string")
+        sub isValidAndNotEmpty_nonEmptyString()
+            m.assertTrue(isValidAndNotEmpty("hello"))
+        end sub
+
+        @it("returns false for empty string")
+        sub isValidAndNotEmpty_emptyString()
+            m.assertFalse(isValidAndNotEmpty(""))
+        end sub
+
+        @it("returns false for whitespace-only string")
+        sub isValidAndNotEmpty_whitespace()
+            m.assertFalse(isValidAndNotEmpty("   "))
+        end sub
+
+        @it("returns true for non-empty array")
+        sub isValidAndNotEmpty_nonEmptyArray()
+            m.assertTrue(isValidAndNotEmpty([1, 2]))
+        end sub
+
+        @it("returns false for empty array")
+        sub isValidAndNotEmpty_emptyArray()
+            m.assertFalse(isValidAndNotEmpty([]))
+        end sub
+
+        @it("returns true for non-empty associative array")
+        sub isValidAndNotEmpty_nonEmptyAA()
+            m.assertTrue(isValidAndNotEmpty({ "key": "value" }))
+        end sub
+
+        @it("returns false for empty associative array")
+        sub isValidAndNotEmpty_emptyAA()
+            m.assertFalse(isValidAndNotEmpty({}))
+        end sub
+
+        @it("returns false for invalid")
+        sub isValidAndNotEmpty_invalid()
+            m.assertFalse(isValidAndNotEmpty(invalid))
+        end sub
+
+        @it("returns false for unsupported type like integer")
+        sub isValidAndNotEmpty_integer()
+            m.assertFalse(isValidAndNotEmpty(42))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("leftPad")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("pads when base is shorter than length")
+        sub leftPad_needsPadding()
+            m.assertEqual(leftPad("5", "0", 3), "005")
+        end sub
+
+        @it("returns base unchanged when already longer")
+        sub leftPad_alreadyLong()
+            m.assertEqual(leftPad("12345", "0", 3), "12345")
+        end sub
+
+        @it("returns base unchanged at exact length")
+        sub leftPad_exactLength()
+            m.assertEqual(leftPad("abc", "0", 3), "abc")
+        end sub
+
+        @it("pads empty base to target length")
+        sub leftPad_emptyBase()
+            m.assertEqual(leftPad("", "x", 3), "xxx")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("ticksToHuman")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("formats zero ticks as 0:00")
+        sub ticksToHuman_zero()
+            ticks = 0&
+            m.assertEqual(ticksToHuman(ticks), "0:00")
+        end sub
+
+        @it("formats seconds only")
+        sub ticksToHuman_secondsOnly()
+            ticks = 50000000&
+            m.assertEqual(ticksToHuman(ticks), "0:05")
+        end sub
+
+        @it("formats minutes and seconds")
+        sub ticksToHuman_minutesSeconds()
+            ticks = 650000000&
+            m.assertEqual(ticksToHuman(ticks), "1:05")
+        end sub
+
+        @it("formats hours, minutes, and seconds")
+        sub ticksToHuman_hoursMinutesSeconds()
+            ticks = 36610000000&
+            m.assertEqual(ticksToHuman(ticks), "1:01:01")
+        end sub
+
+        @it("pads single-digit seconds with zero")
+        sub ticksToHuman_padSeconds()
+            ticks = 30000000&
+            m.assertEqual(ticksToHuman(ticks), "0:03")
+        end sub
+
+        @it("pads single-digit minutes when hours present")
+        sub ticksToHuman_padMinutes()
+            ticks = 39000000000&
+            m.assertEqual(ticksToHuman(ticks), "1:05:00")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("numberToText")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns plain string when under 1000")
+        sub numberToText_under1000()
+            m.assertEqual(numberToText(500), "500")
+        end sub
+
+        @it("formats 1000 as 1K")
+        sub numberToText_exactly1000()
+            m.assertEqual(numberToText(1000), "1K")
+        end sub
+
+        @it("formats 1500 as 1.5K")
+        sub numberToText_1500()
+            m.assertEqual(numberToText(1500), "1.5K")
+        end sub
+
+        @it("formats 10000 as 10K")
+        sub numberToText_10000()
+            m.assertEqual(numberToText(10000), "10K")
+        end sub
+
+        @it("formats 1000000 as 1M")
+        sub numberToText_million()
+            m.assertEqual(numberToText(1000000), "1M")
+        end sub
+
+        @it("formats 1500000 as 1.5M")
+        sub numberToText_1500000()
+            m.assertEqual(numberToText(1500000), "1.5M")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("roundNumber")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("rounds 1.3 down to 1")
+        sub roundNumber_down()
+            result = roundNumber(1.3)
+            m.assertEqual(result, 1)
+        end sub
+
+        @it("rounds 1.7 up to 2")
+        sub roundNumber_up()
+            result = roundNumber(1.7)
+            m.assertEqual(result, 2)
+        end sub
+
+        @it("rounds 1.5 up to 2")
+        sub roundNumber_half()
+            result = roundNumber(1.5)
+            m.assertEqual(result, 2)
+        end sub
+
+        @it("rounds 0.0 to 0")
+        sub roundNumber_zero()
+            result = roundNumber(0.0)
+            m.assertEqual(result, 0)
+        end sub
+
+        @it("rounds -1.3 to -1")
+        sub roundNumber_negativeCloserToZero()
+            result = roundNumber(-1.3)
+            m.assertEqual(result, -1)
+        end sub
+
+        @it("rounds -1.7 to -2")
+        sub roundNumber_negativeFarFromZero()
+            result = roundNumber(-1.7)
+            m.assertEqual(result, -2)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("getMinutes")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("converts 600000000 ticks to 1 minute")
+        sub getMinutes_oneMinute()
+            result = getMinutes(600000000)
+            m.assertEqual(result, 1)
+        end sub
+
+        @it("converts 0 ticks to 0 minutes")
+        sub getMinutes_zero()
+            result = getMinutes(0)
+            m.assertEqual(result, 0)
+        end sub
+
+        @it("rounds 0.5 minutes up to 1")
+        sub getMinutes_halfMinute()
+            result = getMinutes(300000000)
+            m.assertEqual(result, 1)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("div_ceiling")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns exact result for even division")
+        sub divCeiling_exact()
+            m.assertEqual(div_ceiling(10, 5), 2)
+        end sub
+
+        @it("rounds up for non-exact division")
+        sub divCeiling_nonExact()
+            m.assertEqual(div_ceiling(10, 3), 4)
+        end sub
+
+        @it("returns 1 when a < b")
+        sub divCeiling_aLessThanB()
+            m.assertEqual(div_ceiling(1, 5), 1)
+        end sub
+
+        @it("returns 1 when a equals b")
+        sub divCeiling_equal()
+            m.assertEqual(div_ceiling(5, 5), 1)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("versionChecker")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for equal versions")
+        sub versionChecker_equal()
+            m.assertTrue(versionChecker("10.7.7", "10.7.7"))
+        end sub
+
+        @it("returns true when version is greater")
+        sub versionChecker_greater()
+            m.assertTrue(versionChecker("10.8.0", "10.7.0"))
+        end sub
+
+        @it("returns false when version is lesser")
+        sub versionChecker_lesser()
+            m.assertFalse(versionChecker("10.6.0", "10.7.0"))
+        end sub
+
+        @it("handles missing segments by padding with zeros")
+        sub versionChecker_missingSegments()
+            m.assertTrue(versionChecker("10.7", "10.7.0"))
+        end sub
+
+        @it("detects major version difference")
+        sub versionChecker_majorDiff()
+            m.assertTrue(versionChecker("11.0.0", "10.9.9"))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("AssocArrayEqual")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for identical associative arrays")
+        sub assocArrayEqual_identical()
+            a = { "x": 1, "y": 2 }
+            b = { "x": 1, "y": 2 }
+            m.assertTrue(AssocArrayEqual(a, b))
+        end sub
+
+        @it("returns false when values differ")
+        sub assocArrayEqual_differentValues()
+            a = { "x": 1, "y": 2 }
+            b = { "x": 1, "y": 99 }
+            m.assertFalse(AssocArrayEqual(a, b))
+        end sub
+
+        @it("returns false when keys differ")
+        sub assocArrayEqual_differentKeys()
+            a = { "x": 1 }
+            b = { "z": 1 }
+            m.assertFalse(AssocArrayEqual(a, b))
+        end sub
+
+        @it("returns false when counts differ")
+        sub assocArrayEqual_differentCount()
+            a = { "x": 1, "y": 2 }
+            b = { "x": 1 }
+            m.assertFalse(AssocArrayEqual(a, b))
+        end sub
+
+        @it("returns false when one is invalid")
+        sub assocArrayEqual_oneInvalid()
+            m.assertFalse(AssocArrayEqual({ "x": 1 }, invalid))
+        end sub
+
+        @it("returns false when both are invalid")
+        sub assocArrayEqual_bothInvalid()
+            m.assertFalse(AssocArrayEqual(invalid, invalid))
+        end sub
+
+        @it("returns true for two empty associative arrays")
+        sub assocArrayEqual_bothEmpty()
+            m.assertTrue(AssocArrayEqual({}, {}))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("toString")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("passes through string input unchanged")
+        sub toString_stringPassthrough()
+            m.assertEqual(toString("hello"), "hello")
+        end sub
+
+        @it("converts integer via str()")
+        sub toString_integer()
+            m.assertEqual(toString(42), str(42))
+        end sub
+
+        @it("converts float via str()")
+        sub toString_float()
+            m.assertEqual(toString(3.14), str(3.14))
+        end sub
+
+        @it("returns empty string for invalid")
+        sub toString_invalid()
+            m.assertEqual(toString(invalid), "")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("inArray")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("finds element case-insensitively")
+        sub inArray_foundCaseInsensitive()
+            m.assertTrue(inArray(["Apple", "Banana"], "apple"))
+        end sub
+
+        @it("returns false when not found")
+        sub inArray_notFound()
+            m.assertFalse(inArray(["Apple", "Banana"], "Cherry"))
+        end sub
+
+        @it("converts non-string needle via str()")
+        sub inArray_integerNeedle()
+            m.assertFalse(inArray(["Apple", "Banana"], 42))
+        end sub
+
+        @it("returns false for empty haystack")
+        sub inArray_emptyHaystack()
+            m.assertFalse(inArray([], "anything"))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("select")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("slices a basic range")
+        sub select_basicSlice()
+            result = select([1, 2, 3, 4, 5], 1, 3)
+            m.assertEqual(result.count(), 3)
+            m.assertEqual(result[0], 2)
+            m.assertEqual(result[1], 3)
+            m.assertEqual(result[2], 4)
+        end sub
+
+        @it("handles negative start index")
+        sub select_negativeStart()
+            result = select([1, 2, 3, 4, 5], -2)
+            m.assertEqual(result.count(), 2)
+            m.assertEqual(result[0], 4)
+            m.assertEqual(result[1], 5)
+        end sub
+
+        @it("applies custom step")
+        sub select_customStep()
+            result = select([1, 2, 3, 4, 5], 0, 4, 2)
+            m.assertEqual(result.count(), 3)
+            m.assertEqual(result[0], 1)
+            m.assertEqual(result[1], 3)
+            m.assertEqual(result[2], 5)
+        end sub
+
+        @it("returns full array with defaults")
+        sub select_defaults()
+            result = select([1, 2, 3, 4, 5])
+            m.assertEqual(result.count(), 5)
+            m.assertEqual(result[0], 1)
+            m.assertEqual(result[4], 5)
+        end sub
+
+    end class
+
+end namespace
