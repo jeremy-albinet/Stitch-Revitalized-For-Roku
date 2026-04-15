@@ -74,7 +74,12 @@ function validateOauthToken() as object
         headers: reqHeaders,
         method: "GET"
     })
-    rsp = ParseJSON(req.send())
+    sendResult = req.send()
+    if sendResult = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    rsp = ParseJSON(sendResult)
     if rsp?.status <> invalid
         if rsp.status = 401
             m.top.response = { "tokenValid": false }
