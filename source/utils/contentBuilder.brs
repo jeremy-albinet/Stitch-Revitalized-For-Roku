@@ -4,7 +4,9 @@
 ' tallRows: boolean — use taller row heights (Following scene uses larger cards)
 ' Returns: { itemSize: [width, height], rowHeight: integer }
 ' Returns invalid if contentType is unrecognized.
-function getRowConfig(contentType as string, hasRowLabel as boolean, tallRows = false as boolean) as object
+function getRowConfig(contentType, hasRowLabel as boolean, tallRows = false as boolean) as object
+    if contentType = invalid then return invalid
+
     if contentType = "LIVE" or contentType = "VOD"
         itemSize = [320, 180]
         if tallRows

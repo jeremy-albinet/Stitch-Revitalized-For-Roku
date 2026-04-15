@@ -1,0 +1,95 @@
+namespace tests
+
+    @suite("ContentBuilder")
+    class ContentBuilderTests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("getRowConfig LIVE/VOD")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns correct size for LIVE with row label")
+        sub liveWithLabel()
+            config = getRowConfig("LIVE", true)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
+        end sub
+
+        @it("returns correct size for LIVE without row label")
+        sub liveNoLabel()
+            config = getRowConfig("LIVE", false)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 235)
+        end sub
+
+        @it("returns correct size for VOD with row label")
+        sub vodWithLabel()
+            config = getRowConfig("VOD", true)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
+        end sub
+
+        @it("returns tall row height for LIVE with label")
+        sub liveTallWithLabel()
+            config = getRowConfig("LIVE", true, true)
+            m.assertEqual(config.rowHeight, 295)
+        end sub
+
+        @it("returns tall row height for LIVE without label")
+        sub liveTallNoLabel()
+            config = getRowConfig("LIVE", false, true)
+            m.assertEqual(config.rowHeight, 255)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("getRowConfig GAME")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns correct size for GAME with row label")
+        sub gameWithLabel()
+            config = getRowConfig("GAME", true)
+            m.assertEqual(config.itemSize, [188, 250])
+            m.assertEqual(config.rowHeight, 325)
+        end sub
+
+        @it("returns correct size for GAME without row label")
+        sub gameNoLabel()
+            config = getRowConfig("GAME", false)
+            m.assertEqual(config.itemSize, [188, 250])
+            m.assertEqual(config.rowHeight, 305)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("getRowConfig USER")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns correct size for USER with row label")
+        sub userWithLabel()
+            config = getRowConfig("USER", true)
+            m.assertEqual(config.itemSize, [150, 150])
+            m.assertEqual(config.rowHeight, 260)
+        end sub
+
+        @it("returns correct size for USER without row label")
+        sub userNoLabel()
+            config = getRowConfig("USER", false)
+            m.assertEqual(config.itemSize, [150, 150])
+            m.assertEqual(config.rowHeight, 240)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("getRowConfig edge cases")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns invalid for unknown content type")
+        sub unknownType()
+            m.assertInvalid(getRowConfig("CLIP", true))
+        end sub
+
+        @it("returns invalid when contentType is invalid")
+        sub invalidContentType()
+            m.assertInvalid(getRowConfig(invalid, true))
+        end sub
+
+    end class
+
+end namespace
