@@ -6,8 +6,9 @@
     "package": "bsc --create-package",
     "lint": "bslint",
     "lint:fix": "bslint --fix",
-    "fmt": "brighterscript-formatter --write '**/*.{brs,bs}'",
-    "fmt:check": "brighterscript-formatter --check '**/*.{brs,bs}'",
+    "fmt": "brighterscript-formatter --write 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
+    "fmt:check": "brighterscript-formatter --check 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
+    "test": "bsc --project bsconfig.test.json --create-package && node tools/deploy-test.js",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -16,10 +17,11 @@
     "@rokucommunity/bslint": "^0.8.41",
     "brighterscript-formatter": "^1.7.19",
     "husky": "^9.1.7",
+    "rooibos-roku": "^5.15.7",
     "ropm": "^0.11.5"
   },
   "dependencies": {
-    "brighterscript": "^0.71.0"
+    "brighterscript": "0.67.4"
   },
   "overrides": {
     "form-data": "^4.0.5",
