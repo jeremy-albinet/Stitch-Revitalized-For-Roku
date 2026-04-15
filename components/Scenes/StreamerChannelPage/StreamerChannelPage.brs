@@ -65,8 +65,9 @@ end sub
 sub setBannerImage()
     bannerGroup = m.top.findNode("banner")
     poster = createObject("roSGNode", "Poster")
-    if m.GetShellTask?.response?.data?.userOrError?.bannerImageUrl <> invalid
-        poster.uri = m.GetShellTask.response.data.userOrError.bannerImageUrl
+    rsp = m.GetShellTask.response
+    if rsp?.bannerImageUrl <> invalid
+        poster.uri = rsp.bannerImageUrl
     else
         poster.uri = "pkg:/images/default_banner.png"
     end if
@@ -84,28 +85,13 @@ sub setBannerImage()
 end sub
 
 sub updateChannelInfo()
-    ' m.GetcontentTask.response.data.channel
-    ' id                : 71092938
-    ' __typename        : User
-    ' login             : xqc
-    ' stream            :
-    ' videoShelves      : @{edges=System.Object[]}
-    ' self              : @{follower=; subscriptionBenefit=}
-    ' displayName       : xQc
-    ' hosting           :
-    ' videos            : @{edges=System.Object[]}
-    ' roles             : @{isPartner=True}
-    ' broadcastSettings : @{isMature=False; id=71092938; __typename=BroadcastSettings}
-    ' description       : THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.
-    ' followers         : @{totalCount=11870230}
-    ' profileImageURL   : https://static-cdn.jtvnw.net/jtv_user_pictures/xqc-profile_image-9298dca608632101-70x70.jpeg
-    ' profileViewCount  :
-    ' m.description.infoText = m.GetcontentTask.response.data.channel.description
-    if m.GetcontentTask?.response?.data?.channel?.followers?.totalcount <> invalid
-        m.followers.text = numberToText(m.GetcontentTask.response.data.channel.followers.totalCount) + " " + tr("followers")
+    rsp = m.GetcontentTask.response
+    if rsp = invalid then return
+    if rsp.followerCount > 0
+        m.followers.text = numberToText(rsp.followerCount) + " " + tr("followers")
     end if
-    if m.GetcontentTask?.response?.data?.channel?.profileimageurl <> invalid
-        m.avatar.uri = m.GetcontentTask.response.data.channel.profileImageUrl
+    if rsp.profileImageUrl <> invalid
+        m.avatar.uri = rsp.profileImageUrl
     end if
 end sub
 
