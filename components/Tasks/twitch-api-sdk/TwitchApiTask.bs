@@ -197,11 +197,14 @@ function getChannelHomeQuery() as object
             "skipPlayToken": false
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
-    end if
+    channel = rsp?.data?.channel
+    m.top.response = {
+        description: channel?.description ?? "",
+        followerCount: channel?.followers?.totalCount ?? 0,
+        profileImageUrl: channel?.profileImageUrl,
+        isLive: channel?.stream <> invalid,
+        videoShelves: channel?.videoShelves?.edges ?? []
+    }
     m.top.control = "STOP"
     return invalid
 end function
@@ -349,11 +352,9 @@ function getChannelShell()
             }
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
-    end if
+    m.top.response = {
+        bannerImageUrl: rsp?.data?.userOrError?.bannerImageUrl
+    }
     m.top.control = "STOP"
     return invalid
 end function
