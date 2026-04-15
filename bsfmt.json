@@ -1,2 +1,18 @@
 {
+    "indentStyle": "spaces",
+    "indentSpaceCount": 4,
+    "formatIndent": true,
+    "keywordCase": "lower",
+    "typeCase": "lower",
+    "compositeKeywords": "split",
+    "removeTrailingWhiteSpace": true,
+    "formatInteriorWhitespace": true,
+    "insertSpaceBeforeFunctionParenthesis": false,
+    "insertSpaceBetweenEmptyCurlyBraces": false,
+    "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+    "insertSpaceBetweenAssociativeArrayLiteralKeyAndColon": false,
+    "insertSpaceAfterConditionalCompileSymbol": false,
+    "formatSingleLineCommentType": "original",
+    "formatMultiLineObjectsAndArrays": true,
+    "sortImports": true
 }
