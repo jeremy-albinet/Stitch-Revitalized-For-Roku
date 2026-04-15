@@ -4,14 +4,7 @@ sub init()
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
-    m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' observe content so we can know when feed content will be parsed
-    m.GetContentTask.observeField("response", "handleRecommendedSections")
-    m.GetContentTask.request = {
-        type: "getHomePageQuery"
-    }
-    m.getcontentTask.functionName = m.getcontenttask.request.type
-    m.getcontentTask.control = "run"
+    m.GetContentTask = createApiTask("getHomePageQuery", "handleRecommendedSections")
 end sub
 
 function buildContentNodeFromShelves(shelves)

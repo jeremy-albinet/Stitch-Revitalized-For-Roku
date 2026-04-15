@@ -113,18 +113,13 @@ sub handleUserLogin()
     if m.top.updateUserIcon
         if get_setting("active_user", "$default$") <> "$default$"
             ? "[MenuBar] - handleUserLogin()"
-            m.loginIconTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-            m.loginIconTask.observeField("response", "handleUserLoginResponse")
-            m.loginIconTask.request = {
-                type: "TwitchHelixApiRequest",
+            m.loginIconTask = createApiTask("TwitchHelixApiRequest", "handleUserLoginResponse", {
                 params: {
                     endpoint: "users",
                     args: "login=" + get_user_setting("login"),
                     method: "GET"
                 }
-            }
-            m.loginIconTask.functionName = m.loginIconTask.request.type
-            m.loginIconTask.control = "run"
+            })
         else
             for i = 0 to (m.menuOptions.getChildCount() - 1)
                 if m.menuOptions.getchild(i).id = "LoginPage"
