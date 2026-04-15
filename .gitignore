@@ -5,13 +5,13 @@ out/
 template.env
 .dev
 node_modules
-bsconfig.json
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Roku device specific configs
+# Roku device specific configs (credentials, IP addresses)
+bsconfig.dev.json
 bsconfig.local.json
 
 # Local developer docs (device credentials, personal config)
