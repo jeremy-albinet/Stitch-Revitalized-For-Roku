@@ -8,17 +8,9 @@ end sub
 
 sub updatePage()
     m.top.pageTitle = m.top.contentRequested.gameName
-    m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' observe content so we can know when feed content will be parsed
-    m.GetContentTask.observeField("response", "handleRecommendedSections")
-    m.GetContentTask.request = {
-        type: "getGameDirectoryQuery",
-        params: {
-            gameAlias: m.top.contentRequested.gameName
-        }
-    }
-    m.getcontentTask.functionName = m.getcontenttask.request.type
-    m.getcontentTask.control = "run"
+    m.GetContentTask = createApiTask("getGameDirectoryQuery", "handleRecommendedSections", {
+        params: { gameAlias: m.top.contentRequested.gameName }
+    })
 end sub
 
 function buildContentNodeFromShelves(streams)

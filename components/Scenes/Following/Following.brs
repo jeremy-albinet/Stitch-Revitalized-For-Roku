@@ -7,14 +7,7 @@ sub init()
     ' m.allChannels.observeField("itemSelected", "handleItemSelected")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     m.offlineList = m.top.findNode("offlineList")
-    m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    ' observe content so we can know when feed content will be parsed
-    m.GetContentTask.observeField("response", "decideRoute")
-    m.GetContentTask.request = {
-        type: "getFollowingPageQuery"
-    }
-    m.getcontentTask.functionName = m.getcontenttask.request.type
-    m.getcontentTask.control = "run"
+    m.GetContentTask = createApiTask("getFollowingPageQuery", "decideRoute")
 end sub
 
 sub decideRoute()

@@ -40,13 +40,7 @@ end sub
 
 sub getUserLogin()
     ? "[LoginPage] - getUserLogin"
-    m.UserLoginTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-    m.UserLoginTask.observeField("response", "handleUserLogin")
-    m.UserLoginTask.request = {
-        type: "getHomePageQuery"
-    }
-    m.UserLoginTask.functionName = m.UserLoginTask.request.type
-    m.UserLoginTask.control = "run"
+    m.UserLoginTask = createApiTask("getHomePageQuery", "handleUserLogin")
 end sub
 
 
@@ -57,14 +51,7 @@ sub handleRendezvouzToken()
         ' ? "Response "; response
         set_user_setting("temp_device_code", response.device_code)
         m.code.text = response.user_code
-        m.OauthTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-        m.OauthTask.observeField("response", "handleOauthToken")
-        m.OauthTask.request = {
-            type: "getOauthToken",
-            params: response
-        }
-        m.OauthTask.functionName = m.Oauthtask.request.type
-        m.OauthTask.control = "run"
+        m.OauthTask = createApiTask("getOauthToken", "handleOauthToken", { params: response })
     end if
 end sub
 
@@ -96,14 +83,7 @@ sub RunContentTask()
         m.loginText.visible = true
         m.bottomText.visible = true
         m.buttonGroup.visible = false
-        m.RendezvouzTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-        ' observe content so we can know when feed content will be parsed
-        m.RendezvouzTask.observeField("response", "handleRendezvouzToken")
-        m.RendezvouzTask.request = {
-            type: "getRendezvouzToken"
-        }
-        m.RendezvouzTask.functionName = m.RendezvouzTask.request.type
-        m.RendezvouzTask.control = "run"
+        m.RendezvouzTask = createApiTask("getRendezvouzToken", "handleRendezvouzToken")
     end if
 end sub
 

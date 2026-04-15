@@ -8,6 +8,7 @@
     </interface>
 
     <script type="text/brightscript" uri="LoginPage.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
         <SimpleLabel
             id="topText"

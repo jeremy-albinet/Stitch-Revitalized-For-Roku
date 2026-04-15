@@ -1,8 +1,5 @@
 sub init()
-    m.validateOauthToken = CreateObject("roSGNode", "TwitchApiTask")
-    m.validateOauthToken.observeField("response", "ValidateUserLogin")
-    m.validateOauthToken.functionName = "validateOauthToken"
-    m.validateOauthToken.control = "run"
+    m.validateOauthToken = createApiTask("validateOauthToken", "ValidateUserLogin")
     VersionJobs()
     m.top.backgroundUri = ""
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
@@ -22,13 +19,7 @@ sub init()
         set_setting("active_user", "$default$")
     end if
     if get_user_setting("device_code") = invalid
-        m.getDeviceCodeTask = CreateObject("roSGNode", "TwitchApiTask")
-        m.getDeviceCodeTask.observeField("response", "handleDeviceCode")
-        m.getDeviceCodeTask.request = {
-            type: "getRendezvouzToken"
-        }
-        m.getDeviceCodeTask.functionName = m.getDeviceCodeTask.request.type
-        m.getDeviceCodeTask.control = "run"
+        m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
     else
         onMenuSelection()
     end if
@@ -126,13 +117,7 @@ end function
 sub onLoginFinished()
     m.menu.updateUserIcon = true
     if get_user_setting("device_code") = invalid
-        m.getDeviceCodeTask = CreateObject("roSGNode", "TwitchApiTask")
-        m.getDeviceCodeTask.observeField("response", "handleDeviceCode")
-        m.getDeviceCodeTask.request = {
-            type: "getRendezvouzToken"
-        }
-        m.getDeviceCodeTask.functionName = m.getDeviceCodeTask.request.type
-        m.getDeviceCodeTask.control = "run"
+        m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
     else
         m.followedStreamBar.callFunc("refreshFollowBar")
     end if

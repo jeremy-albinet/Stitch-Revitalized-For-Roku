@@ -63,14 +63,7 @@ sub handleTextInput()
     if m.kb.text <> invalid and m.kb.text <> ""
         m.rowlist.visible = false
         m.rowlist.content = invalid
-        m.GetContentTask = CreateObject("roSGNode", "TwitchApiTask") ' create task for feed retrieving
-        ' observe content so we can know when feed content will be parsed
-        m.GetContentTask.observeField("response", "handleRecommendedSections")
-        m.GetContentTask.request = {
-            query: m.kb.text.toStr()
-        }
-        m.getcontentTask.functionName = "getSearchQuery"
-        m.getcontentTask.control = "run"
+        m.GetContentTask = createApiTask("getSearchQuery", "handleRecommendedSections", { query: m.kb.text.toStr() })
     end if
 end sub
 
