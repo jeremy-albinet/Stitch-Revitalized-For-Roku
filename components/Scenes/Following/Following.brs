@@ -235,35 +235,12 @@ sub updateRowList(contentCollection)
     showRowLabel = []
     rowHeights = []
     for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        if row.title <> ""
-            hasRowLabel = true
-        else
-            hasRowLabel = false
-        end if
+        hasRowLabel = row.title <> ""
         showRowLabel.push(hasRowLabel)
-        if row.getchild(0).contentType = "LIVE" or row.getchild(0).contentType = "VOD"
-            rowItemSize.push([320, 180])
-            if hasRowLabel
-                rowHeights.push(295)
-            else
-                rowHeights.push(255)
-            end if
-        end if
-        if row.getchild(0).contentType = "GAME"
-            rowItemSize.push([188, 250])
-            if hasRowLabel
-                rowHeights.push(325)
-            else
-                rowHeights.push(305)
-            end if
-        end if
-        if row.getchild(0).contentType = "USER"
-            rowItemSize.push([150, 150])
-            if hasRowLabel
-                rowHeights.push(260)
-            else
-                rowHeights.push(240)
-            end if
+        config = getRowConfig(row.getchild(0).contentType, hasRowLabel, true)
+        if config <> invalid
+            rowItemSize.push(config.itemSize)
+            rowHeights.push(config.rowHeight)
         end if
     end for
     m.rowlist.rowHeights = rowHeights

@@ -2,6 +2,7 @@
 <component name="Discover" extends="SceneManagerGroup" initialFocus="homeRowList">
     <script type="text/brightscript" uri="Discover.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
     <children>
         <RowList
             id="homeRowList"
