@@ -411,7 +411,11 @@ end sub
 
 
 function getOauthToken()
-    if m.top.request.params.device_code = invalid then return invalid
+    if m.top.request.params.device_code = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
     req = HttpRequest({
         url: "https://id.twitch.tv/oauth2/token" + "?client_id=ue6666qo983tsx6so1t0vnawi233wa&device_code=" + m.top.request.params.device_code + "&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code",
         headers: {
@@ -557,7 +561,7 @@ function getCategoriesQuery()
     validEdges = []
     for each edge in edges
         try
-            if edge <> invalid
+            if edge?.node <> invalid
                 validEdges.push(edge)
             end if
         catch e
@@ -764,14 +768,19 @@ function getBrowsePagePopularQuery()
     edges = rsp?.data?.streams?.edges ?? []
     hasNextPage = rsp?.data?.streams?.pageInfo?.hasNextPage ?? false
     validEdges = []
+    skippedEdges = 0
     for each edge in edges
         try
-            if edge <> invalid
+            if edge?.node <> invalid
                 validEdges.push(edge)
             end if
         catch e
+            skippedEdges = skippedEdges + 1
         end try
     end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getBrowsePagePopularQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
     cursor = ""
     if validEdges.count() > 0
         cursor = validEdges.peek()?.cursor ?? ""
@@ -818,22 +827,31 @@ function getBrowsePageQuery()
     edges = rsp?.data?.directoriesWithTags?.edges ?? []
     hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
     validEdges = []
+    skippedEdges = 0
     for each edge in edges
         try
-            if edge <> invalid
+            if edge <> invalid and edge?.node <> invalid
                 validEdges.push(edge)
             end if
         catch e
+            skippedEdges = skippedEdges + 1
         end try
     end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getBrowsePageQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
     cursor = ""
     if validEdges.count() > 0
         cursor = validEdges.peek()?.cursor ?? ""
     end if
+    safeHasNextPage = hasNextPage
+    if cursor = ""
+        safeHasNextPage = false
+    end if
     m.top.response = {
         edges: validEdges,
         cursor: cursor,
-        hasNextPage: hasNextPage
+        hasNextPage: safeHasNextPage
     }
     m.top.control = "STOP"
     return invalid
