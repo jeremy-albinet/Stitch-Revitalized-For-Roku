@@ -265,7 +265,7 @@ function extractShelves(rsp as object) as object
                                 item.gameName = stream.node.game.name
                             end if
                             streams.push(item)
-                        else if stream.node <> invalid and stream.node["__typename"].toStr() = "Game"
+                        else if stream.node <> invalid and typeName <> invalid and typeName.toStr() = "Game"
                             streams.push({
                                 contentId: stream.node.Id,
                                 contentType: "GAME",
