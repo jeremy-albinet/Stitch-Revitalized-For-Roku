@@ -274,3 +274,16 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     return false
 end function
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    if m.recents <> invalid
+        m.recents.unobserveField("buttonSelected")
+    end if
+    if m.kb <> invalid
+        m.kb.unobserveField("text")
+    end if
+    if m.rowlist <> invalid
+        m.rowlist.unobserveField("itemSelected")
+    end if
+end sub
