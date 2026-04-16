@@ -9,14 +9,14 @@ end sub
 
 sub handleOauthToken()
     ? "[LoginPage] - handleOauthToken"
-    if m.oauthtask.response.access_token <> invalid
-        set_user_setting("access_token", m.OauthTask.response.access_token)
-        set_user_setting("device_code", get_user_setting("temp_device_code"))
-        if get_user_setting("device_code") = get_user_setting("temp_device_code")
-            unset_user_setting("temp_device_code")
-        end if
-        getUserLogin()
+    rsp = m.oauthtask.response
+    if rsp = invalid then return
+    set_user_setting("access_token", rsp.access_token)
+    set_user_setting("device_code", get_user_setting("temp_device_code"))
+    if get_user_setting("device_code") = get_user_setting("temp_device_code")
+        unset_user_setting("temp_device_code")
     end if
+    getUserLogin()
 end sub
 
 sub handleUserLogin()
@@ -49,13 +49,11 @@ end sub
 
 sub handleRendezvouzToken()
     ? "handle Rendezvouz token"
-    if m.RendezvouzTask <> invalid
-        response = m.RendezvouzTask.response
-        ' ? "Response "; response
-        set_user_setting("temp_device_code", response.device_code)
-        m.code.text = response.user_code
-        m.OauthTask = createApiTask("getOauthToken", "handleOauthToken", { params: response })
-    end if
+    rsp = m.RendezvouzTask.response
+    if rsp = invalid then return
+    set_user_setting("temp_device_code", rsp.device_code)
+    m.code.text = rsp.user_code
+    m.OauthTask = createApiTask("getOauthToken", "handleOauthToken", { params: rsp })
 end sub
 
 sub onGetFocus()
