@@ -457,7 +457,11 @@ end sub
 
 function getGameDirectoryQuery()
     ? "param: " m.top.request.params
-    if m.top.request.params.gamealias = invalid then return invalid
+    if m.top.request.params.gamealias = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
     rsp = TwitchGraphQLRequest({
         query: ReadAsciiFile("pkg:/source/graphql/GameDirectory_Query_Directory.gql"),
         variables: {
@@ -465,11 +469,24 @@ function getGameDirectoryQuery()
             "channelsCount": 40
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
     end if
+    edges = rsp?.data?.game?.streams?.edges ?? []
+    validEdges = []
+    for each edge in edges
+        try
+            if edge?.node <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+        end try
+    end for
+    m.top.response = {
+        edges: validEdges
+    }
     m.top.control = "STOP"
     return invalid
 end function

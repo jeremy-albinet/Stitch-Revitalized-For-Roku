@@ -70,7 +70,9 @@ end sub
 
 
 sub handleRecommendedSections()
-    contentCollection = buildContentNodeFromShelves(m.GetContentTask.response.data.game.streams.edges)
+    rsp = m.GetContentTask.response
+    if rsp = invalid then return
+    contentCollection = buildContentNodeFromShelves(rsp.edges)
     updateRowList(contentCollection)
 end sub
 
