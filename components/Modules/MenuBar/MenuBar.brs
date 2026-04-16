@@ -145,3 +145,10 @@ sub handleUserLogin()
         end if
     end if
 end sub
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    m.top.unobserveField("updateUserIcon")
+    m.top.unobserveField("buttonSelected")
+    m.top.unobserveField("buttonFocused")
+end sub
