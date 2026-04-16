@@ -47,7 +47,7 @@ sub handleRecommendedSections()
     end if
 
     contentCollection = buildContentNodeFromShelves(rsp.edges)
-    if rsp.hasNextPage
+    if rsp.hasNextPage and rsp.cursor <> invalid and rsp.cursor <> ""
         m.top.cursor = rsp.cursor
     else
         m.top.maxedOut = true
