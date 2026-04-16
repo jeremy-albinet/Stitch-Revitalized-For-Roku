@@ -107,7 +107,8 @@ function getHomePageQuery() as object
     if rsp <> invalid
         m.top.response = {
             shelves: extractShelves(rsp),
-            errors: rsp?.errors ?? []
+            errors: rsp?.errors ?? [],
+            currentUser: rsp?.data?.currentUser
         }
     else
         m.top.response = invalid
