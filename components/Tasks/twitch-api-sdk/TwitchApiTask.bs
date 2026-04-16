@@ -104,11 +104,10 @@ function getHomePageQuery() as object
             "requestID": getRandomUUID()
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
-    end if
+    m.top.response = {
+        shelves: extractShelves(rsp),
+        errors: rsp?.errors ?? []
+    }
     m.top.control = "STOP"
     return invalid
 end function
@@ -248,7 +247,7 @@ function extractShelves(rsp as object) as object
                                 createdAt: stream.node.createdAt,
                                 contentType: "LIVE",
                                 previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.broadcaster.login, "1280", "720"),
-                                contentTitle: stream.node.broadcaster.broadcastSettings.title,
+                                contentTitle: stream.node?.broadcaster?.broadcastSettings?.title ?? stream.node?.broadcaster?.displayName ?? "",
                                 viewersCount: stream.node.viewersCount,
                                 streamerDisplayName: stream.node.broadcaster.displayName,
                                 streamerLogin: stream.node.broadcaster.login,
@@ -262,6 +261,17 @@ function extractShelves(rsp as object) as object
                                 item.gameName = stream.node.game.name
                             end if
                             streams.push(item)
+                        else if stream.node <> invalid and stream.node["__typename"].toStr() = "Game"
+                            streams.push({
+                                contentId: stream.node.Id,
+                                contentType: "GAME",
+                                viewersCount: stream.node.viewersCount,
+                                gameDisplayName: stream.node.displayName,
+                                gameBoxArtUrl: Left(stream.node.boxArtUrl, Len(stream.node.boxArtUrl) - 20) + "188x250.jpg",
+                                gameId: stream.node.Id,
+                                gameName: stream.node.name,
+                                contentTitle: stream.node.displayName
+                            })
                         end if
                     catch e
                         ? "[TwitchApiTask] extractShelves: failed to parse stream item: "; e
