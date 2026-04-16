@@ -174,6 +174,22 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 - Base URL: `https://gql.twitch.tv/gql` (POST, JSON body with `query` field)
 - Always include `Client-Id` and `Device-ID` headers
 
+### Query Function Contract (TwitchApiTask.bs)
+
+There are two distinct function classes in `TwitchApiTask.bs`. **Never mix them.**
+
+**Raw pass-through** — returns the raw GraphQL response object to the caller. The caller is responsible for deep dot-chain parsing. On failure, set `m.top.response = { "response": invalid }`. Examples: `getHomePageQuery`, `getCategoryQuery`, `getSearchQuery`, and most others.
+
+**Boundary-layer** — parses internally, returns a flat typed struct to the caller. The caller receives clean fields with no deep access needed. On failure, set `m.top.response = invalid`. Examples: `getChannelHomeQuery`, `getFollowingPageQuery`.
+
+Rules for boundary-layer functions:
+- Failure **must** be `m.top.response = invalid` — not `{ "response": invalid }`, not empty arrays
+- Callers **must** guard with `if rsp = invalid then return` at the top of their handler
+- This makes "error" (`invalid`) unambiguously distinct from "valid but empty" (`{ shelves: [], ... }`)
+- Do not add an `error` flag to the success shape — use `invalid` for the whole response instead
+
+When adding a new query function, decide upfront which class it belongs to and follow the corresponding pattern exactly. Mixing patterns (e.g., boundary-layer function returning `{ "response": invalid }`) causes review churn and fragile callers.
+
 ## Git Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`, `perf:`, `docs:`
