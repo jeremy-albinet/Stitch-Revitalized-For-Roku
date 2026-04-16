@@ -303,6 +303,25 @@ sub resetComponents()
 end sub
 
 
+sub onDestroy()
+    if m.timer <> invalid
+        m.timer.control = "stop"
+        m.timer.unobserveField("fire")
+    end if
+    if m.animation <> invalid
+        m.animation.control = "stop"
+    end if
+    m.top.unobserveField("text")
+    m.top.unobserveField("color")
+    m.top.unobserveField("font")
+    m.top.unobserveField("horizAlign")
+    m.top.unobserveField("vertAlign")
+    m.top.unobserveField("width")
+    m.top.unobserveField("repeatCount")
+    m.top.unobserveField("emojiSize")
+    m.top.unobserveField("maxWidth")
+end sub
+
 ' function onSizeChange()
 '     m.top.clippingRect = {
 '         width: m.top.maxWidth
