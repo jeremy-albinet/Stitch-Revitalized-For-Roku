@@ -147,9 +147,9 @@ sub updateRowList(contentCollection)
     rowHeights = []
     for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
         hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
         config = getRowConfig(row?.getchild(0)?.contentType, hasRowLabel)
         if config <> invalid
+            showRowLabel.push(hasRowLabel)
             rowItemSize.push(config.itemSize)
             rowHeights.push(config.rowHeight)
         end if
@@ -158,7 +158,7 @@ sub updateRowList(contentCollection)
     m.rowlist.showRowLabel = showRowLabel
     m.rowlist.rowItemSize = rowItemSize
     m.rowlist.content = contentCollection
-    m.rowlist.numRows = contentCollection.getChildCount()
+    m.rowlist.numRows = rowHeights.count()
 end sub
 
 sub handleItemSelected()
