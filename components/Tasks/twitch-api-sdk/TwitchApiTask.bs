@@ -396,11 +396,16 @@ sub getRendezvouzToken()
         method: "POST"
     })
     rsp = ParseJSON(req.send())
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid or rsp?.device_code = invalid or rsp?.user_code = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return
     end if
+    m.top.response = {
+        device_code: rsp.device_code,
+        user_code: rsp.user_code,
+        interval: rsp?.interval ?? 5
+    }
     m.top.control = "STOP"
 end sub
 
@@ -424,10 +429,12 @@ function getOauthToken()
         end if
         sleep(5000)
     end while
-    if rsp <> invalid
-        m.top.response = rsp
+    if rsp <> invalid and rsp?.access_token <> invalid
+        m.top.response = {
+            access_token: rsp.access_token
+        }
     else
-        m.top.response = { "response": invalid }
+        m.top.response = invalid
     end if
     m.top.control = "STOP"
     return invalid
