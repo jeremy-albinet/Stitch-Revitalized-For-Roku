@@ -124,6 +124,37 @@ Top-level tab switching is handled by `MenuBar` (horizontal menu: Following, Dis
 - `m.` — component-scoped variables (set in `init()`, used across subs)
 - Registry (`get_setting()`, `set_setting()`, `get_user_setting()`) — persistent key-value storage
 
+### Observer Cleanup
+
+Every `observeField` call must have a corresponding `unobserveField` in `sub onDestroy()`. SceneGraph calls `onDestroy()` automatically when a component is removed from the scene tree. Without cleanup, observers accumulate across scene transitions and timers keep firing after their component is gone.
+
+Rules:
+- `unobserveField("fieldName")` takes **only the field name** — there is no callback parameter
+- `unobserveFieldScoped("fieldName")` is the correct pair for `observeFieldScoped()`
+- Always nil-check nodes before accessing them in `onDestroy()` — conditional nodes (created on-demand, not in `init()`) may never have been created
+- Stop timers before unobserving them, or they may fire one last time during teardown
+- Use `destroyTask(m.task, "fieldName")` from `taskFactory.brs` to cancel and unobserve task nodes
+
+Canonical pattern:
+
+```brightscript
+sub onDestroy()
+    ' Unobserve all fields observed in init()
+    if m.someNode <> invalid
+        m.someNode.unobserveField("fieldName")
+    end if
+    ' Stop timers
+    if m.timer <> invalid
+        m.timer.control = "stop"
+        m.timer.unobserveField("fire")
+    end if
+    ' Destroy tasks
+    m.task = destroyTask(m.task, "response")
+end sub
+```
+
+Note: nodes created from XML `<children>` and accessed via `findNode()` in `init()` are always present — no nil-check needed. Nodes created conditionally (e.g., in a `showMessage()` helper) must be nil-checked.
+
 ## Code Style
 
 ### Naming
