@@ -476,30 +476,21 @@ function getSearchQuery()
     videos = searchFor?.videos?.items ?? []
     validChannels = []
     for each item in channels
-        try
-            if item <> invalid
-                validChannels.push(item)
-            end if
-        catch e
-        end try
+        if item <> invalid
+            validChannels.push(item)
+        end if
     end for
     validGames = []
     for each game in games
-        try
-            if game <> invalid
-                validGames.push(game)
-            end if
-        catch e
-        end try
+        if game <> invalid
+            validGames.push(game)
+        end if
     end for
     validVideos = []
     for each video in videos
-        try
-            if video <> invalid
-                validVideos.push(video)
-            end if
-        catch e
-        end try
+        if video <> invalid
+            validVideos.push(video)
+        end if
     end for
     m.top.response = {
         channels: validChannels,
@@ -531,14 +522,19 @@ function getGameDirectoryQuery()
     end if
     edges = rsp?.data?.game?.streams?.edges ?? []
     validEdges = []
+    skippedEdges = 0
     for each edge in edges
         try
             if edge?.node <> invalid
                 validEdges.push(edge)
             end if
         catch e
+            skippedEdges = skippedEdges + 1
         end try
     end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getGameDirectoryQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
     m.top.response = {
         edges: validEdges
     }
@@ -561,14 +557,19 @@ function getCategoriesQuery()
     edges = rsp?.data?.directoriesWithTags?.edges ?? []
     hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
     validEdges = []
+    skippedEdges = 0
     for each edge in edges
         try
             if edge?.node <> invalid
                 validEdges.push(edge)
             end if
         catch e
+            skippedEdges = skippedEdges + 1
         end try
     end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getCategoriesQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
     cursor = ""
     if validEdges.count() > 0
         cursor = validEdges.peek()?.cursor ?? ""
