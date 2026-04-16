@@ -1,0 +1,223 @@
+function getHomePageQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/Homepage_Query.gql"),
+        variables: {
+            "itemsPerRow": 20,
+            "limit": 8,
+            "platform": "web_tv",
+            "requestID": getRandomUUID()
+        }
+    })
+    if rsp <> invalid
+        m.top.response = {
+            shelves: extractShelves(rsp),
+            errors: rsp?.errors ?? [],
+            currentUser: rsp?.data?.currentUser
+        }
+    else
+        m.top.response = invalid
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function getFollowingPageQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/FollowingPage_Query.gql"),
+        variables: {
+            "first": 100,
+            ' "liveUserCursor": ""
+            ' "offlineUserCursor": ""
+            "followedGameType": "ALL",
+            "categoryFirst": 100,
+            "itemsPerRow": 25,
+            "limit": 8,
+            "platform": "web_tv",
+            "requestID": getRandomUUID()
+        }
+    })
+    if rsp <> invalid
+        m.top.response = {
+            shelves: extractShelves(rsp),
+            liveFollows: extractLiveFollows(rsp),
+            offlineFollows: extractOfflineFollows(rsp)
+        }
+    else
+        m.top.response = invalid
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function extractShelves(rsp as object) as object
+    edges = rsp?.data?.shelves?.edges
+    if edges = invalid then return []
+    shelves = []
+    for each shelfEdge in edges
+        try
+            title = ""
+            try
+                for each wordblock in shelfEdge.node.title.localizedTitleTokens
+                    if wordblock.node.__typename = "TextToken"
+                        title = Substitute("{0}{1}", title, wordblock.node.text)
+                    end if
+                    if wordblock.node.__typename = "Game"
+                        title = Substitute("{0}{1}", title, wordblock.node.displayName)
+                    end if
+                    if wordblock.node.__typename = "BrowsableCollection"
+                        title = shelfEdge.node.title.fallbackLocalizedTitle
+                    end if
+                end for
+            catch e
+                title = shelfEdge.node?.title?.fallbackLocalizedTitle ?? ""
+            end try
+            streams = []
+            contentEdges = shelfEdge.node?.content?.edges
+            if contentEdges <> invalid
+                for each stream in contentEdges
+                    try
+                        if stream.node <> invalid
+                            typeName = stream.node["__typename"]
+                            if typeName <> invalid and typeName.toStr() = "Stream"
+                                item = {
+                                    contentId: stream.node.Id,
+                                    createdAt: stream.node.createdAt,
+                                    contentType: "LIVE",
+                                    previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.broadcaster.login, "1280", "720"),
+                                    contentTitle: stream.node?.broadcaster?.broadcastSettings?.title ?? stream.node?.broadcaster?.displayName ?? "",
+                                    viewersCount: stream.node.viewersCount,
+                                    streamerDisplayName: stream.node.broadcaster.displayName,
+                                    streamerLogin: stream.node.broadcaster.login,
+                                    streamerId: stream.node.broadcaster.id,
+                                    streamerProfileImageUrl: stream.node.broadcaster.profileImageURL
+                                }
+                                if stream.node.game <> invalid
+                                    item.gameDisplayName = stream.node.game.displayName
+                                    item.gameBoxArtUrl = Left(stream.node.game.boxArtUrl, Len(stream.node.game.boxArtUrl) - 20) + "188x250.jpg"
+                                    item.gameId = stream.node.game.Id
+                                    item.gameName = stream.node.game.name
+                                end if
+                                streams.push(item)
+                            else if typeName <> invalid and typeName.toStr() = "Game"
+                                streams.push({
+                                    contentId: stream.node.Id,
+                                    contentType: "GAME",
+                                    viewersCount: stream.node.viewersCount,
+                                    gameDisplayName: stream.node.displayName,
+                                    gameBoxArtUrl: Left(stream.node.boxArtUrl, Len(stream.node.boxArtUrl) - 20) + "188x250.jpg",
+                                    gameId: stream.node.Id,
+                                    gameName: stream.node.name,
+                                    contentTitle: stream.node.displayName
+                                })
+                            end if
+                        end if
+                    catch e
+                        ? "[TwitchApiTask] extractShelves: failed to parse stream item: "; e
+                    end try
+                end for
+            end if
+            if streams.count() > 0
+                shelves.push({
+                    title: title,
+                    streams: streams
+                })
+            end if
+        catch e
+            ? "[TwitchApiTask] extractShelves: failed to parse shelf: "; e
+        end try
+    end for
+    return shelves
+end function
+
+function extractLiveFollows(rsp as object) as object
+    edges = rsp?.data?.user?.followedLiveUsers?.edges
+    if edges = invalid then return []
+    results = []
+    for each liveUser in edges
+        try
+            stream = liveUser.node.stream
+            item = {
+                contentId: stream.Id,
+                createdAt: stream.createdAt,
+                contentType: "LIVE",
+                previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.broadcaster.login, "1280", "720"),
+                contentTitle: stream.broadcaster.broadcastSettings.title,
+                viewersCount: stream.viewersCount,
+                streamerDisplayName: stream.broadcaster.displayName,
+                streamerLogin: stream.broadcaster.login,
+                streamerId: stream.broadcaster.id,
+                streamerProfileImageUrl: stream.broadcaster.profileImageURL
+            }
+            if stream.game <> invalid
+                item.gameDisplayName = stream.game.displayName
+                item.gameBoxArtUrl = Left(stream.game.boxArtUrl, Len(stream.game.boxArtUrl) - 20) + "188x250.jpg"
+                item.gameId = stream.game.Id
+                item.gameName = stream.game.name
+            end if
+            results.push(item)
+        catch e
+            ? "[TwitchApiTask] extractLiveFollows: failed to parse live follow item: "; e
+        end try
+    end for
+    return results
+end function
+
+function extractOfflineFollows(rsp as object) as object
+    edges = rsp?.data?.user?.follows?.edges
+    if edges = invalid then return []
+    results = []
+    for each edge in edges
+        try
+            node = edge.node
+            item = {
+                contentId: node.Id,
+                contentType: "USER",
+                previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", node.login, "1280", "720"),
+                contentTitle: node.displayName,
+                followerCount: node?.followers?.totalCount ?? 0,
+                streamerDisplayName: node.displayName,
+                streamerLogin: node.login,
+                streamerId: node.id,
+                streamerProfileImageUrl: node.profileImageURL
+            }
+            results.push(item)
+        catch e
+            ? "[TwitchApiTask] extractOfflineFollows: failed to parse offline follow item: "; e
+        end try
+    end for
+    return results
+end function
+
+function getRecommendedSections() as object
+    rsp = TwitchGraphQLRequest({
+        operationName: "Shelves",
+        variables: {
+            "imageWidth": 50,
+            "itemsPerRow": 3,
+            "platform": "web",
+            "limit": 8,
+            "requestID": getRandomUUID(),
+            "context": {
+                "clientApp": "twilight",
+                "location": "home",
+                "referrerDomain": "twitch.tv",
+                "viewportHeight": 1080,
+                "viewportWidth": 1920
+            },
+            "verbose": false
+        },
+        extensions: {
+            persistedQuery: {
+                version: 1,
+                sha256Hash: "b6f0c72c747457b73107f6aa00bd6a5bb294539d2de5398646e949c863662543"
+            }
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
