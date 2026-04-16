@@ -214,6 +214,125 @@ function getChannelHomeQuery() as object
     return invalid
 end function
 
+function extractShelves(rsp as object) as object
+    edges = rsp?.data?.shelves?.edges
+    if edges = invalid then return []
+    shelves = []
+    for each shelfEdge in edges
+        try
+            title = ""
+            try
+                for each wordblock in shelfEdge.node.title.localizedTitleTokens
+                    if wordblock.node.__typename = "TextToken"
+                        title = Substitute("{0}{1}", title, wordblock.node.text)
+                    end if
+                    if wordblock.node.__typename = "Game"
+                        title = Substitute("{0}{1}", title, wordblock.node.displayName)
+                    end if
+                    if wordblock.node.__typename = "BrowsableCollection"
+                        title = shelfEdge.node.title.fallbackLocalizedTitle
+                    end if
+                end for
+            catch e
+                title = shelfEdge.node.title.fallbackLocalizedTitle ?? ""
+            end try
+            streams = []
+            contentEdges = shelfEdge.node?.content?.edges
+            if contentEdges <> invalid
+                for each stream in contentEdges
+                    try
+                        if stream.node <> invalid and stream.node["__typename"].toStr() = "Stream"
+                            item = {
+                                contentId: stream.node.Id,
+                                createdAt: stream.node.createdAt,
+                                contentType: "LIVE",
+                                previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.broadcaster.login, "1280", "720"),
+                                contentTitle: stream.node.broadcaster.broadcastSettings.title,
+                                viewersCount: stream.node.viewersCount,
+                                streamerDisplayName: stream.node.broadcaster.displayName,
+                                streamerLogin: stream.node.broadcaster.login,
+                                streamerId: stream.node.broadcaster.id,
+                                streamerProfileImageUrl: stream.node.broadcaster.profileImageURL
+                            }
+                            if stream.node.game <> invalid
+                                item.gameDisplayName = stream.node.game.displayName
+                                item.gameBoxArtUrl = Left(stream.node.game.boxArtUrl, Len(stream.node.game.boxArtUrl) - 20) + "188x250.jpg"
+                                item.gameId = stream.node.game.Id
+                                item.gameName = stream.node.game.name
+                            end if
+                            streams.push(item)
+                        end if
+                    catch e
+                    end try
+                end for
+            end if
+            shelves.push({
+                title: title,
+                streams: streams
+            })
+        catch e
+        end try
+    end for
+    return shelves
+end function
+
+function extractLiveFollows(rsp as object) as object
+    edges = rsp?.data?.user?.followedLiveUsers?.edges
+    if edges = invalid then return []
+    results = []
+    for each liveUser in edges
+        try
+            stream = liveUser.node.stream
+            item = {
+                contentId: stream.Id,
+                createdAt: stream.createdAt,
+                contentType: "LIVE",
+                previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.broadcaster.login, "1280", "720"),
+                contentTitle: stream.broadcaster.broadcastSettings.title,
+                viewersCount: stream.viewersCount,
+                streamerDisplayName: stream.broadcaster.displayName,
+                streamerLogin: stream.broadcaster.login,
+                streamerId: stream.broadcaster.id,
+                streamerProfileImageUrl: stream.broadcaster.profileImageURL
+            }
+            if stream.game <> invalid
+                item.gameDisplayName = stream.game.displayName
+                item.gameBoxArtUrl = Left(stream.game.boxArtUrl, Len(stream.game.boxArtUrl) - 20) + "188x250.jpg"
+                item.gameId = stream.game.Id
+                item.gameName = stream.game.name
+            end if
+            results.push(item)
+        catch e
+        end try
+    end for
+    return results
+end function
+
+function extractOfflineFollows(rsp as object) as object
+    edges = rsp?.data?.user?.follows?.edges
+    if edges = invalid then return []
+    results = []
+    for each edge in edges
+        try
+            node = edge.node
+            item = {
+                contentId: node.Id,
+                contentType: "USER",
+                previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", node.login, "1280", "720"),
+                contentTitle: node.displayName,
+                followerCount: node.followers.totalCount,
+                streamerDisplayName: node.displayName,
+                streamerLogin: node.login,
+                streamerId: node.id,
+                streamerProfileImageUrl: node.profileImageURL
+            }
+            results.push(item)
+        catch e
+        end try
+    end for
+    return results
+end function
+
 function getFollowingPageQuery() as object
     rsp = TwitchGraphQLRequest({
         query: ReadAsciiFile("pkg:/source/graphql/FollowingPage_Query.gql"),
@@ -230,7 +349,11 @@ function getFollowingPageQuery() as object
         }
     })
     if rsp <> invalid
-        m.top.response = rsp
+        m.top.response = {
+            shelves: extractShelves(rsp),
+            liveFollows: extractLiveFollows(rsp),
+            offlineFollows: extractOfflineFollows(rsp)
+        }
     else
         m.top.response = { "response": invalid }
     end if
