@@ -556,3 +556,24 @@ function handleMainKeys(key) as boolean
 
     return false
 end function
+
+sub onDestroy()
+    if m.fadeAwayTimer <> invalid
+        m.fadeAwayTimer.control = "stop"
+        m.fadeAwayTimer.unobserveField("fire")
+    end if
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer.unobserveField("fire")
+    end if
+    if m.qualityDialog <> invalid
+        m.qualityDialog.unobserveFieldScoped("buttonSelected")
+    end if
+    m.top.unobserveField("position")
+    m.top.unobserveField("state")
+    m.top.unobserveField("chatIsVisible")
+    m.top.unobserveField("duration")
+    m.top.unobserveField("bufferingStatus")
+    m.top.unobserveField("qualityOptions")
+    m.top.unobserveField("selectedQuality")
+end sub
