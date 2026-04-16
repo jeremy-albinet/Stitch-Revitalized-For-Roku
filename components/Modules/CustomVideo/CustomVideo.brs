@@ -905,3 +905,24 @@ function handleTimeTravelKeys(key) as boolean
 
     return false
 end function
+
+sub onDestroy()
+    if m.fadeAwayTimer <> invalid
+        m.fadeAwayTimer.control = "stop"
+        m.fadeAwayTimer.unobserveField("fire")
+    end if
+    if m.buttonHoldTimer <> invalid
+        m.buttonHoldTimer.control = "stop"
+        m.buttonHoldTimer.unobserveField("fire")
+    end if
+    if m.messageTimer <> invalid
+        m.messageTimer.control = "stop"
+        m.messageTimer.unobserveField("fire")
+    end if
+    m.top.unobserveField("position")
+    m.top.unobserveField("state")
+    m.top.unobserveField("chatIsVisible")
+    m.top.unobserveField("duration")
+    m.top.unobserveField("bufferingStatus")
+    m.top.unobserveField("video_type")
+end sub
