@@ -339,3 +339,9 @@ sub onNewCommentObj()
     end if
     m.chat.readyForNextComment = true
 end sub
+
+sub onDestroy()
+    if m.chat <> invalid
+        m.chat.unobserveField("nextCommentObj")
+    end if
+end sub
