@@ -22,67 +22,22 @@ sub decideRoute()
 end sub
 
 sub handleDefaultSections()
+    rsp = m.GetcontentTask.response
+    if rsp = invalid or rsp.shelves = invalid or rsp.shelves.count() = 0 then return
     contentCollection = createObject("RoSGNode", "ContentNode")
-    if m.GetcontentTask.response.data <> invalid and m.GetcontentTask.response.data.shelves <> invalid
-        if m.GetcontentTask.response.data.shelves.count() > 0
-            for each streamRow in m.GetcontentTask.response.data.shelves.edges
-                row = createObject("RoSGNode", "ContentNode")
-                temp_title = ""
-                try
-                    for each wordblock in streamRow.node.title.localizedTitleTokens
-                        if wordblock.node.__typename = "TextToken"
-                            temp_title = Substitute("{0}{1}", temp_title, wordblock.node.text)
-                        end if
-                        if wordblock.node.__typename = "Game"
-                            temp_title = Substitute("{0}{1}", temp_title, wordblock.node.displayName)
-                        end if
-                        if wordblock.node.__typename = "BrowsableCollection"
-                            temp_title = streamRow.node.title.fallbackLocalizedTitle
-                        end if
-                    end for
-                catch e
-                    ? "TITLE ERROR: "; e
-                    temp_title = streamRow.node.title.fallbackLocalizedTitle
-                    ? "Title With Problem: "; temp_title
-                end try
-                row.title = temp_title
-                jsonStreams = []
-                for each stream in streamRow.node.content.edges
-                    if stream.node <> invalid
-                        if stream.node["__typename"].toStr() <> invalid and stream.node["__typename"].toStr() = "Stream"
-                            rowItem = {}
-                            rowItem.contentId = stream.node.Id
-                            rowItem.createdAt = stream.node.createdAt
-                            rowItem.contentType = "LIVE"
-                            rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.broadcaster.login, "1280", "720")
-                            rowItem.contentTitle = stream.node.broadcaster.broadcastSettings.title
-                            rowItem.viewersCount = stream.node.viewersCount
-                            rowItem.streamerDisplayName = stream.node.broadcaster.displayName
-                            rowItem.streamerLogin = stream.node.broadcaster.login
-                            rowItem.streamerId = stream.node.broadcaster.id
-                            rowItem.streamerProfileImageUrl = stream.node.broadcaster.profileImageURL
-                            if stream.node.game <> invalid
-                                rowItem.gameDisplayName = stream.node.game.displayName
-                                rowItem.gameBoxArtUrl = Left(stream.node.game.boxArtUrl, Len(stream.node.game.boxArtUrl) - 20) + "188x250.jpg"
-                                rowItem.gameId = stream.node.game.Id
-                                rowItem.gameName = stream.node.game.name
-                            end if
-                            jsonStreams.push(rowItem)
-                        end if
-                    end if
-                end for
-                for each stream in jsonStreams
-                    rowItem = createObject("RoSGNode", "TwitchContentNode")
-                    setTwitchContentFields(rowItem, stream)
-                    row.appendChild(rowItem)
-                end for
-                if row.getchildcount() > 0
-                    contentCollection.appendChild(row)
-                end if
-            end for
-            updateRowList(contentCollection)
+    for each shelf in rsp.shelves
+        row = createObject("RoSGNode", "ContentNode")
+        row.title = shelf.title
+        for each stream in shelf.streams
+            rowItem = createObject("RoSGNode", "TwitchContentNode")
+            setTwitchContentFields(rowItem, stream)
+            row.appendChild(rowItem)
+        end for
+        if row.getchildcount() > 0
+            contentCollection.appendChild(row)
         end if
-    end if
+    end for
+    updateRowList(contentCollection)
 end sub
 
 
@@ -90,133 +45,75 @@ end sub
 sub handleRecommendedSections()
     ? "handleRecommendedSections: "; TimeStamp()
     contentCollection = createObject("RoSGNode", "ContentNode")
-    if m.GetcontentTask?.response?.data?.user <> invalid
-        ? "UserSectionValid"
-    else
-        ? "User Section Invalid"
-    end if
+    rsp = m.GetcontentTask.response
     try
-        if m.GetcontentTask.response.data <> invalid and m.GetcontentTask.response.data.user <> invalid and m.GetcontentTask.response.data.user.followedLiveUsers <> invalid
-            if m.GetcontentTask.response.data.user.followedLiveUsers.count() > 0
-                row = createObject("RoSGNode", "ContentNode")
-                row.title = tr("followedLiveUsers")
-                first = true
-                itemsPerRow = 3
-                liveFollows = []
-                for each liveUser in m.GetcontentTask.response.data.user.followedLiveUsers.edges
-                    try
-                        stream = liveUser.node.stream
-                        rowItem = {}
-                        rowItem.contentId = stream.Id
-                        rowItem.createdAt = stream.createdAt
-                        rowItem.contentType = "LIVE"
-                        rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.broadcaster.login, "1280", "720")
-                        rowItem.contentTitle = stream.broadcaster.broadcastSettings.title
-                        rowItem.viewersCount = stream.viewersCount
-                        rowItem.streamerDisplayName = stream.broadcaster.displayName
-                        rowItem.streamerLogin = stream.broadcaster.login
-                        rowItem.streamerId = stream.broadcaster.id
-                        rowItem.streamerProfileImageUrl = stream.broadcaster.profileImageURL
-                        if stream.game <> invalid
-                            rowItem.gameDisplayName = stream.game.displayName
-                            rowItem.gameBoxArtUrl = Left(stream.game.boxArtUrl, Len(stream.game.boxArtUrl) - 20) + "188x250.jpg"
-                            rowItem.gameId = stream.game.Id
-                            rowItem.gameName = stream.game.name
-                        end if
-                        liveFollows.push(rowItem)
-                    catch e
-                        ? "Issue occured adding liveuser to followed live users list"
-                    end try
-                end for
-                appended = false
-                for i = 0 to (liveFollows.count() - 1) step 1
-                    if first
-                        first = false
-                    else if i mod itemsPerRow = 0
-                        row = createObject("RoSGNode", "ContentNode")
-                    end if
-                    twitchContentNode = createObject("roSGNode", "TwitchContentNode")
-                    setTwitchContentFields(twitchContentNode, liveFollows[i])
-                    row.appendChild(twitchContentNode)
-                    appended = false
-                    if row.getChildCount() = itemsPerRow
-                        contentCollection.appendChild(row)
-                        appended = true
-                    end if
-                end for
-                if not appended and row <> invalid and row.getchildcount() > 0
-                    contentCollection.appendChild(row)
+        if rsp <> invalid and rsp.liveFollows <> invalid and rsp.liveFollows.count() > 0
+            row = createObject("RoSGNode", "ContentNode")
+            row.title = tr("followedLiveUsers")
+            first = true
+            itemsPerRow = 3
+            appended = false
+            for i = 0 to (rsp.liveFollows.count() - 1) step 1
+                if first
+                    first = false
+                else if i mod itemsPerRow = 0
+                    row = createObject("RoSGNode", "ContentNode")
                 end if
+                twitchContentNode = createObject("roSGNode", "TwitchContentNode")
+                setTwitchContentFields(twitchContentNode, rsp.liveFollows[i])
+                row.appendChild(twitchContentNode)
+                appended = false
+                if row.getChildCount() = itemsPerRow
+                    contentCollection.appendChild(row)
+                    appended = true
+                end if
+            end for
+            if not appended and row <> invalid and row.getchildcount() > 0
+                contentCollection.appendChild(row)
             end if
         end if
     catch e
-        ? "big whoopsie on following page"
     end try
     try
         ? "LiveStreamSection Complete: "; TimeStamp()
-        if m.GetcontentTask.response.data <> invalid and m.GetcontentTask.response.data.user <> invalid and m.GetcontentTask.response.data.user.follows <> invalid
-            if m.GetcontentTask.response.data.user.follows.count() > 0
-                row = createObject("RoSGNode", "ContentNode")
-                row.title = tr("followedOfflineUsers")
-                first = true
-                itemsPerRow = 6
-                ? "OfflineSection Start: "; TimeStamp()
-                streams = []
-                ? "OfflineSection ContentStart: "; TimeStamp()
-                for each stream in m.GetcontentTask.response.data.user.follows.edges
-                    try
-                        rowItem = {}
-                        rowItem.contentId = stream.node.Id
-                        rowItem.contentType = "USER"
-                        rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.login, "1280", "720")
-                        rowItem.contentTitle = stream.node.displayName
-                        rowItem.followerCount = stream.node.followers.totalCount
-                        rowItem.streamerDisplayName = stream.node.displayName
-                        rowItem.streamerLogin = stream.node.login
-                        rowItem.streamerId = stream.node.id
-                        rowItem.streamerProfileImageUrl = stream.node.profileImageURL
-                        ' rowItem.gameDisplayName = stream.node.game.displayName
-                        ' rowItem.gameBoxArtUrl = Left(stream.node.game.boxArtUrl, Len(stream.node.game.boxArtUrl) - 20) + "188x250.jpg"
-                        ' rowItem.gameId = stream.node.game.Id
-                        ' rowItem.gameName = stream.node.game.name
-                        streams.push(rowItem)
-                    catch e
-                        ? "error: "; e
-                    end try
-                end for
-                ? "OfflineSection ContentEnd: "; TimeStamp()
-                sortMethod = get_user_setting("FollowPageSorting", "streamerLogin")
-                ? "Sort Method: "; sortMethod
-                if sortMethod = "streamerLogin"
-                    streams.sortBy("streamerLogin", "i")
-                else if sortMethod = "followerCount"
-                    streams.sortBy("followerCount", "r")
-                else if sortMethod = "ASC_followerCount"
-                    streams.sortBy("followerCount")
-                end if
-                ' streams.sortBy(get_user_setting("FollowPageSorting", "streamerLogin"))
-                appended = false
-                for i = 0 to (streams.count() - 1) step 1
-                    if first
-                        first = false
-                    else if i mod itemsPerRow = 0
-                        row = createObject("RoSGNode", "ContentNode")
-                    end if
-                    twitchContentNode = createObject("roSGNode", "TwitchContentNode")
-                    setTwitchContentFields(twitchContentNode, streams[i])
-                    row.appendChild(twitchContentNode)
-                    appended = false
-                    if row.getChildCount() = itemsPerRow
-                        contentCollection.appendChild(row)
-                        appended = true
-                    end if
-                end for
-                if not appended and row <> invalid and row.getchildcount() > 0
-                    contentCollection.appendChild(row)
-                end if
-                ? "OfflineStreamSection Complete: "; TimeStamp()
-                updateRowList(contentCollection)
+        if rsp <> invalid and rsp.offlineFollows <> invalid and rsp.offlineFollows.count() > 0
+            row = createObject("RoSGNode", "ContentNode")
+            row.title = tr("followedOfflineUsers")
+            first = true
+            itemsPerRow = 6
+            ? "OfflineSection Start: "; TimeStamp()
+            streams = []
+            streams.append(rsp.offlineFollows)
+            sortMethod = get_user_setting("FollowPageSorting", "streamerLogin")
+            ? "Sort Method: "; sortMethod
+            if sortMethod = "streamerLogin"
+                streams.sortBy("streamerLogin", "i")
+            else if sortMethod = "followerCount"
+                streams.sortBy("followerCount", "r")
+            else if sortMethod = "ASC_followerCount"
+                streams.sortBy("followerCount")
             end if
+            appended = false
+            for i = 0 to (streams.count() - 1) step 1
+                if first
+                    first = false
+                else if i mod itemsPerRow = 0
+                    row = createObject("RoSGNode", "ContentNode")
+                end if
+                twitchContentNode = createObject("roSGNode", "TwitchContentNode")
+                setTwitchContentFields(twitchContentNode, streams[i])
+                row.appendChild(twitchContentNode)
+                appended = false
+                if row.getChildCount() = itemsPerRow
+                    contentCollection.appendChild(row)
+                    appended = true
+                end if
+            end for
+            if not appended and row <> invalid and row.getchildcount() > 0
+                contentCollection.appendChild(row)
+            end if
+            ? "OfflineStreamSection Complete: "; TimeStamp()
+            updateRowList(contentCollection)
         end if
     catch e
     end try
