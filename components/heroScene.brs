@@ -167,6 +167,7 @@ sub onMenuSelection()
         end if
         if m.activeNode = invalid
             m.activeNode = buildNode(focusedMenuItem())
+            if m.activeNode = invalid then return
         end if
         m.activeNode.setfocus(true)
     end if
@@ -180,6 +181,7 @@ sub onFollowSelected()
     end if
     if m.activeNode = invalid
         m.activeNode = buildNode("ChannelPage")
+        if m.activeNode = invalid then return
     end if
     m.activeNode.contentRequested = content
     m.activeNode.setfocus(true)
@@ -207,6 +209,7 @@ sub onContentSelected()
     end if
     if m.activeNode = invalid
         m.activeNode = buildNode(id)
+        if m.activeNode = invalid then return
     end if
     m.activeNode.contentRequested = content
     m.activeNode.setfocus(true)

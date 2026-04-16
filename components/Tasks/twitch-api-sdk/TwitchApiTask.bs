@@ -76,6 +76,7 @@ function validateOauthToken() as object
     })
     sendResult = req.send()
     if sendResult = invalid
+        m.top.response = { "tokenValid": false }
         m.top.control = "STOP"
         return invalid
     end if
