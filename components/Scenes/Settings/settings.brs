@@ -176,3 +176,18 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     return false
 end function
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    if m.settingsMenu <> invalid
+        m.settingsMenu.unobserveField("itemFocused")
+        m.settingsMenu.unobserveField("itemSelected")
+        m.settingsMenu.unobserveField("focusedChild")
+    end if
+    if m.boolSetting <> invalid
+        m.boolSetting.unobserveField("checkedItem")
+    end if
+    if m.radioSetting <> invalid
+        m.radioSetting.unobserveField("checkedItem")
+    end if
+end sub
