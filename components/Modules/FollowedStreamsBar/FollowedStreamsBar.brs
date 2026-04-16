@@ -145,3 +145,13 @@ function onKeyEvent(key, press) as boolean
     end if
     return handled
 end function
+
+sub onDestroy()
+    if m.refreshTimer <> invalid
+        m.refreshTimer.control = "stop"
+        m.refreshTimer.unobserveField("fire")
+    end if
+    if m.followBarJob <> invalid
+        m.followBarJob.unobserveField("result")
+    end if
+end sub
