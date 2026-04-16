@@ -40,23 +40,19 @@ end function
 
 
 sub handleRecommendedSections()
-    if m.GetContentTask.response.data <> invalid and m.GetContentTask.response.data.directoriesWithTags <> invalid
-        contentCollection = buildContentNodeFromShelves(m.GetContentTask.response.data.directoriesWithTags.edges)
-        if m.GetContentTask.response.data.directoriesWithTags.pageInfo <> invalid
-            if m.GetContentTask.response.data.directoriesWithTags.pageInfo.hasNextPage
-                if m.GetContentTask.response.data.directoriesWithTags.edges.peek().cursor <> invalid
-                    m.top.cursor = m.GetContentTask.response.data.directoriesWithTags.edges.peek().cursor
-                end if
-            else
-                m.top.maxedOut = true
-            end if
-        end if
-        updateRowList(contentCollection)
-    else
-        for each error in m.GetContentTask.response.errors
-            ' ? "RESP: "; error.message
-        end for
+    rsp = m.GetContentTask.response
+    if rsp = invalid
+        m.top.buffer = false
+        return
     end if
+
+    contentCollection = buildContentNodeFromShelves(rsp.edges)
+    if rsp.hasNextPage
+        m.top.cursor = rsp.cursor
+    else
+        m.top.maxedOut = true
+    end if
+    updateRowList(contentCollection)
 
     m.top.buffer = false
 end sub

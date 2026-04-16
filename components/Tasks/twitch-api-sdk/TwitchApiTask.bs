@@ -540,11 +540,31 @@ function getCategoriesQuery()
             "first": 80
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
     end if
+    edges = rsp?.data?.directoriesWithTags?.edges ?? []
+    hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
+    validEdges = []
+    for each edge in edges
+        try
+            if edge <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+        end try
+    end for
+    cursor = ""
+    if validEdges.count() > 0
+        cursor = validEdges.peek()?.cursor ?? ""
+    end if
+    m.top.response = {
+        edges: validEdges,
+        cursor: cursor,
+        hasNextPage: hasNextPage
+    }
     m.top.control = "STOP"
     return invalid
 end function
@@ -737,7 +757,7 @@ sub getBrowsePagePopularQuery()
     m.top.control = "STOP"
 end sub
 
-sub getBrowsePageQuery()
+function getBrowsePageQuery()
     variables = {
         "limit": 100,
         "options": {
@@ -762,13 +782,34 @@ sub getBrowsePageQuery()
             }
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
     end if
+    edges = rsp?.data?.directoriesWithTags?.edges ?? []
+    hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
+    validEdges = []
+    for each edge in edges
+        try
+            if edge <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+        end try
+    end for
+    cursor = ""
+    if validEdges.count() > 0
+        cursor = validEdges.peek()?.cursor ?? ""
+    end if
+    m.top.response = {
+        edges: validEdges,
+        cursor: cursor,
+        hasNextPage: hasNextPage
+    }
     m.top.control = "STOP"
-end sub
+    return invalid
+end function
 
 sub getTwitchBookmarks()
     if get_setting("active_user", "$default$") <> "$default$"
