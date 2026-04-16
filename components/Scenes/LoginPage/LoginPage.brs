@@ -21,13 +21,16 @@ end sub
 
 sub handleUserLogin()
     ? "[LoginPage] - handleUserLogin()"
-    if m.UserLoginTask.response.data.currentUser <> invalid and m.UserLoginTask.response.data.currentUser.login <> invalid
+    rsp = m.UserLoginTask.response
+    if rsp = invalid then return
+    currentUser = rsp.currentUser
+    if currentUser <> invalid and currentUser.login <> invalid
         access_token = get_user_setting("access_token")
         device_code = get_user_setting("device_code")
         unset_user_setting("access_token")
         unset_user_setting("device_code")
-        set_setting("active_user", m.UserLoginTask.response.data.currentUser.login)
-        set_user_setting("login", m.UserLoginTask.response.data.currentUser.login)
+        set_setting("active_user", currentUser.login)
+        set_user_setting("login", currentUser.login)
         set_user_setting("access_token", access_token)
         set_user_setting("device_code", device_code)
         ' TODO: Yet again with the static reference that should be fixed.
