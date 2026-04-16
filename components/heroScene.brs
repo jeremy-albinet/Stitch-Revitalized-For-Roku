@@ -87,6 +87,7 @@ end sub
 sub handleDeviceCode()
     if m.getDeviceCodeTask <> invalid
         response = m.getDeviceCodeTask.response
+        if response = invalid then return
         set_user_setting("device_code", response.device_code)
         m.followedStreamBar.callFunc("refreshFollowBar")
     end if

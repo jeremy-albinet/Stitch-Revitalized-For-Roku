@@ -447,13 +447,15 @@ end function
 function getSearchQuery()
     if m.top.request.query <> invalid and m.top.request.query <> ""
         noQuery = false
+        userQuery = m.top.request.query.toStr()
     else
         noQuery = true
+        userQuery = ""
     end if
     rsp = TwitchGraphQLRequest({
         query: ReadAsciiFile("pkg:/source/graphql/Search_Query.gql"),
         variables: {
-            "userQuery": m.top.request.query.toStr(),
+            "userQuery": userQuery,
             "platform": "web_tv",
             "noQuery": noQuery
         }
