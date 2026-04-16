@@ -104,10 +104,14 @@ function getHomePageQuery() as object
             "requestID": getRandomUUID()
         }
     })
-    m.top.response = {
-        shelves: extractShelves(rsp),
-        errors: rsp?.errors ?? []
-    }
+    if rsp <> invalid
+        m.top.response = {
+            shelves: extractShelves(rsp),
+            errors: rsp?.errors ?? []
+        }
+    else
+        m.top.response = invalid
+    end if
     m.top.control = "STOP"
     return invalid
 end function
@@ -278,10 +282,12 @@ function extractShelves(rsp as object) as object
                     end try
                 end for
             end if
-            shelves.push({
-                title: title,
-                streams: streams
-            })
+            if streams.count() > 0
+                shelves.push({
+                    title: title,
+                    streams: streams
+                })
+            end if
         catch e
             ? "[TwitchApiTask] extractShelves: failed to parse shelf: "; e
         end try
