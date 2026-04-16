@@ -433,7 +433,7 @@ function getOauthToken()
     return invalid
 end function
 
-sub getSearchQuery()
+function getSearchQuery()
     if m.top.request.query <> invalid and m.top.request.query <> ""
         noQuery = false
     else
@@ -447,13 +447,55 @@ sub getSearchQuery()
             "noQuery": noQuery
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
     end if
+    searchFor = rsp?.data?.searchFor
+    if searchFor = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    channels = searchFor?.channels?.items ?? []
+    games = searchFor?.games?.items ?? []
+    videos = searchFor?.videos?.items ?? []
+    validChannels = []
+    for each item in channels
+        try
+            if item <> invalid
+                validChannels.push(item)
+            end if
+        catch e
+        end try
+    end for
+    validGames = []
+    for each game in games
+        try
+            if game <> invalid
+                validGames.push(game)
+            end if
+        catch e
+        end try
+    end for
+    validVideos = []
+    for each video in videos
+        try
+            if video <> invalid
+                validVideos.push(video)
+            end if
+        catch e
+        end try
+    end for
+    m.top.response = {
+        channels: validChannels,
+        games: validGames,
+        videos: validVideos
+    }
     m.top.control = "STOP"
-end sub
+    return invalid
+end function
 
 function getGameDirectoryQuery()
     ? "param: " m.top.request.params

@@ -68,13 +68,9 @@ sub handleTextInput()
 end sub
 
 sub handleRecommendedSections()
-    if m.GetContentTask?.response?.data <> invalid
-        ' ?"data: "; m.GetContentTask.response.data
-        if m.GetContentTask?.response?.data?.searchFor <> invalid
-            ' ? "searchFor: "m.GetContentTask.response.data.searchFor
-            buildContentNodeFromShelves(m.GetContentTask.response.data.searchFor)
-        end if
-    end if
+    rsp = m.GetContentTask.response
+    if rsp = invalid then return
+    buildContentNodeFromShelves(rsp)
 end sub
 
 sub buildContentNodeFromShelves(shelves)
@@ -82,7 +78,7 @@ sub buildContentNodeFromShelves(shelves)
     Users = []
     Games = []
     Vods = []
-    for each item in shelves.channels.items
+    for each item in shelves.channels
         rowItem = {}
         if item.stream <> invalid
             rowItem.contentType = "LIVE"
@@ -119,7 +115,7 @@ sub buildContentNodeFromShelves(shelves)
             Users.push(rowItem)
         end if
     end for
-    for each game in shelves.games.items
+    for each game in shelves.games
         rowItem = {}
         rowItem.contentId = game.Id
         rowItem.contentType = "GAME"
@@ -131,7 +127,7 @@ sub buildContentNodeFromShelves(shelves)
         rowItem.gameName = game.name
         Games.push(rowItem)
     end for
-    for each VOD in shelves.videos.items
+    for each VOD in shelves.videos
         rowItem = {}
         rowItem.contentType = "VOD"
         rowItem.contentId = VOD.Id
