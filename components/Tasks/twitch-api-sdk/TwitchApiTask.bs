@@ -716,7 +716,7 @@ function unfollowChannel() as object
 end function
 
 
-sub getBrowsePagePopularQuery()
+function getBrowsePagePopularQuery()
     variables = {
         "imageWidth": 300,
         "limit": 30,
@@ -749,13 +749,34 @@ sub getBrowsePagePopularQuery()
             }
         }
     })
-    if rsp <> invalid
-        m.top.response = rsp
-    else
-        m.top.response = { "response": invalid }
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
     end if
+    edges = rsp?.data?.streams?.edges ?? []
+    hasNextPage = rsp?.data?.streams?.pageInfo?.hasNextPage ?? false
+    validEdges = []
+    for each edge in edges
+        try
+            if edge <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+        end try
+    end for
+    cursor = ""
+    if validEdges.count() > 0
+        cursor = validEdges.peek()?.cursor ?? ""
+    end if
+    m.top.response = {
+        edges: validEdges,
+        cursor: cursor,
+        hasNextPage: hasNextPage
+    }
     m.top.control = "STOP"
-end sub
+    return invalid
+end function
 
 function getBrowsePageQuery()
     variables = {
