@@ -573,10 +573,14 @@ function getCategoriesQuery()
     if validEdges.count() > 0
         cursor = validEdges.peek()?.cursor ?? ""
     end if
+    safeHasNextPage = hasNextPage
+    if cursor = ""
+        safeHasNextPage = false
+    end if
     m.top.response = {
         edges: validEdges,
         cursor: cursor,
-        hasNextPage: hasNextPage
+        hasNextPage: safeHasNextPage
     }
     m.top.control = "STOP"
     return invalid
@@ -787,10 +791,14 @@ function getBrowsePagePopularQuery()
     if validEdges.count() > 0
         cursor = validEdges.peek()?.cursor ?? ""
     end if
+    safeHasNextPage = hasNextPage
+    if cursor = ""
+        safeHasNextPage = false
+    end if
     m.top.response = {
         edges: validEdges,
         cursor: cursor,
-        hasNextPage: hasNextPage
+        hasNextPage: safeHasNextPage
     }
     m.top.control = "STOP"
     return invalid
