@@ -73,6 +73,7 @@ sub handleRecommendedSections()
             end if
         end if
     catch e
+        ? "[Following] handleRecommendedSections: live follows parse error: "; e
     end try
     try
         ? "LiveStreamSection Complete: "; TimeStamp()
@@ -113,10 +114,11 @@ sub handleRecommendedSections()
                 contentCollection.appendChild(row)
             end if
             ? "OfflineStreamSection Complete: "; TimeStamp()
-            updateRowList(contentCollection)
         end if
     catch e
+        ? "[Following] handleRecommendedSections: offline follows parse error: "; e
     end try
+    updateRowList(contentCollection)
 end sub
 
 sub updateRowList(contentCollection)
