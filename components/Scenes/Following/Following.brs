@@ -46,6 +46,7 @@ sub handleRecommendedSections()
     ? "handleRecommendedSections: "; TimeStamp()
     contentCollection = createObject("RoSGNode", "ContentNode")
     rsp = m.GetcontentTask.response
+    if rsp = invalid then return
     try
         if rsp <> invalid and rsp.liveFollows <> invalid and rsp.liveFollows.count() > 0
             row = createObject("RoSGNode", "ContentNode")
@@ -118,7 +119,9 @@ sub handleRecommendedSections()
     catch e
         ? "[Following] handleRecommendedSections: offline follows parse error: "; e
     end try
-    updateRowList(contentCollection)
+    if contentCollection.getChildCount() > 0
+        updateRowList(contentCollection)
+    end if
 end sub
 
 sub updateRowList(contentCollection)

@@ -234,14 +234,15 @@ function extractShelves(rsp as object) as object
                     end if
                 end for
             catch e
-                title = shelfEdge.node.title.fallbackLocalizedTitle ?? ""
+                title = shelfEdge.node?.title?.fallbackLocalizedTitle ?? ""
             end try
             streams = []
             contentEdges = shelfEdge.node?.content?.edges
             if contentEdges <> invalid
                 for each stream in contentEdges
                     try
-                        if stream.node <> invalid and stream.node["__typename"].toStr() = "Stream"
+                        typeName = stream.node["__typename"]
+                        if stream.node <> invalid and typeName <> invalid and typeName.toStr() = "Stream"
                             item = {
                                 contentId: stream.node.Id,
                                 createdAt: stream.node.createdAt,
@@ -359,7 +360,7 @@ function getFollowingPageQuery() as object
             offlineFollows: extractOfflineFollows(rsp)
         }
     else
-        m.top.response = { "response": invalid }
+        m.top.response = invalid
     end if
     m.top.control = "STOP"
     return invalid
