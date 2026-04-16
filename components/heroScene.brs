@@ -268,3 +268,17 @@ function onKeyEvent(key, press) as boolean
     if not press then return false
     return false
 end function
+
+sub onDestroy()
+    if m.followedStreamBar <> invalid
+        m.followedStreamBar.unobserveField("contentSelected")
+    end if
+    if m.menu <> invalid
+        m.menu.unobserveField("buttonSelected")
+    end if
+    if m.activeNode <> invalid
+        m.activeNode.unobserveField("backPressed")
+        m.activeNode.unobserveField("contentSelected")
+        m.activeNode.unobserveField("finished")
+    end if
+end sub
