@@ -1,0 +1,56 @@
+function getSearchQuery()
+    if m.top.request.query <> invalid and m.top.request.query <> ""
+        noQuery = false
+        userQuery = m.top.request.query.toStr()
+    else
+        noQuery = true
+        userQuery = ""
+    end if
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/Search_Query.gql"),
+        variables: {
+            "userQuery": userQuery,
+            "platform": "web_tv",
+            "noQuery": noQuery
+        }
+    })
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    searchFor = rsp?.data?.searchFor
+    if searchFor = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    channels = searchFor?.channels?.items ?? []
+    games = searchFor?.games?.items ?? []
+    videos = searchFor?.videos?.items ?? []
+    validChannels = []
+    for each item in channels
+        if item <> invalid
+            validChannels.push(item)
+        end if
+    end for
+    validGames = []
+    for each game in games
+        if game <> invalid
+            validGames.push(game)
+        end if
+    end for
+    validVideos = []
+    for each video in videos
+        if video <> invalid
+            validVideos.push(video)
+        end if
+    end for
+    m.top.response = {
+        channels: validChannels,
+        games: validGames,
+        videos: validVideos
+    }
+    m.top.control = "STOP"
+    return invalid
+end function

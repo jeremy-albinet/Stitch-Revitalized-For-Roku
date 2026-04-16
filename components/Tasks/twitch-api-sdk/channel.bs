@@ -1,0 +1,52 @@
+function getChannelHomeQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/ChannelHome_Query.gql"),
+        variables: {
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "quasar",
+            "skipPlayToken": false
+        }
+    })
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    channel = rsp?.data?.channel
+    m.top.response = {
+        description: channel?.description ?? "",
+        followerCount: channel?.followers?.totalCount ?? 0,
+        profileImageUrl: channel?.profileImageUrl,
+        isLive: channel?.stream <> invalid,
+        videoShelves: channel?.videoShelves?.edges ?? []
+    }
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function getChannelShell()
+    if m.top.request.params.id = invalid then return invalid
+    rsp = TwitchGraphQLRequest({
+        operationName: "ChannelShell",
+        variables: {
+            login: m.top.request.params.id
+        },
+        extensions: {
+            persistedQuery: {
+                version: 1,
+                sha256Hash: "580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe"
+            }
+        }
+    })
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    m.top.response = {
+        bannerImageUrl: rsp?.data?.userOrError?.bannerImageUrl
+    }
+    m.top.control = "STOP"
+    return invalid
+end function

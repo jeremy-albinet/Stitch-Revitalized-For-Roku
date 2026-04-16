@@ -1,0 +1,102 @@
+function getCategoryQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/GameDirectory_Query_Category.gql"),
+        variables: {
+            "channelsCount": 40,
+            "gameAlias": m.top.request.params.id
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function getGameDirectoryQuery()
+    ? "param: " m.top.request.params
+    if m.top.request.params.gamealias = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/GameDirectory_Query_Directory.gql"),
+        variables: {
+            "gameAlias": m.top.request.params.gamealias,
+            "channelsCount": 40
+        }
+    })
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    edges = rsp?.data?.game?.streams?.edges ?? []
+    validEdges = []
+    skippedEdges = 0
+    for each edge in edges
+        try
+            if edge?.node <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+            skippedEdges = skippedEdges + 1
+        end try
+    end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getGameDirectoryQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
+    m.top.response = {
+        edges: validEdges
+    }
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function getCategoriesQuery()
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/GamesDirectory_Query.gql"),
+        variables: {
+            "first": 80
+        }
+    })
+    if rsp = invalid
+        m.top.response = invalid
+        m.top.control = "STOP"
+        return invalid
+    end if
+    edges = rsp?.data?.directoriesWithTags?.edges ?? []
+    hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
+    validEdges = []
+    skippedEdges = 0
+    for each edge in edges
+        try
+            if edge?.node <> invalid
+                validEdges.push(edge)
+            end if
+        catch e
+            skippedEdges = skippedEdges + 1
+        end try
+    end for
+    if skippedEdges > 0
+        ? "[TwitchApiTask] getCategoriesQuery skipped "; skippedEdges; " malformed edge(s)"
+    end if
+    cursor = ""
+    if validEdges.count() > 0
+        cursor = validEdges.peek()?.cursor ?? ""
+    end if
+    safeHasNextPage = hasNextPage
+    if cursor = ""
+        safeHasNextPage = false
+    end if
+    m.top.response = {
+        edges: validEdges,
+        cursor: cursor,
+        hasNextPage: safeHasNextPage
+    }
+    m.top.control = "STOP"
+    return invalid
+end function

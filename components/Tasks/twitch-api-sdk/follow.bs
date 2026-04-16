@@ -1,0 +1,48 @@
+function followChannel() as object
+    rsp = TwitchGraphQLRequest({
+        operationName: "FollowButton_FollowUser",
+        variables: {
+            input: {
+                disableNotifications: false,
+                targetID: m.top.request.params.id
+            }
+        },
+        extensions: {
+            persistedQuery: {
+                version: 1,
+                sha256Hash: "800e7346bdf7e5278a3c1d3f21b2b56e2639928f86815677a7126b093b2fdd08"
+            }
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
+
+function unfollowChannel() as object
+    rsp = TwitchGraphQLRequest({
+        operationName: "FollowButton_UnfollowUser",
+        variables: {
+            input: {
+                targetID: m.top.request.params.id
+            }
+        },
+        extensions: {
+            persistedQuery: {
+                version: 1,
+                sha256Hash: "f7dae976ebf41c755ae2d758546bfd176b4eeb856656098bb40e0a672ca0d880"
+            }
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function

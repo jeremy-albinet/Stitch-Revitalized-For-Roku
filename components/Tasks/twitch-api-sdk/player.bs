@@ -1,0 +1,56 @@
+sub getStreamPlayerQuery()
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/StreamPlayer_Query.gql"),
+        variables: {
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
+            "skipPlayToken": false
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+end sub
+
+function getVodPlayerWrapperQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/VodPlayerWrapper_Query.gql"),
+        variables: {
+            "videoId": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
+            "skipPlayToken": false
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
+
+
+function getChannelInterstitialQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: ReadAsciiFile("pkg:/source/graphql/ChannelInterstitial_Query.gql"),
+        variables: {
+            "login": m.top.request.params.id,
+            "platform": "web_tv",
+            "playerType": "pulsar",
+            "skipPlayToken": true
+        }
+    })
+    if rsp <> invalid
+        m.top.response = rsp
+    else
+        m.top.response = { "response": invalid }
+    end if
+    m.top.control = "STOP"
+    return invalid
+end function
