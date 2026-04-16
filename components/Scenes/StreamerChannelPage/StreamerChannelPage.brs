@@ -87,9 +87,7 @@ end sub
 sub updateChannelInfo()
     rsp = m.GetcontentTask.response
     if rsp = invalid then return
-    if rsp.followerCount > 0
-        m.followers.text = numberToText(rsp.followerCount) + " " + tr("followers")
-    end if
+    m.followers.text = numberToText(rsp.followerCount) + " " + tr("followers")
     if rsp.profileImageUrl <> invalid
         m.avatar.uri = rsp.profileImageUrl
     end if
