@@ -163,7 +163,10 @@ end sub
 
 sub onMenuSelection()
     ' refreshFollowBar()
-    trackEvent("tab_visited", { tab: focusedMenuItem() })
+    menuItem = focusedMenuItem()
+    if menuItem <> ""
+        trackEvent("tab_visited", { tab: menuItem })
+    end if
     ' If user is already logged in, show them their user page
     if focusedMenuItem() = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
         content = createObject("roSGNode", "TwitchContentNode")
