@@ -21,6 +21,12 @@ sub analyticsLoop()
     m.port = CreateObject("roMessagePort")
     m.deviceInfo = CreateObject("roDeviceInfo")
 
+    ' Read once at startup. Change takes effect on next app launch.
+    m.enabled = get_user_setting("analytics.enabled", "true") <> "false"
+
+    ' Per-event rate limit state: tracks last send time per event name.
+    m.rateLimits = {}
+
     m.top.observeField("capture", m.port)
     m.top.observeField("identify", m.port)
 
@@ -28,7 +34,7 @@ sub analyticsLoop()
         msg = wait(0, m.port)
         if type(msg) <> "roSGNodeEvent" then continue while
 
-        if not isAnalyticsEnabled() then continue while
+        if not m.enabled then continue while
 
         field = msg.getField()
         data = msg.getData()
@@ -43,8 +49,11 @@ sub analyticsLoop()
 end sub
 
 ' Sends a standard PostHog event with global props auto-injected.
+' Drops the event silently if the same event name was sent within the last 10 seconds.
 sub sendCapture(data as object)
     event = data.event
+    if isRateLimited(event) then return
+
     props = data.props
     if props = invalid then props = {}
 
@@ -114,8 +123,15 @@ sub postToPostHog(payload as object)
     transfer.PostFromString(FormatJson(payload))
 end sub
 
-' Returns true if analytics is enabled (opt-out: default true).
-function isAnalyticsEnabled() as boolean
-    setting = get_user_setting("analytics.enabled", "true")
-    return setting <> "false"
+' Returns true if this event name was already sent within the last 10 seconds.
+' Prevents burst duplicates (e.g. concurrent GraphQL failures all firing api_error).
+function isRateLimited(event as string) as boolean
+    now = CreateObject("roTimeSpan")
+    now.Mark()
+    if m.rateLimits.DoesExist(event)
+        elapsed = m.rateLimits[event].TotalSeconds()
+        if elapsed < 10 then return true
+    end if
+    m.rateLimits[event] = now
+    return false
 end function
