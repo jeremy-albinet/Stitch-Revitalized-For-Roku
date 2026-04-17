@@ -520,11 +520,7 @@ sub exitPlayer()
         m.video.visible = false
     end if
 
-    if m.PlayerTask <> invalid
-        m.PlayerTask.unobserveField("state")
-        m.PlayerTask.control = "stop" ' Ensure task is stopped
-        m.PlayerTask = invalid
-    end if
+    m.PlayerTask = destroyTask(m.PlayerTask, "state")
 
     ' ? "[VideoPlayer] Allow Break?: "; m.allowBreak
     if m.allowBreak
@@ -890,11 +886,7 @@ sub beginLiveReconnect(reason as string)
 end sub
 
 sub cleanupReconnectTask()
-    if m.reconnectTask <> invalid
-        m.reconnectTask.unobserveField("response")
-        m.reconnectTask.control = "stop"
-        m.reconnectTask = invalid
-    end if
+    m.reconnectTask = destroyTask(m.reconnectTask, "response")
 end sub
 
 sub doLiveReconnect()

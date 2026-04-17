@@ -133,7 +133,7 @@ Rules:
 - `unobserveFieldScoped("fieldName")` is the correct pair for `observeFieldScoped()`
 - Always nil-check nodes before accessing them in `onDestroy()` — conditional nodes (created on-demand, not in `init()`) may never have been created
 - Stop timers before unobserving them, or they may fire one last time during teardown
-- Use `destroyTask(m.task, "fieldName")` from `taskFactory.brs` to cancel and unobserve task nodes
+- **Always use `destroyTask(m.task, "fieldName")` for task teardown** — never write `unobserveField` on a task without also stopping it. `destroyTask` handles both atomically and returns `invalid`. Import `taskFactory.brs` in the component's XML if not already present.
 
 Canonical pattern:
 

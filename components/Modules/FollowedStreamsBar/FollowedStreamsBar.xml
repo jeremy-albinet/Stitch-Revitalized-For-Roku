@@ -8,6 +8,7 @@
   </interface>
 
   <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
   <script type="text/brightscript" uri="FollowedStreamsBar.brs" />
 
   <children>

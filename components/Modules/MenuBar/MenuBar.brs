@@ -151,4 +151,5 @@ sub onDestroy()
     m.top.unobserveField("updateUserIcon")
     m.top.unobserveField("buttonSelected")
     m.top.unobserveField("buttonFocused")
+    m.loginIconTask = destroyTask(m.loginIconTask, "response")
 end sub
