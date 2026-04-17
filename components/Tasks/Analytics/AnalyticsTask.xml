@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="AnalyticsTask" extends="Task">
+    <interface>
+        <!-- Set to an assocarray with keys: event (string), props (assocarray) -->
+        <field id="capture" type="assocarray" alwaysNotify="true" />
+        <!-- Set to an assocarray with keys: set (assocarray) for $identify -->
+        <field id="identify" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="AnalyticsTask.bs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+</component>
