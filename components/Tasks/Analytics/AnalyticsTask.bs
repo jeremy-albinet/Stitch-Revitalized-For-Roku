@@ -10,9 +10,8 @@
 ' Respects the "analytics.enabled" registry setting (opt-out, default true).
 ' When disabled, events are silently dropped.
 
-const POSTHOG_CAPTURE_URL = "https://app.posthog.com/capture/"
-' Replace with your PostHog project API key.
-const POSTHOG_API_KEY = "phc_REPLACE_WITH_YOUR_KEY"
+const POSTHOG_CAPTURE_URL = "https://us.i.posthog.com/capture/"
+const POSTHOG_API_KEY = "phc_xfHnhpGgpwjwRCPGDYUeoNGLaazv8uZLu4npYa3huN58"
 
 sub init()
     m.top.functionName = "analyticsLoop"
@@ -50,6 +49,7 @@ sub sendCapture(data as object)
     if props = invalid then props = {}
 
     props.append(getGlobalProps())
+    props["distinct_id"] = getDistinctId()
 
     payload = {
         api_key: POSTHOG_API_KEY,
@@ -71,6 +71,7 @@ sub sendIdentify(data as object)
         event: "$identify",
         distinct_id: getDistinctId(),
         properties: {
+            "distinct_id": getDistinctId(),
             "$set": setProps
         }
     }
