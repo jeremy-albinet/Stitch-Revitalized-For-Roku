@@ -48,14 +48,17 @@ sub sendCapture(data as object)
     props = data.props
     if props = invalid then props = {}
 
-    props.append(getGlobalProps())
-    props["distinct_id"] = getDistinctId()
+    ' Build a new assocarray to avoid mutating the caller's object.
+    mergedProps = {}
+    mergedProps.append(props)
+    mergedProps.append(getGlobalProps())
+    mergedProps["distinct_id"] = getDistinctId()
 
     payload = {
         api_key: POSTHOG_API_KEY,
         event: event,
         distinct_id: getDistinctId(),
-        properties: props
+        properties: mergedProps
     }
 
     postToPostHog(payload)
@@ -98,7 +101,9 @@ function getDistinctId() as string
     return m.distinctId
 end function
 
-' Fire-and-forget HTTPS POST to PostHog capture endpoint.
+' Synchronous HTTPS POST to PostHog capture endpoint.
+' We are already in a background Task thread so blocking is safe.
+' Synchronous avoids the GC risk of async transfers without a retained port.
 sub postToPostHog(payload as object)
     transfer = CreateObject("roUrlTransfer")
     transfer.SetUrl(POSTHOG_CAPTURE_URL)
@@ -106,10 +111,7 @@ sub postToPostHog(payload as object)
     transfer.AddHeader("Content-Type", "application/json")
     transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
     transfer.InitClientCertificates()
-    transfer.AsyncPostFromString(FormatJson(payload))
-    ' No response handling — fire and forget.
-    ' The roUrlTransfer object stays alive until this scope exits (sub returns),
-    ' which is long enough for the async send to be queued by the OS.
+    transfer.PostFromString(FormatJson(payload))
 end sub
 
 ' Returns true if analytics is enabled (opt-out: default true).

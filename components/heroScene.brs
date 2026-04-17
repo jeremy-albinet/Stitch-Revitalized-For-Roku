@@ -36,9 +36,11 @@ sub sendAppOpenedEvents()
     deviceModel = deviceInfo.GetModel()
     priorCrashReason = m.global.priorExitReason ' set by main.brs before scene creation
 
+    rokuOsVersion = osVersion.major.toStr() + "." + osVersion.minor.toStr() + "." + osVersion.revision.toStr()
+
     appOpenProps = {
         device_model: deviceModel,
-        roku_os_version: osVersion.major + "." + osVersion.minor + "." + osVersion.revision
+        roku_os_version: rokuOsVersion
     }
     if priorCrashReason <> invalid and priorCrashReason <> ""
         appOpenProps.prior_exit_reason = priorCrashReason
@@ -50,7 +52,7 @@ sub sendAppOpenedEvents()
     analyticsIdentify({
         app_version: m.global.appInfo.Version.Version,
         device_model: deviceModel,
-        roku_os_version: osVersion.major + "." + osVersion.minor + "." + osVersion.revision,
+        roku_os_version: rokuOsVersion,
         is_dev: m.global.appInfo.IsDev,
         is_logged_in: isLoggedIn
     })
