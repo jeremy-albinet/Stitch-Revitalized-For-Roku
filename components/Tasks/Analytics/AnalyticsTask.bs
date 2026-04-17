@@ -1,0 +1,118 @@
+' PostHog analytics background task.
+'
+' Runs a persistent wait() loop observing two fields on itself:
+'   - capture: fires trackEvent() → POST /capture/ (standard event)
+'   - identify: fires sendIdentify() → POST /capture/ ($identify event with $set)
+'
+' Global props (app_version, is_dev, is_logged_in) are injected automatically
+' on every outbound event so call-sites never need to include them.
+'
+' Respects the "analytics.enabled" registry setting (opt-out, default true).
+' When disabled, events are silently dropped.
+
+const POSTHOG_CAPTURE_URL = "https://app.posthog.com/capture/"
+' Replace with your PostHog project API key.
+const POSTHOG_API_KEY = "phc_REPLACE_WITH_YOUR_KEY"
+
+sub init()
+    m.top.functionName = "analyticsLoop"
+end sub
+
+sub analyticsLoop()
+    m.port = CreateObject("roMessagePort")
+    m.deviceInfo = CreateObject("roDeviceInfo")
+
+    m.top.observeField("capture", m.port)
+    m.top.observeField("identify", m.port)
+
+    while true
+        msg = wait(0, m.port)
+        if type(msg) <> "roSGNodeEvent" then continue while
+
+        if not isAnalyticsEnabled() then continue while
+
+        field = msg.getField()
+        data = msg.getData()
+        if data = invalid then continue while
+
+        if field = "capture"
+            sendCapture(data)
+        else if field = "identify"
+            sendIdentify(data)
+        end if
+    end while
+end sub
+
+' Sends a standard PostHog event with global props auto-injected.
+sub sendCapture(data as object)
+    event = data.event
+    props = data.props
+    if props = invalid then props = {}
+
+    props.append(getGlobalProps())
+
+    payload = {
+        api_key: POSTHOG_API_KEY,
+        event: event,
+        distinct_id: getDistinctId(),
+        properties: props
+    }
+
+    postToPostHog(payload)
+end sub
+
+' Sends a PostHog $identify event with a $set payload.
+sub sendIdentify(data as object)
+    setProps = data.set
+    if setProps = invalid then setProps = {}
+
+    payload = {
+        api_key: POSTHOG_API_KEY,
+        event: "$identify",
+        distinct_id: getDistinctId(),
+        properties: {
+            "$set": setProps
+        }
+    }
+
+    postToPostHog(payload)
+end sub
+
+' Returns props injected into every capture event automatically.
+function getGlobalProps() as object
+    isLoggedIn = get_setting("active_user", "$default$") <> "$default$" and get_user_setting("access_token") <> invalid
+    return {
+        app_version: m.global.appInfo.Version.Version,
+        is_dev: m.global.appInfo.IsDev,
+        is_logged_in: isLoggedIn
+    }
+end function
+
+' Returns the anonymous distinct_id for this device+channel pair.
+' roDeviceInfo.GetChannelClientId() is Roku-assigned, anonymous, per-channel.
+function getDistinctId() as string
+    if m.distinctId = invalid
+        m.distinctId = m.deviceInfo.GetChannelClientId()
+    end if
+    return m.distinctId
+end function
+
+' Fire-and-forget HTTPS POST to PostHog capture endpoint.
+sub postToPostHog(payload as object)
+    transfer = CreateObject("roUrlTransfer")
+    transfer.SetUrl(POSTHOG_CAPTURE_URL)
+    transfer.SetRequest("POST")
+    transfer.AddHeader("Content-Type", "application/json")
+    transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
+    transfer.InitClientCertificates()
+    transfer.AsyncPostFromString(FormatJson(payload))
+    ' No response handling — fire and forget.
+    ' The roUrlTransfer object stays alive until this scope exits (sub returns),
+    ' which is long enough for the async send to be queued by the OS.
+end sub
+
+' Returns true if analytics is enabled (opt-out: default true).
+function isAnalyticsEnabled() as boolean
+    setting = get_user_setting("analytics.enabled", "true")
+    return setting <> "false"
+end function
