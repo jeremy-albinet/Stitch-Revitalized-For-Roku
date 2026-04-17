@@ -20,6 +20,7 @@ sub init()
 end sub
 
 sub refreshFollowBar()
+    m.followBarJob = destroyTask(m.followBarJob, "result")
     ' if m.top.refreshFollowBar = true
     m.followBarJob = CreateObject("roSGNode", "FollowedStreamsBarJob")
     m.followBarJob.observeField("result", "onFollowedStreamsChange")
