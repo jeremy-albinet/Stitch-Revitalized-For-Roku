@@ -41,6 +41,14 @@ sub Main(input as dynamic)
     m.global = screen.getGlobalNode()
     setConstants() ' Assuming this sets necessary global constants
 
+    ' Capture prior exit/crash reason before the scene starts so heroScene can
+    ' include it in the app_opened analytics event.
+    priorExitReason = ""
+    if input <> invalid and input.lastExitOrTerminationReason <> invalid
+        priorExitReason = input.lastExitOrTerminationReason.toStr()
+    end if
+    m.global.addFields({ priorExitReason: priorExitReason })
+
     ' Set the message port for screen
     screen.setMessagePort(m.port)
 
