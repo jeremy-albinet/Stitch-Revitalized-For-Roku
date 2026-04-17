@@ -281,4 +281,13 @@ sub onDestroy()
         m.activeNode.unobserveField("contentSelected")
         m.activeNode.unobserveField("finished")
     end if
+    for each node in m.footprints
+        if node <> invalid
+            node.unobserveField("backPressed")
+            node.unobserveField("contentSelected")
+            node.unobserveField("finished")
+        end if
+    end for
+    m.validateOauthToken = destroyTask(m.validateOauthToken, "response")
+    m.getDeviceCodeTask = destroyTask(m.getDeviceCodeTask, "response")
 end sub

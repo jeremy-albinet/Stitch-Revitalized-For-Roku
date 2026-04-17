@@ -341,7 +341,8 @@ sub onNewCommentObj()
 end sub
 
 sub onDestroy()
-    if m.chat <> invalid
-        m.chat.unobserveField("nextCommentObj")
+    m.chat = destroyTask(m.chat, "nextCommentObj")
+    if m.EmoteJob <> invalid
+        m.EmoteJob.control = "stop"
     end if
 end sub

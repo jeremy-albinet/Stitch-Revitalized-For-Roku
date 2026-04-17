@@ -21,6 +21,7 @@
 
     <script type="text/brightscript" uri="Chat.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
         <MaskGroup
             id="MaskGroup" maskUri="pkg:/images/white-square-mask.png" visible="true">

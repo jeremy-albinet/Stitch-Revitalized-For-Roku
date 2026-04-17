@@ -286,4 +286,5 @@ sub onDestroy()
     if m.rowlist <> invalid
         m.rowlist.unobserveField("itemSelected")
     end if
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
 end sub

@@ -17,6 +17,7 @@
     <script type="text/brightscript" uri="VideoPlayer.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
         <Chat
             id="chat"

@@ -151,7 +151,5 @@ sub onDestroy()
         m.refreshTimer.control = "stop"
         m.refreshTimer.unobserveField("fire")
     end if
-    if m.followBarJob <> invalid
-        m.followBarJob.unobserveField("result")
-    end if
+    m.followBarJob = destroyTask(m.followBarJob, "result")
 end sub
