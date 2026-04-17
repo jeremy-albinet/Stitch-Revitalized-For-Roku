@@ -40,6 +40,12 @@ sub onResponse()
             end if
         end if
 
+        trackEvent("video_load_error", {
+            error_code: m.PlayVideo.response.errorCode,
+            error_message: errorMessage,
+            streamer_login: m.top.contentRequested?.streamerLogin,
+            content_type: m.top.contentRequested?.contentType
+        })
         showErrorDialog(errorTitle, errorMessage)
         return
     end if
@@ -286,6 +292,16 @@ sub playContent()
     m.stallSeconds = 0
     m.reconnectAttempts = 0
 
+    if m.top.contentRequested <> invalid
+        trackEvent("stream_started", {
+            content_type: m.top.contentRequested.contentType,
+            streamer_login: m.top.contentRequested.streamerLogin,
+            content_id: m.top.contentRequested.contentId
+        })
+        m.playbackStartTime = CreateObject("roTimeSpan")
+        m.playbackStartTime.Mark()
+    end if
+
     ' Clean up existing video node and its observers
     if m.video <> invalid
         m.video.unobserveField("toggleChat")
@@ -487,6 +503,18 @@ sub exitPlayer()
     ' reconnects we set allowBreak=false before calling exitPlayer().
     if m.allowBreak
         m.isExiting = true
+    end if
+
+    if m.allowBreak and m.top.contentRequested <> invalid
+        exitProps = {
+            content_type: m.top.contentRequested.contentType,
+            streamer_login: m.top.contentRequested.streamerLogin,
+            content_id: m.top.contentRequested.contentId
+        }
+        if m.playbackStartTime <> invalid
+            exitProps.duration_seconds = Int(m.playbackStartTime.TotalMilliseconds() / 1000)
+        end if
+        trackEvent("stream_ended", exitProps)
     end if
 
     ' Stop watchdog/reconnect timers and clean up any in-flight reconnect task
@@ -706,6 +734,14 @@ sub handleStreamError()
 
     ' Get error classification for user-friendly messages
     errorType = m.errorHandler.callFunc("classifyError", errorCode, errorMessage)
+
+    trackEvent("video_error", {
+        error_code: errorCode,
+        error_message: errorMessage,
+        error_type: errorType,
+        streamer_login: m.top.contentRequested?.streamerLogin,
+        content_type: m.top.contentRequested?.contentType
+    })
 
     recovery = m.errorHandler.callFunc("handleVideoError", errorCode, errorMessage, m.video, m.top.contentRequested)
 

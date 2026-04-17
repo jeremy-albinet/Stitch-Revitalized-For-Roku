@@ -25,7 +25,35 @@ sub init()
     end if
     m.footprints = []
 
+    sendAppOpenedEvents()
+end sub
 
+' Fires app_opened event and $identify on every launch.
+' Reads prior crash reason stored by main.brs before the scene was created.
+sub sendAppOpenedEvents()
+    deviceInfo = CreateObject("roDeviceInfo")
+    osVersion = deviceInfo.GetOSVersion()
+    deviceModel = deviceInfo.GetModel()
+    priorCrashReason = m.global.priorExitReason ' set by main.brs before scene creation
+
+    appOpenProps = {
+        device_model: deviceModel,
+        roku_os_version: osVersion.major + "." + osVersion.minor + "." + osVersion.revision
+    }
+    if priorCrashReason <> invalid and priorCrashReason <> ""
+        appOpenProps.prior_exit_reason = priorCrashReason
+    end if
+
+    trackEvent("app_opened", appOpenProps)
+
+    isLoggedIn = get_setting("active_user", "$default$") <> "$default$" and get_user_setting("access_token") <> invalid
+    analyticsIdentify({
+        app_version: m.global.appInfo.Version.Version,
+        device_model: deviceModel,
+        roku_os_version: osVersion.major + "." + osVersion.minor + "." + osVersion.revision,
+        is_dev: m.global.appInfo.IsDev,
+        is_logged_in: isLoggedIn
+    })
 end sub
 
 sub cleanUserData()
@@ -133,6 +161,7 @@ end sub
 
 sub onMenuSelection()
     ' refreshFollowBar()
+    trackEvent("tab_visited", { tab: focusedMenuItem() })
     ' If user is already logged in, show them their user page
     if focusedMenuItem() = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
         content = createObject("roSGNode", "TwitchContentNode")

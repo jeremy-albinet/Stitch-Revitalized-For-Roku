@@ -42,6 +42,7 @@ function TwitchGraphQLRequest(data)
         rsp = ParseJSON(rspData)
         return rsp
     else
+        trackEvent("api_error", { api: "graphql", reason: "network_failure" })
         return invalid
     end if
 end function
