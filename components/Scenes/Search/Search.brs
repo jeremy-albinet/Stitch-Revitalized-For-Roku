@@ -277,14 +277,8 @@ end function
 
 sub onDestroy()
     m.top.unobserveField("focusedChild")
-    if m.recents <> invalid
-        m.recents.unobserveField("buttonSelected")
-    end if
-    if m.kb <> invalid
-        m.kb.unobserveField("text")
-    end if
-    if m.rowlist <> invalid
-        m.rowlist.unobserveField("itemSelected")
-    end if
+    m.recents.unobserveField("buttonSelected")
+    m.kb.unobserveField("text")
+    m.rowlist.unobserveField("itemSelected")
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
 end sub

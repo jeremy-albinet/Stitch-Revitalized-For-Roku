@@ -179,15 +179,9 @@ end function
 
 sub onDestroy()
     m.top.unobserveField("focusedChild")
-    if m.settingsMenu <> invalid
-        m.settingsMenu.unobserveField("itemFocused")
-        m.settingsMenu.unobserveField("itemSelected")
-        m.settingsMenu.unobserveField("focusedChild")
-    end if
-    if m.boolSetting <> invalid
-        m.boolSetting.unobserveField("checkedItem")
-    end if
-    if m.radioSetting <> invalid
-        m.radioSetting.unobserveField("checkedItem")
-    end if
+    m.settingsMenu.unobserveField("itemFocused")
+    m.settingsMenu.unobserveField("itemSelected")
+    m.settingsMenu.unobserveField("focusedChild")
+    m.boolSetting.unobserveField("checkedItem")
+    m.radioSetting.unobserveField("checkedItem")
 end sub
