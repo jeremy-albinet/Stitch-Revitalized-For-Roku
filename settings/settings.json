@@ -187,7 +187,7 @@
     },
     {
         "title": "Anonymous Analytics",
-        "description": "Share anonymous usage data to help improve Stitch. No personal information is collected. Disable to opt out.",
+        "description": "Share anonymous usage data to help improve Stitch. No personal information is collected. Changes take effect on next app start.",
         "settingName": "analytics.enabled",
         "type": "bool",
         "default": "true"
