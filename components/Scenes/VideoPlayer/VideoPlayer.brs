@@ -292,7 +292,9 @@ sub playContent()
     m.stallSeconds = 0
     m.reconnectAttempts = 0
 
-    if m.top.contentRequested <> invalid
+    ' Only track stream_started and reset the timer on user-initiated plays.
+    ' Internal reconnects (m.allowBreak = false) must not fire this event again.
+    if m.allowBreak and m.top.contentRequested <> invalid
         trackEvent("stream_started", {
             content_type: m.top.contentRequested.contentType,
             streamer_login: m.top.contentRequested.streamerLogin,
