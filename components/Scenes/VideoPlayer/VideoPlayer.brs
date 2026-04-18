@@ -255,13 +255,15 @@ sub playContent()
         ' Record to recently watched history (LIVE and VOD; skip clips)
         contentType = m.top.contentRequested.contentType
         if contentType = "LIVE" or contentType = "VOD"
-            rwEntry = {}
-            if m.top.contentRequested.streamerId <> invalid then rwEntry.id = m.top.contentRequested.streamerId
-            if m.top.contentRequested.streamerLogin <> invalid then rwEntry.login = m.top.contentRequested.streamerLogin
-            if m.top.contentRequested.streamerDisplayName <> invalid then rwEntry.displayName = m.top.contentRequested.streamerDisplayName
-            if m.top.contentRequested.streamerProfileImageUrl <> invalid then rwEntry.iconUrl = m.top.contentRequested.streamerProfileImageUrl
-            if rwEntry.id <> invalid
-                RW_Add(rwEntry, RW_MaxItems())
+            streamerLogin = m.top.contentRequested.streamerLogin
+            if streamerLogin <> invalid and streamerLogin <> ""
+                rwTask = CreateObject("roSGNode", "RW_AddTask")
+                rwTask.entry = {
+                    login: streamerLogin,
+                    displayName: m.top.contentRequested.streamerDisplayName,
+                    iconUrl: m.top.contentRequested.streamerProfileImageUrl
+                }
+                rwTask.control = "run"
             end if
         end if
     end if
