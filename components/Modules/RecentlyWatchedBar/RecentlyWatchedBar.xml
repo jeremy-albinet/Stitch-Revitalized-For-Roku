@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RecentlyWatchedBar" extends="Group">
+    <interface>
+        <!-- Set true to give focus into the bar, false to release it back -->
+        <field id="itemHasFocus" type="bool" value="false" onChange="onFocusToggle" alwaysNotify="true" />
+        <!-- Emitted when user confirms a selection (OK key) -->
+        <field id="contentSelected" type="node" alwaysNotify="true" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="RecentlyWatchedBar.brs" />
+
+    <children>
+        <Rectangle
+            id="backgroundBar"
+            color="0x1f1f23FF"
+            width="78"
+            height="1000"
+            translation="[0, 0]"
+        />
+        <Poster
+            id="icon"
+            uri="pkg:/images/icons/recent.png"
+            width="24"
+            height="24"
+            translation="[27, 14]"
+        />
+    </children>
+</component>

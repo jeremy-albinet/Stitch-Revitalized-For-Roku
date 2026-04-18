@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RecentlyWatchedItem" extends="Group">
+    <interface>
+        <!-- Set all item data at once via a single AA field -->
+        <field id="itemData" type="assocarray" onChange="onDataChanged" />
+        <!-- Parent bar drives focus state -->
+        <field id="focused" type="bool" value="false" onChange="onFocusChanged" />
+    </interface>
+
+    <script type="text/brightscript" uri="RecentlyWatchedItem.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+
+    <children>
+        <Group id="root">
+            <Poster
+                id="selectionIndicator"
+                uri="pkg:/images/purple_circle.png"
+                visible="false"
+                width="54"
+                height="54"
+                translation="[-2, -2]"
+            />
+            <CirclePoster
+                id="avatar"
+                width="50"
+                height="50"
+                outlinecolor="0x00000000"
+                backgroundVisible="false"
+            />
+        </Group>
+    </children>
+</component>
