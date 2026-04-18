@@ -56,3 +56,8 @@ devops:
   - changed-files:
     - any-glob-to-any-file:
       - '.github/**'
+
+proxy:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'fmp4-demux-proxy/**'
