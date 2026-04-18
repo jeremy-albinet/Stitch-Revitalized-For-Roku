@@ -1,7 +1,4 @@
 sub init()
-    ' Start the analytics task here — roSGNode creation requires the SceneGraph
-    ' render thread, which is not available in the main BrightScript thread where
-    ' setConstants() runs.
     analyticsTask = CreateObject("roSGNode", "AnalyticsTask")
     analyticsTask.control = "RUN"
     m.global.addFields({ analyticsTask: analyticsTask })
@@ -11,8 +8,8 @@ sub init()
     m.top.backgroundUri = ""
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
     m.activeNode = invalid
-    m.followedStreamBar = m.top.findNode("followedStreamsBar")
-    m.followedStreamBar.observeField("contentSelected", "onFollowSelected")
+    m.recentBar = m.top.findNode("recentlyWatchedBar")
+    m.recentBar.observeField("contentSelected", "onRecentSelected")
     m.menu = m.top.findNode("MenuBar")
     m.menu.menuOptionsText = [
         "Following",
@@ -35,8 +32,6 @@ sub init()
     sendAppOpenedEvents()
 end sub
 
-' Fires app_opened event and $identify on every launch.
-' Reads prior crash reason stored by main.brs before the scene was created.
 sub sendAppOpenedEvents()
     deviceInfo = CreateObject("roDeviceInfo")
     osVersion = deviceInfo.GetOSVersion()
@@ -76,10 +71,8 @@ sub cleanUserData()
         ? "active User: "; get_setting("active_user", "$default$")
     else
         for each key in getRegistryKeys("$default$")
-            if key <> "temp_device_code"
-                if key <> "device_code"
-                    unset_user_setting(key)
-                end if
+            if key <> "temp_device_code" and key <> "device_code"
+                unset_user_setting(key)
             end if
         end for
     end if
@@ -117,16 +110,11 @@ sub VersionJobs()
     end if
 end sub
 
-sub refreshFollowBar()
-    m.followedStreamBar.refreshFollowBar = true
-end sub
-
 sub handleDeviceCode()
     if m.getDeviceCodeTask <> invalid
         response = m.getDeviceCodeTask.response
         if response = invalid then return
         set_user_setting("device_code", response.device_code)
-        m.followedStreamBar.callFunc("refreshFollowBar")
     end if
     onMenuSelection()
 end sub
@@ -156,26 +144,16 @@ sub onLoginFinished()
     m.menu.updateUserIcon = true
     if get_user_setting("device_code") = invalid
         m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
-    else
-        m.followedStreamBar.callFunc("refreshFollowBar")
     end if
-    ' if get_setting("active_user", "$default$") <> "$default$"
-    '     if m.activeNode.id.toStr() = "LoginPage" or "StreamerChannelPage"
-    '         m.top.removeChild(m.activeNode)
-    '         m.activeNode = invalid
-    '         onMenuSelection()
-    '     end if
-    ' end if
 end sub
 
 sub onMenuSelection()
-    ' refreshFollowBar()
     menuItem = focusedMenuItem()
     if menuItem <> ""
         trackEvent("tab_visited", { tab: menuItem })
     end if
     ' If user is already logged in, show them their user page
-    if focusedMenuItem() = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
+    if menuItem = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
         content = createObject("roSGNode", "TwitchContentNode")
         content.streamerDisplayName = get_user_setting("display_name")
         content.streamerLogin = get_user_setting("login")
@@ -184,34 +162,34 @@ sub onMenuSelection()
         content.contentType = "STREAMER"
         m.activeNode.contentSelected = content
     else
-        if m.menu.focusedChild <> invalid
-            if m.activeNode <> invalid
-                if m.activeNode.id.toStr() <> focusedMenuItem()
-                    m.top.removeChild(m.activeNode)
-                    m.activeNode = invalid
-                end if
-            end if
+        if m.menu.focusedChild = invalid then return
+        if m.activeNode <> invalid and m.activeNode.id.toStr() <> menuItem
+            m.top.removeChild(m.activeNode)
+            m.activeNode = invalid
         end if
         if m.activeNode = invalid
-            m.activeNode = buildNode(focusedMenuItem())
+            m.activeNode = buildNode(menuItem)
             if m.activeNode = invalid then return
         end if
         m.activeNode.setfocus(true)
     end if
 end sub
 
-sub onFollowSelected()
-    content = m.followedStreamBar.contentSelected
+sub onRecentSelected()
+    content = m.recentBar.contentSelected
+    if content = invalid then return
+
+    ' Ensure bar focus state is cleared regardless of which code path triggered this
+    m.recentBar.itemHasFocus = false
+
     if m.activeNode <> invalid
         m.footprints.push(m.activeNode)
         m.activeNode = invalid
     end if
-    if m.activeNode = invalid
-        m.activeNode = buildNode("ChannelPage")
-        if m.activeNode = invalid then return
-    end if
+    m.activeNode = buildNode("ChannelPage")
+    if m.activeNode = invalid then return
     m.activeNode.contentRequested = content
-    m.activeNode.setfocus(true)
+    m.activeNode.setFocus(true)
 end sub
 
 sub onContentSelected()
@@ -243,76 +221,69 @@ sub onContentSelected()
 end sub
 
 sub onBackPressed()
-    ? "backpress detected from: "; m.activeNode.id
-    if m.activeNode.backPressed <> invalid and m.activeNode.backPressed
-        ? "fmi ping"
-        if m.activeNode.id = "StreamerChannelPage"
-            if m.footprints[0].id = "LoginPage"
-                m.footprints.pop()
-            end if
-            m.top.removeChild(m.activeNode)
-            m.menu.buttonFocus = 0
+    if m.activeNode.backPressed = invalid or not m.activeNode.backPressed then return
+    if m.activeNode.id = "StreamerChannelPage"
+        if m.footprints[0].id = "LoginPage"
+            m.footprints.pop()
         end if
-        if m.footprints.Count() > 0
-            m.top.removeChild(m.activeNode)
-            m.activeNode = m.footprints.pop()
-            m.activeNode.setFocus(false)
-            if focusedMenuItem() = "LoginPage"
-                ' if m.menu.buttonFocused = 5
-                m.menu.setFocus(true)
-            end if
-        else
+        m.top.removeChild(m.activeNode)
+        m.menu.buttonFocus = 0
+    end if
+    if m.footprints.Count() > 0
+        m.top.removeChild(m.activeNode)
+        m.activeNode = m.footprints.pop()
+        m.activeNode.setFocus(false)
+        if focusedMenuItem() = "LoginPage"
             m.menu.setFocus(true)
         end if
+    else
+        m.menu.setFocus(true)
     end if
 end sub
 
 function onKeyEvent(key, press) as boolean
-    if press
-        ? "Hero Scene Key Event: "; key
-        if key = "replay"
-            ? "----------- Currently Focused Child ----------" + chr(34); m.top.focusedChild
-            ? "----------- Last Focused Child ----------" + chr(34); lastFocusedChild(m.top.focusedChild)
+    if not press then return false
+    if m.activeNode = invalid then return false
+
+    if key = "replay"
+        return true
+    end if
+
+    if key = "up"
+        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
+            m.menu.setFocus(true)
+        end if
+        return true
+    end if
+
+    if key = "down"
+        m.activeNode.setFocus(true)
+        return true
+    end if
+
+    if key = "left"
+        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer" and m.activeNode.id <> "StreamerChannelPage"
+            m.activeNode.setFocus(false)
+            m.recentBar.setFocus(true)
+            m.recentBar.itemHasFocus = true
             return true
         end if
-        if key = "up"
-            if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
-                m.followedStreamBar.itemHasFocus = false
-                m.menu.setFocus(true)
-            end if
-        end if
-        if key = "down"
+    end if
+
+    if key = "right"
+        if m.recentBar.itemHasFocus = true
+            m.recentBar.itemHasFocus = false
             m.activeNode.setFocus(true)
-        end if
-        if key = "left"
-            if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
-                if get_user_setting("FollowBarOption", "true") = "true"
-                    m.activeNode.setFocus(false)
-                    m.followedStreamBar.setFocus(true)
-                    m.followedStreamBar.itemHasFocus = true
-                    return true
-                end if
-            end if
-        end if
-        if key = "right"
-            if get_user_setting("FollowBarOption", "true") = "true"
-                m.followedStreamBar.itemHasFocus = false
-                m.activeNode.setFocus(true)
-                return true
-            end if
+            return true
         end if
     end if
-    ' if key = "up"
-    '     m.top.setFocus(true)
-    '     return true
-    ' end if
-    if not press then return false
+
     return false
 end function
 
 sub onDestroy()
-    if m.followedStreamBar <> invalid
-        m.followedStreamBar.unobserveField("contentSelected")
+    if m.recentBar <> invalid
+        m.recentBar.unobserveField("contentSelected")
     end if
     if m.menu <> invalid
         m.menu.unobserveField("buttonSelected")
