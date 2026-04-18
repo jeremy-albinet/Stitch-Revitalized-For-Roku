@@ -91,12 +91,14 @@ sub main()
         usherUrl = ""
         if m.top.contentRequested.contentType = "VOD"
             if rsp = invalid or rsp.data = invalid or rsp.data.video = invalid or rsp.data.video.playbackAccessToken = invalid
+                trackEvent("content_fetch_error", { content_type: "VOD", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId })
                 m.top.response = invalid
                 return
             end if
             usherUrl = "https://usher.ttvnw.net/vod/" + rsp.data.video.id + ".m3u8?playlist_include_framerate=true&allow_source=true&player_type=pulsar&player_backend=mediaplayer&reassignments_supported=true&nauth=" + rsp.data.video.playbackAccessToken.value.EncodeUri() + "&nauthsig=" + rsp.data.video.playbackAccessToken.signature
         else if m.top.contentRequested.contentType = "LIVE"
             if rsp = invalid or rsp.data = invalid or rsp.data.user = invalid or rsp.data.user.stream = invalid or rsp.data.user.stream.playbackAccessToken = invalid
+                trackEvent("content_fetch_error", { content_type: "LIVE", error_type: "token_fetch_failed", streamer_login: m.top.contentRequested.streamerLogin })
                 m.top.response = invalid
                 return
             end if
@@ -169,6 +171,7 @@ sub main()
             sleep(1000)
         end while
         if usher_response = invalid
+            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "usher_request_failed" })
             m.top.response = invalid
             return
         end if
@@ -208,6 +211,7 @@ sub main()
                     return
                 end if
             catch e
+                captureException(e, "GetTwitchContent/parseUsherErrorResponse")
                 m.top.response = invalid
                 return
             end try
@@ -250,6 +254,7 @@ sub main()
 
         ' If no streams found, this is a critical error
         if stream_objects.Count() = 0
+            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "no_streams_in_manifest", streamer_login: m.top.contentRequested.streamerLogin })
             m.top.response = invalid
             return
         end if
@@ -574,6 +579,7 @@ sub main()
                     end if
                 end if
             catch e
+                captureException(e, "GetTwitchContent/detectTransmux")
             end try
         end if
 
@@ -654,6 +660,7 @@ function getClipUrlViaGraphQL(clipSlug as string) as dynamic
         end if
     catch e
         ' ? "[GetTwitchContent] GraphQL clip lookup failed: "; e.message
+        captureException(e, "GetTwitchContent/getClipUrlViaGraphQL")
     end try
 
     return invalid

@@ -1,0 +1,59 @@
+namespace tests
+
+    @suite("Analytics")
+    class AnalyticsTests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("trackEvent")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("sets capture field with event name and props when task is valid")
+        sub trackEvent_setsCapture()
+            task = { capture: invalid }
+            m.global = { analyticsTask: task }
+            trackEvent("tab_visited", { tab: "Discover" })
+            m.assertEqual(m.global.analyticsTask.capture.event, "tab_visited")
+            m.assertEqual(m.global.analyticsTask.capture.props.tab, "Discover")
+        end sub
+
+        @it("sets capture with empty props when none provided")
+        sub trackEvent_defaultProps()
+            task = { capture: invalid }
+            m.global = { analyticsTask: task }
+            trackEvent("app_opened")
+            m.assertEqual(m.global.analyticsTask.capture.event, "app_opened")
+            m.assertNotInvalid(m.global.analyticsTask.capture.props)
+        end sub
+
+        @it("does not crash when analyticsTask is invalid")
+        sub trackEvent_taskInvalid()
+            m.global = { analyticsTask: invalid }
+            trackEvent("test_event", { key: "value" })
+            ' If we reach this line, the guard clause worked correctly
+            m.assertTrue(true)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("analyticsIdentify")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("sets identify field with provided props when task is valid")
+        sub analyticsIdentify_setsIdentify()
+            task = { identify: invalid }
+            m.global = { analyticsTask: task }
+            analyticsIdentify({ app_version: "2.3.0", device_model: "4640X" })
+            m.assertEqual(m.global.analyticsTask.identify.set.app_version, "2.3.0")
+            m.assertEqual(m.global.analyticsTask.identify.set.device_model, "4640X")
+        end sub
+
+        @it("does not crash when analyticsTask is invalid")
+        sub analyticsIdentify_taskInvalid()
+            m.global = { analyticsTask: invalid }
+            analyticsIdentify({ app_version: "2.3.0" })
+            ' If we reach this line, the guard clause worked correctly
+            m.assertTrue(true)
+        end sub
+
+    end class
+
+end namespace

@@ -1,8 +1,9 @@
 ' PostHog analytics background task.
 '
-' Runs a persistent wait() loop observing two fields on itself:
-'   - capture: fires trackEvent() → POST /capture/ (standard event)
-'   - identify: fires sendIdentify() → POST /capture/ ($identify event with $set)
+' Runs a persistent wait() loop observing three fields on itself:
+'   - capture:          fires sendCapture()   → POST /capture/ (standard event)
+'   - identify:         fires sendIdentify()  → POST /capture/ ($identify event with $set)
+'   - captureException: fires sendException() → POST /capture/ ($exception event)
 '
 ' Global props (app_version, is_dev, is_logged_in) are injected automatically
 ' on every outbound event so call-sites never need to include them.
@@ -29,6 +30,7 @@ sub analyticsLoop()
 
     m.top.observeField("capture", m.port)
     m.top.observeField("identify", m.port)
+    m.top.observeField("captureException", m.port)
 
     while true
         msg = wait(0, m.port)
@@ -44,6 +46,8 @@ sub analyticsLoop()
             sendCapture(data)
         else if field = "identify"
             sendIdentify(data)
+        else if field = "captureException"
+            sendException(data)
         end if
     end while
 end sub
@@ -85,6 +89,44 @@ sub sendIdentify(data as object)
         properties: {
             "distinct_id": getDistinctId(),
             "$set": setProps
+        }
+    }
+
+    postToPostHog(payload)
+end sub
+
+' Sends a PostHog $exception event for a caught BrightScript error.
+' data must have: message (string), location (string).
+' Optionally: number (integer) — BrightScript error code.
+' No stacktrace is included — BrightScript does not expose structured frames.
+' PostHog auto-generates a fingerprint from type + message.
+sub sendException(data as object)
+    exceptionItem = {
+        type: "BrightScriptException",
+        value: data.message,
+        mechanism: {
+            handled: true,
+            synthetic: false
+        },
+        module: data.location
+    }
+    if data.number <> invalid and data.number <> 0
+        exceptionItem["number"] = data.number
+    end if
+
+    globalProps = getGlobalProps()
+    globalProps["distinct_id"] = getDistinctId()
+
+    payload = {
+        api_key: POSTHOG_API_KEY,
+        event: "$exception",
+        distinct_id: getDistinctId(),
+        properties: {
+            distinct_id: getDistinctId(),
+            "$exception_list": [exceptionItem],
+            app_version: globalProps.app_version,
+            is_dev: globalProps.is_dev,
+            is_logged_in: globalProps.is_logged_in
         }
     }
 

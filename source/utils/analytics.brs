@@ -4,8 +4,9 @@
 '
 '   trackEvent("tab_visited", { tab: "Discover" })
 '   analyticsIdentify({ app_version: "2.3.0", device_model: "4640X", ... })
+'   captureException(e, "heroScene/onMenuSelection")
 '
-' Both functions are safe to call before the task is initialized — events are
+' All functions are safe to call before the task is initialized — events are
 ' silently dropped if m.global.analyticsTask is invalid.
 
 ' Sends a named event with optional properties.
@@ -25,5 +26,17 @@ sub analyticsIdentify(setProps as object)
     if m.global.analyticsTask = invalid then return
     m.global.analyticsTask.identify = {
         set: setProps
+    }
+end sub
+
+' Sends a PostHog $exception event for a caught BrightScript error.
+' e       — the error object from a catch block (e.message, e.number)
+' location — human-readable call site, e.g. "heroScene/onMenuSelection"
+sub captureException(e as object, location as string)
+    if m.global.analyticsTask = invalid then return
+    m.global.analyticsTask.captureException = {
+        message: e.message,
+        number: e.number,
+        location: location
     }
 end sub

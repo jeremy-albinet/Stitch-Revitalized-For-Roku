@@ -43,9 +43,23 @@ sub Main(input as dynamic)
 
     ' Capture prior exit/crash reason before the scene starts so heroScene can
     ' include it in the app_opened analytics event.
+    ' Only store abnormal/crash exits — normal user exits (back, screensaver,
+    ' power-off) are not actionable and would pollute the prior_exit_reason prop.
     priorExitReason = ""
     if input <> invalid and input.lastExitOrTerminationReason <> invalid
-        priorExitReason = input.lastExitOrTerminationReason.toStr()
+        reason = input.lastExitOrTerminationReason.toStr()
+        crashReasons = [
+            "EXIT_BRIGHTSCRIPT_CRASH",
+            "EXIT_OUT_OF_MEMORY",
+            "EXIT_BRIGHTSCRIPT_TIMEOUT",
+            "EXIT_BRIGHTSCRIPT_ERROR"
+        ]
+        for each crashReason in crashReasons
+            if reason = crashReason
+                priorExitReason = reason
+                exit for
+            end if
+        end for
     end if
     m.global.addFields({ priorExitReason: priorExitReason })
 

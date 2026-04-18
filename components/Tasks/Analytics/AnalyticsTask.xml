@@ -5,6 +5,8 @@
         <field id="capture" type="assocarray" alwaysNotify="true" />
         <!-- Set to an assocarray with keys: set (assocarray) for $identify -->
         <field id="identify" type="assocarray" alwaysNotify="true" />
+        <!-- Set to an assocarray with keys: message (string), number (integer), location (string) -->
+        <field id="captureException" type="assocarray" alwaysNotify="true" />
     </interface>
     <script type="text/brightscript" uri="AnalyticsTask.bs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
