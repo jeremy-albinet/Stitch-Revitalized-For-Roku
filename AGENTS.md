@@ -205,6 +205,19 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 - Base URL: `https://gql.twitch.tv/gql` (POST, JSON body with `query` field)
 - Always include `Client-Id` and `Device-ID` headers
 
+### Auth Tiers
+
+The app has two independent auth levels:
+
+| Credential | Registry key | Meaning |
+|---|---|---|
+| `device_code` | `get_user_setting("device_code")` | Twitch-issued device identifier, obtained on first launch via `getRendezvouzToken()`. Required for all GQL requests. **Independent of login.** |
+| `access_token` | `get_user_setting("access_token")` | OAuth token. Only present when the user has logged in. Enables authenticated features (following, posting to chat, etc.). |
+
+`active_user = "$default$"` means no Twitch account is logged in — but the device still has a `device_code` and can make GQL requests. Anonymous users can browse and watch most public streams and VODs without an `access_token`.
+
+**Never assume login is required for playback.** `TwitchGraphQLRequest` in `shared.bs` blocks when `device_code` is missing (first-launch only, very brief window) — not when `access_token` is missing.
+
 ### Query Function Contract (TwitchApiTask.bs)
 
 There are two distinct function classes in `TwitchApiTask.bs`. **Never mix them.**
