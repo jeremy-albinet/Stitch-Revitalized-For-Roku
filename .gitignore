@@ -16,3 +16,13 @@ bsconfig.local.json
 
 # Local developer docs (device credentials, personal config)
 DEV.md
+
+# Python (fmp4-demux-proxy)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

@@ -1,0 +1,96 @@
+name: Docker – Build & Publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'fmp4-demux-proxy/**'
+    tags:
+      - 'proxy-v*'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'fmp4-demux-proxy/**'
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  build-and-push:
+    name: Build & push fmp4-demux-proxy image
+    runs-on: ubuntu-latest
+    # Skip the build on PR close — only the cleanup job runs then
+    if: github.event.action != 'closed'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/fmp4-demux-proxy
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr,prefix=pr-
+            type=semver,pattern={{version}},prefix=proxy-v,event=tag
+            type=semver,pattern={{major}}.{{minor}},prefix=proxy-v,event=tag
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./fmp4-demux-proxy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write image summary
+        run: |
+          {
+            echo "## Docker image"
+            echo ""
+            echo "| Tag | Pull command |"
+            echo "| --- | --- |"
+            while IFS= read -r tag; do
+              echo "| \`$tag\` | \`docker pull $tag\` |"
+            done <<< "${{ steps.meta.outputs.tags }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cleanup-pr-image:
+    name: Delete PR image on close
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete PR image from GHCR
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: fmp4-demux-proxy
+          package-type: container
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete-only-pre-release-versions: false
+          min-versions-to-keep: 0
+          ignore-versions: '^(main|proxy-v|sha-).*'

@@ -1,0 +1,42 @@
+name: Proxy CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fmp4-demux-proxy/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'fmp4-demux-proxy/**'
+
+jobs:
+  test:
+    name: Lint & test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          working-directory: fmp4-demux-proxy
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+        working-directory: fmp4-demux-proxy
+
+      - name: Lint
+        run: uv run ruff check src/ tests/
+        working-directory: fmp4-demux-proxy
+
+      - name: Format check
+        run: uv run ruff format --check src/ tests/
+        working-directory: fmp4-demux-proxy
+
+      - name: Test
+        run: uv run pytest -q
+        working-directory: fmp4-demux-proxy
