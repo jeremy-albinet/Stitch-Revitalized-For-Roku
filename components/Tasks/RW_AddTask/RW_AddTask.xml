@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RW_AddTask" extends="Task">
+    <interface>
+        <!-- Set before running: { login: string, displayName: string, iconUrl: string } -->
+        <field id="entry" type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="RW_AddTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />
+</component>
