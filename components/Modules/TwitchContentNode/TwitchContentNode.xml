@@ -35,6 +35,7 @@
         <field id="lowLatencyStreamsAvailable" type="bool" />
         <!-- Enhanced Broadcasting detection -->
         <field id="isTransmux" type="bool" value="false" />
+        <field id="isProxied" type="bool" value="false" />
         <!-- Error handling fields -->
         <field id="errorCode" type="string" />
     </interface>

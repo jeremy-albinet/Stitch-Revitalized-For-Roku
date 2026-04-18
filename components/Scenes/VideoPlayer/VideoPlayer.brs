@@ -51,7 +51,11 @@ sub onResponse()
 
     ' Warn before playing Enhanced Broadcasting (transmux) streams
     if m.top.content <> invalid and m.top.content.isTransmux = true
-        showTransmuxWarning()
+        if m.top.content.isProxied = true
+            playContent()
+        else
+            showTransmuxWarning()
+        end if
         return
     end if
 
@@ -444,8 +448,18 @@ sub exitPlayer()
         exitProps = {
             content_type: m.top.contentRequested.contentType,
             streamer_login: m.top.contentRequested.streamerLogin,
-            content_id: m.top.contentRequested.contentId
+            content_id: m.top.contentRequested.contentId,
+            is_transmux: false,
+            is_proxied: false,
+            selected_bitrate_kbps: 0
         }
+        if m.top.content <> invalid
+            exitProps.is_transmux = m.top.content.isTransmux = true
+            exitProps.is_proxied = m.top.content.isProxied = true
+            if m.top.content.StreamBitrates <> invalid and m.top.content.StreamBitrates.Count() > 0
+                exitProps.selected_bitrate_kbps = m.top.content.StreamBitrates[0]
+            end if
+        end if
         if m.playbackStartTime <> invalid
             exitProps.duration_seconds = Int(m.playbackStartTime.TotalMilliseconds() / 1000)
         end if

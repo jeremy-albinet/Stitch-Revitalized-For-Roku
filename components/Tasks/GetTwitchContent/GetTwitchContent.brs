@@ -585,10 +585,44 @@ sub main()
 
         if isTransmux
             content.isTransmux = true
+
+            proxyUrl = get_user_setting("proxy.url", "").trim()
+            if proxyUrl.right(1) = "/" then proxyUrl = proxyUrl.left(proxyUrl.len() - 1)
+            ? "[fmp4-demux] isTransmux=true, proxyUrl=" proxyUrl
+            if proxyUrl <> ""
+                if content.url <> invalid and content.url <> ""
+                    ? "[fmp4-demux] rewriting url: " content.url
+                    content.url = proxyUrl + "/m3u8?u=" + content.url.EncodeUriComponent()
+                end if
+                if content.StreamUrls <> invalid
+                    newStreamUrls = []
+                    for each streamUrl in content.StreamUrls
+                        newStreamUrls.push(proxyUrl + "/m3u8?u=" + streamUrl.EncodeUriComponent())
+                    end for
+                    content.StreamUrls = newStreamUrls
+                end if
+                content.ForwardQueryStringParams = false
+                content.isTransmux = false
+                content.isProxied = true
+            end if
         end if
+
+        selectedBitrateKbps = 0
+        if selectedMetadata <> invalid and selectedMetadata.StreamBitrates <> invalid and selectedMetadata.StreamBitrates.Count() > 0
+            selectedBitrateKbps = selectedMetadata.StreamBitrates[0]
+        end if
+
+        trackEvent("stream_play_attempt", {
+            content_type: m.top.contentRequested.contentType,
+            channel_login: m.top.contentRequested.streamerLogin,
+            is_transmux: isTransmux,
+            is_proxied: content.isProxied,
+            selected_bitrate_kbps: selectedBitrateKbps
+        })
 
         m.top.metadata = metadata
     end if
+
     m.top.response = content
 end sub
 
