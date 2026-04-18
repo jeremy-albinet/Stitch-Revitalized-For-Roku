@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fmp4-demux-proxy"
+version = "0.1.0"
+description = "HLS/fMP4 proxy that demuxes Twitch Enhanced Broadcasting muxed streams into separate audio/video tracks for Roku playback."
+readme = "README.md"
+license = "Unlicense"
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.9",
+]
+
+[project.urls]
+Repository = "https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku"
+"Bug Tracker" = "https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-aiohttp>=1.0",
+    "ruff>=0.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fmp4_demux_proxy"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
