@@ -16,8 +16,8 @@
                 id="settingsMenu"
                 translation="[100, 10]"
                 itemSize="[400, 50]"
-                height="600"
-                vertFocusAnimationStyle="floatingFocus"
+                numRows="10"
+                vertFocusAnimationStyle="fixedFocus"
                 itemSpacing="[0,5]"
                 focusedColor="0x9147FFFF"
                 />
@@ -48,6 +48,7 @@
             </LayoutGroup>
             <RadioButtonList id="radioSetting" translation="[650, 200]" visible="false"
                 inheritParentTransform="false" vertFocusAnimationStyle="floatingFocus" />
+
         </Group>
     </children>
     <script type="text/brightscript" uri="settings.brs" />
