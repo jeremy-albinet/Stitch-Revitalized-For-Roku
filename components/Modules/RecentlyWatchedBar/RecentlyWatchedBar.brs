@@ -34,18 +34,26 @@ sub buildItems()
         m.items = []
     end if
 
+    ' Reset scroll state
+    m.currentIndex = 0
+    m.min = 0
+    m.max = m.visibleWindow - 1
+
     history = RW_Load()
     if history = invalid or history.Count() = 0 then return
 
     translationY = m.itemStartY
+    index = 0
 
     for each entry in history
         item = CreateObject("roSGNode", "RecentlyWatchedItem")
         item.translation = [m.itemX, translationY]
         item.itemData = entry
+        item.visible = (index >= m.min and index <= m.max)
         m.top.appendChild(item)
         m.items.push(item)
         translationY += m.itemSpacing
+        index += 1
     end for
 end sub
 
@@ -95,10 +103,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             end for
             m.min -= 1
             m.max -= 1
-            ' Hide items that have scrolled above the visible area
-            for each item in m.items
-                item.visible = (item.translation[1] >= 0)
-            end for
+            updateItemVisibility()
         end if
         m.items[m.currentIndex].focused = true
         return true
@@ -117,10 +122,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             end for
             m.min += 1
             m.max += 1
-            ' Hide items that have scrolled above the visible area
-            for each item in m.items
-                item.visible = (item.translation[1] >= 0)
-            end for
+            updateItemVisibility()
         end if
         m.items[m.currentIndex].focused = true
         return true
@@ -148,6 +150,15 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     return false
 end function
+
+' Show only items within the visible scroll window, hide above and below.
+sub updateItemVisibility()
+    bottomBound = m.itemStartY + m.itemSpacing * m.visibleWindow
+    for each item in m.items
+        y = item.translation[1]
+        item.visible = (y >= 0 and y < bottomBound)
+    end for
+end sub
 
 sub onDestroy()
     m.refreshTimer = destroyTask(m.refreshTimer, "fire")
