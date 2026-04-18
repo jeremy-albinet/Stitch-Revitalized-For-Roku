@@ -347,8 +347,4 @@ sub setConstants()
         }
     })
 
-    ' Start the background analytics task and expose it globally.
-    analyticsTask = CreateObject("roSGNode", "AnalyticsTask")
-    analyticsTask.control = "RUN"
-    m.global.addFields({ analyticsTask: analyticsTask })
 end sub
