@@ -223,14 +223,17 @@ end sub
 sub onBackPressed()
     if m.activeNode.backPressed = invalid or not m.activeNode.backPressed then return
     if m.activeNode.id = "StreamerChannelPage"
-        if m.footprints[0].id = "LoginPage"
+        if m.footprints.Count() > 0 and m.footprints[0].id = "LoginPage"
             m.footprints.pop()
         end if
         m.top.removeChild(m.activeNode)
+        m.activeNode = invalid
         m.menu.buttonFocus = 0
     end if
     if m.footprints.Count() > 0
-        m.top.removeChild(m.activeNode)
+        if m.activeNode <> invalid
+            m.top.removeChild(m.activeNode)
+        end if
         m.activeNode = m.footprints.pop()
         m.activeNode.setFocus(false)
         if focusedMenuItem() = "LoginPage"
@@ -251,6 +254,7 @@ function onKeyEvent(key, press) as boolean
 
     if key = "up"
         if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
+            m.recentBar.itemHasFocus = false
             m.menu.setFocus(true)
         end if
         return true
@@ -263,7 +267,6 @@ function onKeyEvent(key, press) as boolean
 
     if key = "left"
         if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer" and m.activeNode.id <> "StreamerChannelPage"
-            m.activeNode.setFocus(false)
             m.recentBar.setFocus(true)
             m.recentBar.itemHasFocus = true
             return true
