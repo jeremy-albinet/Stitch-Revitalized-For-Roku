@@ -113,6 +113,7 @@ function extractShelves(rsp as object) as object
                         end if
                     catch e
                         ? "[TwitchApiTask] extractShelves: failed to parse stream item: "; e
+                        captureException(e, "TwitchApiTask/extractShelves")
                     end try
                 end for
             end if
@@ -124,6 +125,7 @@ function extractShelves(rsp as object) as object
             end if
         catch e
             ? "[TwitchApiTask] extractShelves: failed to parse shelf: "; e
+            captureException(e, "TwitchApiTask/extractShelves")
         end try
     end for
     return shelves
@@ -157,6 +159,7 @@ function extractLiveFollows(rsp as object) as object
             results.push(item)
         catch e
             ? "[TwitchApiTask] extractLiveFollows: failed to parse live follow item: "; e
+            captureException(e, "TwitchApiTask/extractLiveFollows")
         end try
     end for
     return results
@@ -183,6 +186,7 @@ function extractOfflineFollows(rsp as object) as object
             results.push(item)
         catch e
             ? "[TwitchApiTask] extractOfflineFollows: failed to parse offline follow item: "; e
+            captureException(e, "TwitchApiTask/extractOfflineFollows")
         end try
     end for
     return results
