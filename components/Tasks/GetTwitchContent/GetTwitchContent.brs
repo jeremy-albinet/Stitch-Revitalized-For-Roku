@@ -171,7 +171,7 @@ sub main()
             sleep(1000)
         end while
         if usher_response = invalid
-            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "usher_request_failed" })
+            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "usher_request_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
             m.top.response = invalid
             return
         end if
