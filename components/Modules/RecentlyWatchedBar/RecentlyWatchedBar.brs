@@ -7,7 +7,6 @@ sub init()
     m.icon = m.top.findNode("icon")
 
     ' Layout constants
-    m.maxItems = RW_MaxItems()
     m.itemSpacing = 60 ' px between item origins
     m.itemStartY = 128 ' px below bar top (clears MenuBar ~78px + icon area)
     m.itemX = 14 ' px from bar left edge
@@ -35,7 +34,7 @@ sub buildItems()
         m.items = []
     end if
 
-    history = RW_Load(m.maxItems)
+    history = RW_Load()
     if history = invalid or history.Count() = 0 then return
 
     translationY = m.itemStartY
@@ -134,7 +133,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
         ' Build a TwitchContentNode for the selected channel
         content = CreateObject("roSGNode", "TwitchContentNode")
         content.contentType = "LIVE"
-        content.streamerId = data.id
         content.streamerLogin = data.login
         content.streamerDisplayName = data.displayName
         content.streamerProfileImageUrl = data.iconUrl
