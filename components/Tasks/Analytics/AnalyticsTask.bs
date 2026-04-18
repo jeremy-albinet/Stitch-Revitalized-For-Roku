@@ -101,20 +101,20 @@ end sub
 ' No stacktrace is included — BrightScript does not expose structured frames.
 ' PostHog auto-generates a fingerprint from type + message.
 ' Rate-limited per unique message to prevent burst duplicates from loop iterations.
-sub sendException(data as object)
-    if isRateLimited("$exception:" + data.message) then return
+sub sendException(err as object)
+    if isRateLimited("$exception:" + err.message) then return
 
     exceptionItem = {
         type: "BrightScriptException",
-        value: data.message,
+        value: err.message,
         mechanism: {
             handled: true,
             synthetic: false
         },
-        module: data.location
+        module: err.location
     }
-    if data.number <> invalid and data.number <> 0
-        exceptionItem["number"] = data.number
+    if err.number <> invalid and err.number <> 0
+        exceptionItem["number"] = err.number
     end if
 
     distinctId = getDistinctId()
