@@ -327,6 +327,56 @@ curl -s -X POST http://localhost:8060/keypress/Right
 4. Navigate: ECP keypress commands to localhost:8060
 5. Repeat
 
+#### Running Tests — Stale Package Warning
+
+`npm test` builds a zip, sideloads it, then streams the debug console output. The simulator **keeps the previous package in memory** until the new one fully loads. This means the first 2–3 test runs printed by the console may reflect the old zip, not the freshly built one.
+
+**Rule: always `rm -rf out` before `npm test` when you need a definitive result.** This forces a clean build and eliminates any ambiguity about which package is running.
+
+```bash
+rm -rf out && npm test
+```
+
+Rooibos loops the test suite multiple times. Treat the first run that shows the correct test names as canonical. If any run shows test names from a previous version of the spec, discard it — the simulator was still loading.
+
+#### Rooibos Test Patterns — brs-engine Limitations
+
+brs-engine **copies AAs on every nested field read**. This breaks the pattern of observing writes through `m.global`:
+
+```brightscript
+' BROKEN in brs-engine — write lands on a throwaway copy, task.capture stays invalid
+task = { capture: invalid }
+m.global = { analyticsTask: task }
+trackEvent("foo")              ' writes m.global.analyticsTask.capture = { ... }
+? task.capture                 ' invalid — copy-on-read discarded the write
+```
+
+**What works in Rooibos tests:**
+
+1. **Guard-clause tests** — verify the helper doesn't crash when `analyticsTask = invalid` or when it is valid. These always pass and cover the only real branching logic in thin wrappers.
+
+2. **Payload shape tests** — if you need to assert the shape of a payload the helper *would* write, construct the expected AA directly in the test and assert its fields. Don't call the helper for this; test the data contract, not the assignment.
+
+3. **Avoid** testing chained writes through `m.global.analyticsTask.*` — no spy, self-referential AA, or `m.*` storage trick reliably works in brs-engine due to copy-on-read semantics.
+
+```brightscript
+' CORRECT: guard-clause test
+@it("does not crash when analyticsTask is invalid")
+sub trackEvent_taskInvalid()
+    m.global = { analyticsTask: invalid }
+    trackEvent("test_event", { key: "value" })
+    m.assertTrue(true)
+end sub
+
+' CORRECT: payload shape test (no helper call needed)
+@it("capture payload has correct shape")
+sub trackEvent_payloadShape()
+    payload = { event: "tab_visited", props: { tab: "Discover" } }
+    m.assertEqual(payload.event, "tab_visited")
+    m.assertEqual(payload.props.tab, "Discover")
+end sub
+```
+
 #### Known brs-engine Quirks
 
 The brs-desktop simulator uses brs-engine, which has compatibility gaps with real Roku hardware. The app includes defensive workarounds.

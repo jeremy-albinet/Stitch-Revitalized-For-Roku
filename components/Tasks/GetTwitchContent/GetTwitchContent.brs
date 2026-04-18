@@ -91,14 +91,14 @@ sub main()
         usherUrl = ""
         if m.top.contentRequested.contentType = "VOD"
             if rsp = invalid or rsp.data = invalid or rsp.data.video = invalid or rsp.data.video.playbackAccessToken = invalid
-                trackEvent("content_fetch_error", { content_type: "VOD", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId })
+                trackEvent("content_fetch_error", { content_type: "VOD", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
                 m.top.response = invalid
                 return
             end if
             usherUrl = "https://usher.ttvnw.net/vod/" + rsp.data.video.id + ".m3u8?playlist_include_framerate=true&allow_source=true&player_type=pulsar&player_backend=mediaplayer&reassignments_supported=true&nauth=" + rsp.data.video.playbackAccessToken.value.EncodeUri() + "&nauthsig=" + rsp.data.video.playbackAccessToken.signature
         else if m.top.contentRequested.contentType = "LIVE"
             if rsp = invalid or rsp.data = invalid or rsp.data.user = invalid or rsp.data.user.stream = invalid or rsp.data.user.stream.playbackAccessToken = invalid
-                trackEvent("content_fetch_error", { content_type: "LIVE", error_type: "token_fetch_failed", streamer_login: m.top.contentRequested.streamerLogin })
+                trackEvent("content_fetch_error", { content_type: "LIVE", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
                 m.top.response = invalid
                 return
             end if
@@ -254,7 +254,7 @@ sub main()
 
         ' If no streams found, this is a critical error
         if stream_objects.Count() = 0
-            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "no_streams_in_manifest", streamer_login: m.top.contentRequested.streamerLogin })
+            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "no_streams_in_manifest", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
             m.top.response = invalid
             return
         end if

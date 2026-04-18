@@ -1,4 +1,11 @@
 sub init()
+    ' Start the analytics task here — roSGNode creation requires the SceneGraph
+    ' render thread, which is not available in the main BrightScript thread where
+    ' setConstants() runs.
+    analyticsTask = CreateObject("roSGNode", "AnalyticsTask")
+    analyticsTask.control = "RUN"
+    m.global.addFields({ analyticsTask: analyticsTask })
+
     m.validateOauthToken = createApiTask("validateOauthToken", "ValidateUserLogin")
     VersionJobs()
     m.top.backgroundUri = ""

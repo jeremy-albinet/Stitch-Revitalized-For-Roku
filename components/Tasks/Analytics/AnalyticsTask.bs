@@ -100,7 +100,10 @@ end sub
 ' Optionally: number (integer) — BrightScript error code.
 ' No stacktrace is included — BrightScript does not expose structured frames.
 ' PostHog auto-generates a fingerprint from type + message.
+' Rate-limited per unique message to prevent burst duplicates from loop iterations.
 sub sendException(data as object)
+    if isRateLimited("$exception:" + data.message) then return
+
     exceptionItem = {
         type: "BrightScriptException",
         value: data.message,
@@ -114,20 +117,18 @@ sub sendException(data as object)
         exceptionItem["number"] = data.number
     end if
 
-    globalProps = getGlobalProps()
-    globalProps["distinct_id"] = getDistinctId()
+    distinctId = getDistinctId()
+
+    mergedProps = {}
+    mergedProps.append(getGlobalProps())
+    mergedProps["distinct_id"] = distinctId
+    mergedProps["$exception_list"] = [exceptionItem]
 
     payload = {
         api_key: POSTHOG_API_KEY,
         event: "$exception",
-        distinct_id: getDistinctId(),
-        properties: {
-            distinct_id: getDistinctId(),
-            "$exception_list": [exceptionItem],
-            app_version: globalProps.app_version,
-            is_dev: globalProps.is_dev,
-            is_logged_in: globalProps.is_logged_in
-        }
+        distinct_id: distinctId,
+        properties: mergedProps
     }
 
     postToPostHog(payload)
