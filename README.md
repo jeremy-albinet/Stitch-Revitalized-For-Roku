@@ -38,6 +38,14 @@ Manual Compiling:
 - Click on Run > Start Debugging and it will install the app on your device
 - You may need to run a 'npm install' command in the terminal of Visual Studio Code
 
+## Known Limitations: Enhanced Broadcasting Streams
+
+Twitch Enhanced Broadcasting (EB) streams use muxed fMP4 HLS — a single track containing both audio and video. Roku devices require demuxed HLS (separate audio and video tracks) and will either fail to load (error 970) or play video with no audio when given muxed fMP4.
+
+**Affected streams:** Channels broadcasting with Twitch Enhanced Broadcasting (visible as "Enhanced Broadcasting" on their stream dashboard). Regular streams are unaffected.
+
+**Workaround:** The [`fmp4-demux-proxy`](./fmp4-demux-proxy/README.md) — a lightweight self-hosted proxy that transparently demuxes EB streams into separate audio/video tracks before they reach the Roku. See the proxy's README for setup instructions.
+
 ## Contributing
 
 If you are comfortable using the GitHub interface, you can report bugs or request features by opening a [GitHub Issue](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues). (Please check to see if your issue has already been reported before opening a new one.)
