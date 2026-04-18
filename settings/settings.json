@@ -179,13 +179,6 @@
         ]
     },
     {
-        "title": "Show Followed Streams Sidebar",
-        "description": "Shows or hides the left-side followed streams bar while browsing.",
-        "settingName": "FollowBarOption",
-        "type": "bool",
-        "default": "true"
-    },
-    {
         "title": "Anonymous Analytics",
         "description": "Share anonymous usage data to help improve Stitch. No personal information is collected. Changes take effect on next app start.",
         "settingName": "analytics.enabled",
