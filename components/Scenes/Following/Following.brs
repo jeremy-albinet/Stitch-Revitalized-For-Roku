@@ -150,8 +150,8 @@ end sub
 sub handleItemSelected()
     item = invalid
     if m.rowlist.focusedChild <> invalid
-        item = m.rowList
-    else if m.offlinelist.focusedChild <> invalid
+        item = m.rowlist
+    else if m.offlinelist <> invalid and m.offlinelist.focusedChild <> invalid
         item = m.offlinelist
     end if
     if item <> invalid
