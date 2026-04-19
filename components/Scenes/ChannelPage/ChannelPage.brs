@@ -7,35 +7,6 @@ sub init()
     m.followers = m.top.findNode("followers")
     m.description = m.top.findNode("description")
     m.avatar = m.top.findNode("avatar")
-    m.channelMenu = m.top.findNode("channelMenu")
-    m.chat = m.top.findNode("chat")
-    m.focusindicator = m.top.findNode("focusindicator")
-end sub
-
-function isOwnChannel() as boolean
-    if get_setting("active_user", "$default$") = "$default$" then return false
-    if m.top.contentRequested = invalid then return false
-    myLogin = get_user_setting("login")
-    theirLogin = m.top.contentRequested.streamerLogin
-    if myLogin = invalid or theirLogin = invalid then return false
-    return myLogin.toStr() = theirLogin.toStr()
-end function
-
-sub configureOwnChannelMode()
-    if isOwnChannel()
-        m.channelMenu.visible = true
-        m.chat.visible = true
-        m.focusindicator.visible = true
-        m.chat.channel_id = m.top.contentRequested.streamerId
-        m.chat.channel = m.top.contentRequested.streamerLogin
-        m.channelMenu.menuOptionsText = ["Full Screen Chat", "Logout"]
-        m.channelMenu.observeField("buttonSelected", "onMenuButtonSelected")
-        m.channelMenu.setFocus(true)
-    else
-        m.channelMenu.visible = false
-        m.chat.visible = false
-        m.focusindicator.visible = false
-    end if
 end sub
 
 sub updatePage()
@@ -46,46 +17,6 @@ sub updatePage()
     m.GetShellTask = createApiTask("getChannelShell", "updateChannelShell", {
         params: { id: m.top.contentRequested.streamerLogin }
     })
-    configureOwnChannelMode()
-end sub
-
-sub fullScreenChat()
-    if m.top.fullScreenChat
-        m.chat.translation = "[0,0]"
-        m.chat.height = 720
-        m.chat.width = 1280
-        m.chat.fontSize = get_user_setting("FullScreenChatFontSize")
-    else
-        m.chat.translation = "[30,330]"
-        m.chat.width = "1220"
-        m.chat.height = "380"
-        m.chat.fontSize = get_user_setting("ChatFontSize")
-    end if
-end sub
-
-sub onMenuButtonSelected()
-    selectedButton = LCase(m.channelMenu.menuOptionsText[m.channelMenu.buttonSelected])
-    ? "selected button: "; selectedButton
-    if selectedButton = "logout"
-        active_user = get_setting("active_user", "$default$")
-        if active_user <> "$default$"
-            ? "default Registry keys: "; getRegistryKeys("$default$")
-            NukeRegistry(active_user)
-            set_setting("active_user", "$default$")
-            ? "active User: "; get_setting("active_user", "$default$")
-        else
-            for each key in getRegistryKeys("$default$")
-                if key <> "temp_device_code"
-                    unset_user_setting(key)
-                end if
-            end for
-        end if
-        m.top.finished = true
-        m.top.backPressed = true
-    end if
-    if selectedButton = "full screen chat"
-        m.top.fullScreenChat = not m.top.fullScreenChat
-    end if
 end sub
 
 sub updateChannelShell()
@@ -106,11 +37,6 @@ sub setBannerImage()
     poster.scale = [1.1, 1.1]
     poster.visible = true
     poster.translation = [0, (0 - poster.height / 3)]
-    ' overlay = createObject("roSGNode", "Rectangle")
-    ' overlay.color = "0x01010110"
-    ' overlay.width = 1280
-    ' overlay.height = 320
-    ' poster.appendChild(overlay)
     bannerGroup.appendChild(poster)
 end sub
 
@@ -211,34 +137,20 @@ sub FocusRowlist()
 end sub
 
 sub onGetFocus()
-    if isOwnChannel()
-        if m.channelMenu <> invalid
-            m.channelMenu.setFocus(true)
-        end if
-    else
-        FocusRowlist()
-    end if
+    FocusRowlist()
 end sub
 
 sub onDestroy()
     m.top.unobserveField("focusedChild")
     m.rowlist.unobserveField("itemSelected")
-    if m.channelMenu <> invalid
-        m.channelMenu.unobserveField("buttonSelected")
-    end if
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
     m.GetShellTask = destroyTask(m.GetShellTask, "response")
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if press
-        ? "Channel Page Key Event: "; key
         if key = "back"
-            if m.top.fullScreenChat
-                m.top.fullScreenChat = false
-            else
-                m.top.backPressed = true
-            end if
+            m.top.backPressed = true
             return true
         end if
         if key = "OK"
