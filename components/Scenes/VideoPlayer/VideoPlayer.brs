@@ -537,20 +537,21 @@ sub onVideoStateChange()
         end if
 
         if isFatalError or elapsedMs > 5000
-            handleStreamError()
+            handleStreamError(errorMsg)
         else
             ? "[VideoPlayer] Transient error within grace period ("; elapsedMs; "ms) — letting Roku self-recover"
         end if
     end if
 end sub
 
-sub handleStreamError()
+sub handleStreamError(errorStr = invalid as dynamic)
     if m.errorHandler = invalid
         m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
     end if
 
     errorCode = m.video.errorCode
-    errorMessage = m.video.errorMessage
+    errorMessage = errorStr
+    if errorMessage = invalid then errorMessage = m.video.errorStr
     if errorMessage = invalid then errorMessage = "Unknown error"
 
     ' Get error classification for user-friendly messages
