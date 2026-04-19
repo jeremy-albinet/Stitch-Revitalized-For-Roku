@@ -4,6 +4,10 @@
         <field id="contentRequested" type="node" onChange="updatePage" />
         <field id="backgroundColor" type="string" alias="background.color, background2.color" />
         <field id="selectedItem" type="node" />
+        <field id="chatStarted" type="bool" value="false" />
+        <field id="fullScreenChat" type="bool" value="false" onChange="fullScreenChat" />
+        <field id="finished" type="bool" />
+        <field id="cameFromLogin" type="bool" value="false" />
     </interface>
     <script type="text/brightscript" uri="ChannelPage.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
@@ -33,6 +37,7 @@
                     translation="[160,85]" />
 
             </Group>
+            <ChannelMenu id="channelMenu" translation="[700,180]" visible="false" />
             <Group id="about" translation="[450,25]">
                 <InfoPane
                     visible="false"
@@ -40,18 +45,6 @@
                     width="600"
                     translation="[20,0]" />
             </Group>
-            <!-- <Button
-                id="exampleButton"
-                text=""
-                textColor=""
-                focusedTextColor=""
-                iconUri="pkg:/images/icons/heart-o.png"
-                focusedIconUri="pkg:/images/icons/heart-o.png"
-                showFocusFootprint="true"
-                height="24"
-                focusable="true"
-                maxWidth="24"
-                translation="[300,160]" /> -->
             <RowList
                 id="homeRowList"
                 rowLabelOffset="[[0,5]]"
@@ -69,6 +62,8 @@
                 rowFocusAnimationStyle="fixedFocus"
             />
         </Group>
+        <Poster id="focusindicator" uri="pkg:/images/focusindicator.9.png" translation="[28,320]" width="1224" height="392" visible="false" />
+        <Chat id="chat" translation="[30,330]" backgroundColor="0x000000ff" width="1220" height="380" visible="false" forceLive="true" />
     </children>
 
 </component>
