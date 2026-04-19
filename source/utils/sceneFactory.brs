@@ -43,6 +43,7 @@ function build_ChannelPage()
     node = createObject("roSGNode", "ChannelPage")
     node.id = "ChannelPage"
     node.translation = [0, 0]
+    node.observeField("finished", "onLoginFinished")
     return node
 end function
 
@@ -60,10 +61,3 @@ function build_VideoPlayer()
     return node
 end function
 
-function build_StreamerChannelPage()
-    node = createObject("roSGNode", "StreamerChannelPage")
-    node.id = "StreamerChannelPage"
-    node.translation = [0, 0]
-    node.observeField("finished", "onLoginFinished")
-    return node
-end function

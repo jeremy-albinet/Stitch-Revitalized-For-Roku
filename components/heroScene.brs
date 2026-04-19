@@ -206,8 +206,6 @@ function buildNode(name)
         newNode = build_GamePage()
     else if name = "VideoPlayer"
         newNode = build_VideoPlayer()
-    else if name = "StreamerChannelPage"
-        newNode = build_StreamerChannelPage()
     else
         return invalid
     end if
@@ -219,7 +217,7 @@ function buildNode(name)
     newNode.observeField("contentSelected", "onContentSelected")
 
     ' Tree placement
-    if name = "GamePage" or name = "ChannelPage" or name = "VideoPlayer" or name = "StreamerChannelPage"
+    if name = "GamePage" or name = "ChannelPage" or name = "VideoPlayer"
         m.top.appendChild(newNode)
     else
         m.top.insertChild(newNode, 1)
@@ -295,7 +293,7 @@ sub onContentSelected()
     if m.activeNode = invalid or m.activeNode.contentSelected = invalid then return
     id = invalid
     if m.activeNode.contentSelected.contentType = "STREAMER"
-        id = "StreamerChannelPage"
+        id = "ChannelPage"
     else if m.activeNode.contentSelected.contentType = "GAME"
         id = "GamePage"
     else if m.activeNode.contentSelected.contentType = "LIVE" or m.activeNode.contentSelected.contentType = "VOD" or m.activeNode.contentSelected.contentType = "USER"
@@ -323,12 +321,15 @@ sub onContentSelected()
         if m.activeNode = invalid then return
     end if
     m.activeNode.contentRequested = content
+    if holdContent.contentType = "STREAMER"
+        m.activeNode.cameFromLogin = true
+    end if
     m.activeNode.setfocus(true)
 end sub
 
 sub onBackPressed()
     if m.activeNode.backPressed = invalid or not m.activeNode.backPressed then return
-    if m.activeNode.id = "StreamerChannelPage"
+    if m.activeNode.id = "ChannelPage" and m.activeNode.cameFromLogin = true
         if m.footprints.Count() > 0 and m.footprints[0].id = "LoginPage"
             m.footprints.pop()
         end if
@@ -377,7 +378,7 @@ function onKeyEvent(key, press) as boolean
     end if
 
     if key = "left"
-        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer" and m.activeNode.id <> "StreamerChannelPage"
+        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
             m.recentBar.setFocus(true)
             m.recentBar.itemHasFocus = true
             return true
