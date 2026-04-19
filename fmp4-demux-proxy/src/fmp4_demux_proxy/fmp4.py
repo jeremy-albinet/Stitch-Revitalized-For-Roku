@@ -270,6 +270,10 @@ def split_moov(
 
 def _parse_tfhd_info(tfhd_body: bytes) -> tuple[int, int, int]:
     """Return ``(track_id, flags24, default_sample_size)`` from a tfhd body."""
+    if len(tfhd_body) < 8:
+        raise TruncatedBoxError(
+            f"tfhd body too short: need 8 bytes for version/flags/track_id, got {len(tfhd_body)}"
+        )
     flags = (tfhd_body[1] << 16) | (tfhd_body[2] << 8) | tfhd_body[3]
     track_id = struct.unpack_from(">I", tfhd_body, 4)[0]
     offset = 8
@@ -290,6 +294,11 @@ def _parse_trun_data(
     default_sample_size: int,
 ) -> tuple[int, int, int]:
     """Return ``(data_offset, total_data_size, flags24)`` from a trun body."""
+    if len(trun_body) < 8:
+        raise TruncatedBoxError(
+            f"trun body too short: need 8 bytes for version/flags/sample_count,"
+            f" got {len(trun_body)}"
+        )
     flags = (trun_body[1] << 16) | (trun_body[2] << 8) | trun_body[3]
     sample_count = struct.unpack_from(">I", trun_body, 4)[0]
     off = 8
@@ -425,6 +434,9 @@ def split_moof_mdat(
                 kept_bytes = b"".join(data[s : s + n] for s, n in kept_ranges)
                 parts.append(final_moof)
                 parts.append(_build_box(b"mdat", kept_bytes))
+            else:
+                parts.append(moof_raw)
+                parts.append(raw)
 
             pending_moof = None
             continue

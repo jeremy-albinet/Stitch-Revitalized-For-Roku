@@ -347,3 +347,50 @@ class TestSplitMoofMdat:
 
         box_types = [h.type for h, _ in iter_top_level_boxes(result)]
         assert b"emsg" not in box_types
+
+    def test_no_matching_track_passes_through_unchanged(self) -> None:
+        segment = make_split_media_segment(1, self._VIDEO_DATA, self._AUDIO_DATA)
+        track_map: dict[int, str] = {}
+        result = split_moof_mdat(segment, track_map, "video")
+        assert result == segment
+
+
+class TestTruncatedBoxErrors:
+    def test_tfhd_too_short_raises_truncated(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_tfhd_info
+
+        with pytest.raises(TruncatedBoxError):
+            _parse_tfhd_info(b"\x00" * 4)
+
+    def test_tfhd_empty_raises_truncated(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_tfhd_info
+
+        with pytest.raises(TruncatedBoxError):
+            _parse_tfhd_info(b"")
+
+    def test_trun_too_short_raises_truncated(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_trun_data
+
+        with pytest.raises(TruncatedBoxError):
+            _parse_trun_data(b"\x00" * 4, 0)
+
+    def test_trun_empty_raises_truncated(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_trun_data
+
+        with pytest.raises(TruncatedBoxError):
+            _parse_trun_data(b"", 0)
+
+    def test_tfhd_exactly_8_bytes_does_not_raise(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_tfhd_info
+
+        body = b"\x00\x00\x00\x00" + struct.pack(">I", 1)
+        track_id, _, _ = _parse_tfhd_info(body)
+        assert track_id == 1
+
+    def test_trun_exactly_8_bytes_does_not_raise(self) -> None:
+        from fmp4_demux_proxy.fmp4 import _parse_trun_data
+
+        body = b"\x00\x00\x00\x00" + struct.pack(">I", 0)
+        data_offset, total, _ = _parse_trun_data(body, 42)
+        assert data_offset == 0
+        assert total == 0

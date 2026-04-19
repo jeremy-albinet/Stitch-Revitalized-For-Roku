@@ -233,7 +233,8 @@ sub main()
 
         for line = 0 to list.Count() - 1
             if list[line].InStr("#EXT-X-STREAM-INF:") = 0
-                stream_info = list[line].Split(",")
+                rawLine = list[line]
+                stream_info = rawLine.Split(",")
                 streamobject = {}
                 for info = 0 to stream_info.Count() - 1
                     info_parsed = stream_info[info].Split("=")
@@ -243,6 +244,19 @@ sub main()
                         streamobject[key] = value
                     end if
                 end for
+
+                ' CODECS="..." may contain commas (e.g. "avc1.64001f,mp4a.40.2"), which the
+                ' comma-split above truncates. Re-extract it from the raw line verbatim.
+                codecsStart = rawLine.InStr("CODECS=")
+                if codecsStart >= 0
+                    afterEq = rawLine.Mid(codecsStart + 7)
+                    if Left(afterEq, 1) = chr(34)
+                        closeQuote = afterEq.Mid(1).InStr(chr(34))
+                        if closeQuote >= 0
+                            streamobject["CODECS"] = afterEq.Mid(1, closeQuote)
+                        end if
+                    end if
+                end if
 
                 ' Get the URL from the next line
                 if line + 1 < list.Count() and Left(list[line + 1], 1) <> "#"
