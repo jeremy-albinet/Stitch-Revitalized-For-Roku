@@ -37,6 +37,15 @@ sub init()
     m.radioSetting.observeField("checkedItem", "radioSettingChanged")
 
     m.configTree = GetConfigTree()
+    if get_setting("active_user", "$default$") = "$default$"
+        filteredTree = []
+        for each item in m.configTree
+            if item.action <> "logout"
+                filteredTree.push(item)
+            end if
+        end for
+        m.configTree = filteredTree
+    end if
     LoadMenu({ children: m.configTree })
 end sub
 
@@ -296,7 +305,7 @@ sub performLogout()
         set_setting("active_user", "$default$")
     else
         for each key in getRegistryKeys("$default$")
-            if key <> "temp_device_code"
+            if key <> "temp_device_code" and key <> "device_code"
                 unset_user_setting(key)
             end if
         end for
