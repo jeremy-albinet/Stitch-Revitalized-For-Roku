@@ -10,23 +10,9 @@ function build_Following()
     return node
 end function
 
-function build_Discover()
-    node = createObject("roSGNode", "Discover")
-    node.id = "Discover"
-    node.translation = [0, 0]
-    return node
-end function
-
-function build_LiveChannels()
-    node = createObject("roSGNode", "LiveChannels")
-    node.id = "LiveChannels"
-    node.translation = [0, 0]
-    return node
-end function
-
-function build_Categories()
-    node = createObject("roSGNode", "Categories")
-    node.id = "Categories"
+function build_Browse()
+    node = createObject("roSGNode", "Browse")
+    node.id = "Browse"
     node.translation = [0, 0]
     return node
 end function

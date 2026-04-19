@@ -13,9 +13,7 @@ sub init()
     m.menu = m.top.findNode("MenuBar")
     m.menu.menuOptionsText = [
         "Following",
-        "Discover",
-        "LiveChannels",
-        "Categories",
+        "Browse",
     ]
     m.menu.observeField("buttonSelected", "onMenuSelection")
     m.menu.setFocus(true)
@@ -194,12 +192,8 @@ function buildNode(name)
     ' Dispatch to scene-specific factory
     if name = "Following"
         newNode = build_Following()
-    else if name = "Discover"
-        newNode = build_Discover()
-    else if name = "LiveChannels"
-        newNode = build_LiveChannels()
-    else if name = "Categories"
-        newNode = build_Categories()
+    else if name = "Browse"
+        newNode = build_Browse()
     else if name = "Search"
         newNode = build_Search()
     else if name = "Settings"
