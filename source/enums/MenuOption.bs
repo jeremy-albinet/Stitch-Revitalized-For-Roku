@@ -1,6 +1,5 @@
 enum MenuOption
-    DISCOVER = "Discover"
-    CATEGORIES = "Categories"
+    BROWSE = "Browse"
     FOLLOWING = "Following"
     VODS = "Vods"
     SEARCH = "Search"
