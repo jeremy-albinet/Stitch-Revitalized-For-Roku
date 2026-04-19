@@ -5,6 +5,8 @@
 Stitch Revitalized is a Roku channel (BrightScript/SceneGraph) providing a Twitch viewing experience.
 Language: BrightScript (`.brs`) and BrighterScript (`.bs`). UI layout via SceneGraph XML.
 
+**Scale**: ~694K cumulative installs, ~16K daily active viewers, ~971K hours streamed in March 2025. Changes ship to a large, real user base — prefer minimal, targeted fixes over broad refactors, and never leave the app in a broken state.
+
 ## Build, Lint & Format Commands
 
 ```bash
