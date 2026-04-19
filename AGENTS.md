@@ -19,6 +19,11 @@ npm run fmt:check    # Check formatting (fails on diff)
 
 CI runs on PRs: `lint` → `fmt:check` → `package`. All three must pass.
 
+> **MANDATORY before every commit**: run `npm run fmt` to auto-format all `.brs`/`.bs` files.
+> The formatter enforces `keywordCase: "lower"`, which lowercases enum member names and other
+> identifiers — do not manually set enum members to UPPERCASE; the formatter will revert them.
+> Always run `npm run fmt:check` after formatting to confirm the diff is clean before staging.
+
 ```bash
 npm test                                         # Run Rooibos tests on simulator (default)
 ROKU_HOST=192.168.x.x ROKU_PASSWORD=pw npm test  # Run on physical TV
