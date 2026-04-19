@@ -68,16 +68,8 @@ end sub
 sub RunContentTask()
     ? "active User: "; get_setting("active_user", "$default$")
     if get_setting("active_user", "$default$") <> "$default$"
-        m.code.visible = false
-        m.loginText.visible = false
-        m.bottomText.visible = false
-        content = createObject("roSGNode", "TwitchContentNode")
-        content.streamerDisplayName = get_user_setting("display_name")
-        content.streamerLogin = get_user_setting("login")
-        content.streamerId = get_user_setting("id")
-        content.streamerProfileImageUrl = get_user_setting("profile_image_url")
-        content.contentType = "STREAMER"
-        m.top.contentSelected = content
+        ' Already logged in — dismiss LoginPage and return to the previous scene.
+        m.top.backPressed = true
     else
         ? "[LoginPage] - RunContentTask"
         m.code.visible = true
