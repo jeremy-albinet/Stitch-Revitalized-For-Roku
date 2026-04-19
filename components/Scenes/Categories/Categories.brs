@@ -29,7 +29,7 @@ function buildContentNodeFromShelves(games)
             rowItem.gameId = node.id
             rowItem.gameName = node.name
             if node.boxArtURL <> invalid and node.boxArtURL <> ""
-                rowItem.gameBoxArtUrl = Left(node.boxArtURL, Len(node.boxArtURL) - 11) + "188x250.jpg"
+                rowItem.gameBoxArtUrl = Left(node.boxArtURL, Len(node.boxArtURL) - 20) + "188x250.jpg"
             end if
             row.appendChild(rowItem)
             if row.getChildCount() = 5
@@ -96,9 +96,9 @@ end function
 sub updateRowList(contentCollection)
     rowData = buildRowData(contentCollection)
     if m.rowlist.content <> invalid
-        for i = 0 to (rowData.content.getChildCount() - 1) step 1
-            m.rowlist.content.appendChild(rowData.content.getchild(i))
-        end for
+        while rowData.content.getChildCount() > 0
+            m.rowlist.content.appendChild(rowData.content.getChild(0))
+        end while
     else
         m.rowlist.content = rowData.content
     end if

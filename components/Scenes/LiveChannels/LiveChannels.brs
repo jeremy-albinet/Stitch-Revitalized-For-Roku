@@ -83,9 +83,9 @@ sub updateRowList(content as object)
         return
     end if
     if m.rowList.content <> invalid
-        for i = 0 to (content.getChildCount() - 1) step 1
-            m.rowList.content.appendChild(content.getChild(i))
-        end for
+        while content.getChildCount() > 0
+            m.rowList.content.appendChild(content.getChild(0))
+        end while
     else
         m.rowList.content = content
     end if
