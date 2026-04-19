@@ -1,0 +1,27 @@
+query BrowseCategories_Query(
+            $first: Int!
+            $after: Cursor
+        ) {
+            directoriesWithTags(first: $first, after: $after) {
+                edges {
+                    cursor
+                    node {
+                        ...FocusableCategoryCard_category
+                        id
+                        __typename
+                    }
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+
+        fragment FocusableCategoryCard_category on Game {
+            name
+            id
+            __typename
+            displayName
+            viewersCount
+            boxArtURL
+        }

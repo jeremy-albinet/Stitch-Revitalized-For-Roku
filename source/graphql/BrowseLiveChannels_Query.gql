@@ -1,0 +1,50 @@
+query BrowseLiveChannels_Query(
+            $limit: Int!
+            $after: Cursor
+            $sort: StreamSort
+            $broadcasterLanguages: [String!]
+        ) {
+            streams(first: $limit, after: $after, options: {
+                sort: $sort
+                broadcasterLanguages: $broadcasterLanguages
+                includeRestricted: ["SUB_ONLY_LIVE"]
+            }) {
+                edges {
+                    cursor
+                    node {
+                        id
+                        __typename
+                        viewersCount
+                        ...FocusableStreamCard_stream
+                    }
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+
+        fragment FocusableStreamCard_stream on Stream {
+            broadcaster {
+                displayName
+                login
+                broadcastSettings {
+                    title
+                    id
+                    __typename
+                }
+                profileImageURL(width: 50)
+                id
+                __typename
+            }
+            game {
+                displayName
+                name
+                id
+                __typename
+            }
+            id
+            __typename
+            previewImageURL
+            viewersCount
+        }
