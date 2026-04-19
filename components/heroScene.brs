@@ -108,6 +108,62 @@ sub VersionJobs()
             set_setting("active_user", "$default$")
         end if
     end if
+
+    currentVersion = m.global.appInfo.Version.Version
+    lastSeenVersion = get_setting("last_seen_version")
+
+    changelog = getChangelog()
+    sortedVersions = getSortedChangelogVersions(changelog)
+
+    ' Collect changelog entries newer than lastSeenVersion.
+    ' When lastSeenVersion is invalid (first install), all entries are shown.
+    pendingLines = []
+    for each v in sortedVersions
+        isNew = lastSeenVersion = invalid or compareVersions(v, lastSeenVersion) > 0
+        if isNew and changelog[v] <> invalid
+            if pendingLines.count() > 0
+                pendingLines.push("")
+            end if
+            pendingLines.push("v" + v)
+            for each line in changelog[v]
+                pendingLines.push("  - " + line)
+            end for
+        end if
+    end for
+
+    if pendingLines.count() > 0
+        m.pendingChangelog = pendingLines
+    end if
+
+    set_setting("last_seen_version", currentVersion)
+end sub
+
+sub showChangelogDialog()
+    if m.pendingChangelog = invalid or m.pendingChangelog.count() = 0 then return
+
+    lines = m.pendingChangelog
+    lines.push("")
+    lines.push("Found a bug or have a suggestion? -> bit.ly/roku-twitch")
+
+    dialog = createObject("roSGNode", "StandardMessageDialog")
+    dialog.title = "What's New"
+    dialog.message = lines
+    dialog.buttons = ["Got it"]
+    dialog.observeField("buttonSelected", "onChangelogDialogClosed")
+    dialog.observeField("wasClosed", "onChangelogDialogClosed")
+
+    scene = m.top.getScene()
+    if scene <> invalid
+        scene.dialog = dialog
+    end if
+    m.pendingChangelog = invalid
+end sub
+
+sub onChangelogDialogClosed()
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid
+        scene.dialog.close = true
+    end if
 end sub
 
 sub handleDeviceCode()
@@ -177,6 +233,7 @@ sub onMenuSelection()
     if menuItem <> ""
         trackEvent("tab_visited", { tab: menuItem })
     end if
+    isFirstLoad = m.activeNode = invalid
     ' If user is already logged in, show them their user page
     if menuItem = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
         content = createObject("roSGNode", "TwitchContentNode")
@@ -197,6 +254,9 @@ sub onMenuSelection()
             if m.activeNode = invalid then return
         end if
         m.activeNode.setfocus(true)
+        if isFirstLoad
+            showChangelogDialog()
+        end if
     end if
 end sub
 
