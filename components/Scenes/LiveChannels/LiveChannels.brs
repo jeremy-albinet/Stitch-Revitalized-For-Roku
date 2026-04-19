@@ -10,30 +10,46 @@ sub init()
     end if
 
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
-    m.rowlist.observeField("itemHasFocus", "handleItemFocus")
     m.GetContentTask = createApiTask("getBrowsePagePopularQuery", "handleRecommendedSections")
 end sub
 
-function buildContentNodeFromShelves(shelves as object) as object
-    content = CreateObject("roSGNode", "ContentNode")
-    if shelves <> invalid and type(shelves) = "roArray"
-        for each shelf in shelves
-            if shelf <> invalid and shelf.items <> invalid
-                row = content.CreateChild("ContentNode")
-                row.title = shelf.title
-                for each item in shelf.items
-                    if item <> invalid
-                        ' Create node for each item
-                        itemNode = row.CreateChild("ContentNode")
-                        if itemNode <> invalid
-                            itemNode.setFields(item)
-                        end if
-                    end if
-                next
-            end if
-        next
+function buildContentNodeFromShelves(edges as object) as object
+    itemsPerRow = 3
+    contentCollection = createObject("RoSGNode", "ContentNode")
+    if edges = invalid or type(edges) <> "roArray" or edges.count() = 0
+        return contentCollection
     end if
-    return content
+    row = createObject("RoSGNode", "ContentNode")
+    for i = 0 to (edges.count() - 1) step 1
+        if i mod itemsPerRow = 0
+            row = createObject("RoSGNode", "ContentNode")
+        end if
+        stream = edges[i]
+        row.title = ""
+        rowItem = createObject("RoSGNode", "TwitchContentNode")
+        rowItem.contentId = stream.node.id
+        rowItem.contentType = "LIVE"
+        rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", stream.node.broadcaster.login, "1280", "720")
+        rowItem.contentTitle = stream.node.broadcaster.broadcastSettings.title
+        rowItem.viewersCount = stream.node.viewersCount
+        rowItem.streamerDisplayName = stream.node.broadcaster.displayName
+        rowItem.streamerLogin = stream.node.broadcaster.login
+        rowItem.streamerId = stream.node.broadcaster.id
+        rowItem.streamerProfileImageUrl = stream.node.broadcaster.profileImageURL
+        if stream.node.game <> invalid
+            rowItem.gameDisplayName = stream.node.game.displayName
+            rowItem.gameName = stream.node.game.name
+            rowItem.gameId = stream.node.game.id
+        end if
+        row.appendChild(rowItem)
+        if row.getChildCount() = itemsPerRow
+            contentCollection.appendChild(row)
+        end if
+    end for
+    if row <> invalid and row.getChildCount() > 0 and row.getChildCount() < itemsPerRow
+        contentCollection.appendChild(row)
+    end if
+    return contentCollection
 end function
 
 sub handleRecommendedSections()
@@ -63,12 +79,19 @@ end sub
 
 
 sub updateRowList(content as object)
-    if content <> invalid and m.rowList <> invalid
+    if content = invalid or m.rowList = invalid
+        return
+    end if
+    if m.rowList.content <> invalid
+        for i = 0 to (content.getChildCount() - 1) step 1
+            m.rowList.content.appendChild(content.getChild(i))
+        end for
+    else
         m.rowList.content = content
-
-        if m.rowList.content <> invalid and m.rowList.content.getChildCount() > 0
-            m.rowList.visible = true
-        end if
+    end if
+    m.rowList.numRows = m.rowList.content.getChildCount()
+    if m.rowList.content.getChildCount() > 0
+        m.rowList.visible = true
     end if
 end sub
 
@@ -111,7 +134,6 @@ sub onDestroy()
     m.top.unobserveField("focusedChild")
     if m.rowlist <> invalid
         m.rowlist.unobserveField("itemSelected")
-        m.rowlist.unobserveField("itemHasFocus")
     end if
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
 end sub
