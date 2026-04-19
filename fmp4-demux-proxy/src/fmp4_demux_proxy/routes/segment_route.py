@@ -64,9 +64,7 @@ async def _fetch_dedup(
                 async with session.get(upstream, allow_redirects=True) as resp:
                     validate_upstream_url(str(resp.url), cfg.upstream_host_allowlist)
                     if resp.status != 200:
-                        logger.warning(
-                            "upstream segment returned %s for %s", resp.status, upstream
-                        )
+                        logger.warning("upstream segment returned %s for %s", resp.status, upstream)
                         raise web.HTTPBadGateway(text=f"upstream status {resp.status}")
                     data = await resp.read()
             except aiohttp.ClientError as exc:

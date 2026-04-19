@@ -33,9 +33,7 @@ def get_config() -> Config:
     upstream_read_timeout = float(
         os.environ.get("UPSTREAM_READ_TIMEOUT", str(_DEFAULT_UPSTREAM_READ_TIMEOUT))
     )
-    upstream_host_allowlist = _parse_host_allowlist(
-        os.environ.get("UPSTREAM_HOST_ALLOWLIST")
-    )
+    upstream_host_allowlist = _parse_host_allowlist(os.environ.get("UPSTREAM_HOST_ALLOWLIST"))
 
     return Config(
         port=port,
@@ -50,7 +48,5 @@ def get_config() -> Config:
 def _parse_host_allowlist(raw: str | None) -> tuple[str, ...]:
     if raw is None:
         return _DEFAULT_UPSTREAM_HOST_ALLOWLIST
-    entries = tuple(
-        item.strip().lower().lstrip(".") for item in raw.split(",") if item.strip()
-    )
+    entries = tuple(item.strip().lower().lstrip(".") for item in raw.split(",") if item.strip())
     return entries

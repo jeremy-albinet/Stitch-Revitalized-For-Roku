@@ -130,14 +130,8 @@ class TestM3U8Route:
         upstream.app["variant"] = variant_body
 
         upstream_url = str(upstream.make_url("/variant"))
-        hints_qs = (
-            "&codecs=hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2"
-            "&bw=6000000"
-            "&res=1920x1080"
-        )
-        resp = await proxy_client.get(
-            f"/m3u8?u={quote(upstream_url, safe='')}{hints_qs}"
-        )
+        hints_qs = "&codecs=hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2&bw=6000000&res=1920x1080"
+        resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}{hints_qs}")
         assert resp.status == 200
         body = await resp.text()
         assert 'CODECS="hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2"' in body
@@ -285,18 +279,14 @@ class TestSegmentRoute:
 
         # Three failed fetches for the same URL must not accumulate lock entries.
         for _ in range(3):
-            resp = await proxy_client.get(
-                f"/s?u={quote(init_url, safe='')}&k=init&track=video"
-            )
+            resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
             assert resp.status == 502
 
         assert init_url not in locks
 
 
 class TestUpstreamAllowlist:
-    async def test_m3u8_rejects_disallowed_host(
-        self, strict_proxy_client: TestClient
-    ) -> None:
+    async def test_m3u8_rejects_disallowed_host(self, strict_proxy_client: TestClient) -> None:
         resp = await strict_proxy_client.get(
             f"/m3u8?u={quote('http://evil.example.com/master', safe='')}"
         )
@@ -304,17 +294,11 @@ class TestUpstreamAllowlist:
         body = await resp.text()
         assert "disallowed upstream host" in body
 
-    async def test_m3u8_rejects_non_http_scheme(
-        self, strict_proxy_client: TestClient
-    ) -> None:
-        resp = await strict_proxy_client.get(
-            f"/m3u8?u={quote('file:///etc/passwd', safe='')}"
-        )
+    async def test_m3u8_rejects_non_http_scheme(self, strict_proxy_client: TestClient) -> None:
+        resp = await strict_proxy_client.get(f"/m3u8?u={quote('file:///etc/passwd', safe='')}")
         assert resp.status == 400
 
-    async def test_m3u8_rejects_suffix_lookalike(
-        self, strict_proxy_client: TestClient
-    ) -> None:
+    async def test_m3u8_rejects_suffix_lookalike(self, strict_proxy_client: TestClient) -> None:
         # "evilttvnw.net" must NOT match suffix "ttvnw.net" — only a proper
         # subdomain ("*.ttvnw.net") or exact host should be accepted.
         resp = await strict_proxy_client.get(
@@ -322,12 +306,9 @@ class TestUpstreamAllowlist:
         )
         assert resp.status == 400
 
-    async def test_segment_rejects_disallowed_host(
-        self, strict_proxy_client: TestClient
-    ) -> None:
+    async def test_segment_rejects_disallowed_host(self, strict_proxy_client: TestClient) -> None:
         resp = await strict_proxy_client.get(
-            "/s?u=" + quote("http://evil.example.com/seg.m4s", safe="")
-            + "&k=init&track=video"
+            "/s?u=" + quote("http://evil.example.com/seg.m4s", safe="") + "&k=init&track=video"
         )
         assert resp.status == 400
 
@@ -336,11 +317,7 @@ class TestUpstreamAllowlist:
     ) -> None:
         # proxy_client is built with upstream_host_allowlist=() → no restriction;
         # scheme is still enforced, so the localhost test upstream must succeed.
-        upstream.app["master"] = (
-            b"#EXTM3U\n"
-            b'#EXT-X-STREAM-INF:BANDWIDTH=500000\n'
-            b"variant.m3u8\n"
-        )
+        upstream.app["master"] = b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000\nvariant.m3u8\n"
         upstream_url = str(upstream.make_url("/master"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
         assert resp.status == 200
