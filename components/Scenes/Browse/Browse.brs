@@ -2,7 +2,7 @@ sub init()
     m.top.observeField("focusedChild", "onGetFocus")
     m.rowList = m.top.findNode("browseRowList")
     m.rowList.observeField("itemSelected", "onItemSelected")
-    m.rowList.observeField("itemHasFocus", "onItemFocused")
+    m.rowList.observeField("rowItemFocused", "onItemFocused")
 
     m.categoriesCursor = ""
     m.liveCursor = ""
@@ -12,6 +12,12 @@ sub init()
     m.liveBuffering = false
     m.categoriesLabelSet = false
     m.liveLabelSet = false
+
+    ' Section insertion tracking — ensures Featured → Categories → Live order
+    ' regardless of which API task returns first.
+    ' -1 = section not yet placed; >= 0 = index of first row in that section.
+    m.featuredEndIndex = -1
+    m.categoriesEndIndex = -1
 
     ' Fire all three API tasks in parallel — three sections of one scrollable list
     m.featuredTask = createApiTask("getHomePageQuery", "onFeaturedResponse")
@@ -41,7 +47,10 @@ sub onFeaturedResponse()
     if contentCollection.getChildCount() > 0
         contentCollection.removeChildIndex(0)
     end if
-    appendRows(contentCollection)
+    ' Featured always inserts at position 0
+    featuredRowCount = contentCollection.getChildCount()
+    insertRows(contentCollection, 0)
+    m.featuredEndIndex = featuredRowCount
 end sub
 
 ' ─── Categories section (games from getBrowsePageQuery) ──────────────────────
@@ -63,7 +72,22 @@ sub onCategoriesResponse()
         contentCollection.getChild(0).title = tr("Categories")
     end if
     m.categoriesBuffering = false
-    appendRows(contentCollection)
+    ' Categories always follow Featured. If Featured hasn't arrived yet, insert at 0;
+    ' subsequent pages append after existing Categories rows (tracked by m.categoriesEndIndex).
+    categoriesRowCount = contentCollection.getChildCount()
+    if m.categoriesEndIndex < 0
+        insertAt = m.featuredEndIndex
+        if insertAt < 0 then insertAt = 0
+        insertRows(contentCollection, insertAt)
+        m.categoriesEndIndex = insertAt + categoriesRowCount
+        ' If Featured hasn't arrived yet, update its placeholder so it inserts before us
+        if m.featuredEndIndex < 0
+            m.featuredEndIndex = 0
+        end if
+    else
+        insertRows(contentCollection, m.categoriesEndIndex)
+        m.categoriesEndIndex = m.categoriesEndIndex + categoriesRowCount
+    end if
 end sub
 
 function buildCategoryRows(games as object) as object
@@ -98,6 +122,7 @@ end function
 sub appendMoreCategories()
     if not m.categoriesMaxed and not m.categoriesBuffering
         m.categoriesBuffering = true
+        m.categoriesTask = destroyTask(m.categoriesTask, "response")
         m.categoriesTask = createApiTask("getBrowsePageQuery", "onCategoriesResponse", { cursor: m.categoriesCursor })
     end if
 end sub
@@ -121,6 +146,7 @@ sub onLiveResponse()
         contentCollection.getChild(0).title = tr("Live Channels")
     end if
     m.liveBuffering = false
+    ' Live always appends at the tail (after Featured + Categories).
     appendRows(contentCollection)
 end sub
 
@@ -156,11 +182,82 @@ end function
 sub appendMoreLive()
     if not m.liveMaxed and not m.liveBuffering
         m.liveBuffering = true
+        m.liveTask = destroyTask(m.liveTask, "response")
         m.liveTask = createApiTask("getBrowsePagePopularQuery", "onLiveResponse", { cursor: m.liveCursor })
     end if
 end sub
 
-' ─── Append rows into the single RowList ─────────────────────────────────────
+' ─── Append / insert rows into the single RowList ───────────────────────────
+
+' insertRows inserts contentCollection rows starting at the given index.
+' Use this when section ordering must be enforced (Featured → Categories → Live).
+sub insertRows(contentCollection as object, insertIndex as integer)
+    if m.rowList = invalid or contentCollection = invalid then return
+    rowCount = contentCollection.getChildCount()
+    if rowCount = 0 then return
+
+    rowItemSize = []
+    showRowLabel = []
+    rowHeights = []
+    for each row in contentCollection.getChildren(rowCount, 0)
+        hasRowLabel = row.title <> ""
+        showRowLabel.push(hasRowLabel)
+        firstChild = row.getChild(0)
+        contentType = ""
+        if firstChild <> invalid
+            contentType = firstChild.contentType
+        end if
+        config = getRowConfig(contentType, hasRowLabel)
+        if config <> invalid
+            rowItemSize.push(config.itemSize)
+            rowHeights.push(config.rowHeight)
+        end if
+    end for
+
+    if m.rowList.content = invalid
+        content = createObject("roSGNode", "ContentNode")
+        m.rowList.content = content
+    end if
+
+    existingSizes = m.rowList.rowItemSize
+    existingLabels = m.rowList.showRowLabel
+    existingHeights = m.rowList.rowHeights
+
+    ' Splice arrays at insertIndex
+    newSizes = []
+    newLabels = []
+    newHeights = []
+    existingCount = existingSizes.count()
+    for i = 0 to existingCount - 1
+        if i = insertIndex
+            newSizes.append(rowItemSize)
+            newLabels.append(showRowLabel)
+            newHeights.append(rowHeights)
+        end if
+        newSizes.push(existingSizes[i])
+        newLabels.push(existingLabels[i])
+        newHeights.push(existingHeights[i])
+    end for
+    if insertIndex >= existingCount
+        newSizes.append(rowItemSize)
+        newLabels.append(showRowLabel)
+        newHeights.append(rowHeights)
+    end if
+
+    ' Insert child nodes at insertIndex
+    while contentCollection.getChildCount() > 0
+        child = contentCollection.getChild(0)
+        contentCollection.removeChildIndex(0)
+        m.rowList.content.insertChild(child, insertIndex + (rowCount - contentCollection.getChildCount() - 1))
+    end while
+
+    m.rowList.rowItemSize = newSizes
+    m.rowList.showRowLabel = newLabels
+    m.rowList.rowHeights = newHeights
+    m.rowList.numRows = m.rowList.content.getChildCount()
+    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
+    m.rowList.visible = true
+end sub
 
 sub appendRows(contentCollection as object)
     if m.rowList = invalid or contentCollection = invalid then return
@@ -213,7 +310,9 @@ end sub
 
 sub onItemSelected()
     row = m.rowList.content.getChild(m.rowList.rowItemSelected[0])
+    if row = invalid then return
     item = row.getChild(m.rowList.rowItemSelected[1])
+    if item = invalid then return
     m.top.contentSelected = item
 end sub
 
@@ -256,7 +355,7 @@ sub onDestroy()
     m.top.unobserveField("focusedChild")
     if m.rowList <> invalid
         m.rowList.unobserveField("itemSelected")
-        m.rowList.unobserveField("itemHasFocus")
+        m.rowList.unobserveField("rowItemFocused")
     end if
     m.featuredTask = destroyTask(m.featuredTask, "response")
     m.categoriesTask = destroyTask(m.categoriesTask, "response")
