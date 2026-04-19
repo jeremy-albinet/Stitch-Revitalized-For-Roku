@@ -47,10 +47,15 @@ sub onFeaturedResponse()
     if contentCollection.getChildCount() > 0
         contentCollection.removeChildIndex(0)
     end if
-    ' Featured always inserts at position 0
+    ' Featured always inserts at position 0.
+    ' If Categories already landed while Featured was pending, shift its tracked
+    ' end index down by the number of Featured rows now inserted before it.
     featuredRowCount = contentCollection.getChildCount()
     insertRows(contentCollection, 0)
     m.featuredEndIndex = featuredRowCount
+    if featuredRowCount > 0 and m.categoriesEndIndex >= 0
+        m.categoriesEndIndex = m.categoriesEndIndex + featuredRowCount
+    end if
 end sub
 
 ' ─── Categories section (games from getBrowsePageQuery) ──────────────────────
@@ -219,9 +224,13 @@ sub insertRows(contentCollection as object, insertIndex as integer)
         m.rowList.content = content
     end if
 
+    ' RowList fields may be invalid (not yet assigned) — treat as empty arrays
     existingSizes = m.rowList.rowItemSize
     existingLabels = m.rowList.showRowLabel
     existingHeights = m.rowList.rowHeights
+    if existingSizes = invalid then existingSizes = []
+    if existingLabels = invalid then existingLabels = []
+    if existingHeights = invalid then existingHeights = []
 
     ' Splice arrays at insertIndex
     newSizes = []
@@ -319,10 +328,27 @@ end sub
 ' ─── Pagination trigger ──────────────────────────────────────────────────────
 
 sub onItemFocused()
-    if m.rowList.rowItemFocused[0] = invalid then return
-    rowsLeft = m.rowList.content.getChildCount() - m.rowList.rowItemFocused[0]
-    if rowsLeft < 5
-        appendMoreCategories()
+    focusedRowIndex = m.rowList.rowItemFocused[0]
+    if focusedRowIndex = invalid then return
+
+    ' Paginate Categories only when focus is near the end of the Categories section,
+    ' not whenever focus is near the bottom of the whole list.
+    if m.categoriesEndIndex >= 0
+        categoriesRowsLeft = m.categoriesEndIndex - focusedRowIndex
+        if categoriesRowsLeft >= 0 and categoriesRowsLeft < 5
+            appendMoreCategories()
+        end if
+    end if
+
+    ' Paginate Live only when focus is in or near the Live section tail.
+    liveStartIndex = 0
+    if m.categoriesEndIndex >= 0
+        liveStartIndex = m.categoriesEndIndex
+    else if m.featuredEndIndex >= 0
+        liveStartIndex = m.featuredEndIndex
+    end if
+    totalRows = m.rowList.content.getChildCount()
+    if focusedRowIndex >= liveStartIndex and (totalRows - focusedRowIndex) < 5
         appendMoreLive()
     end if
 end sub
