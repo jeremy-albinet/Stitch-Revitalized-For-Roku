@@ -8,10 +8,7 @@
             <source>Live Channels</source>
             <translation>Live Channels</translation>
         </message>
-        <message>
-            <source>LiveChannels</source>
-            <translation>Live Channels</translation>
-        </message>
+
         <message>
             <source>Clips</source>
             <translation>Clips</translation>
@@ -76,11 +73,7 @@
             <source>Video Framerate</source>
             <translation>Video Framerate</translation>
         </message>
-        <message>
-            <source>Home</source>
-            <translation>Discover</translation>
-            <context>User's "home" page / fyp</context>
-        </message>
+
         <message>
             <source>Viewers</source>
             <translation>Viewers</translation>
