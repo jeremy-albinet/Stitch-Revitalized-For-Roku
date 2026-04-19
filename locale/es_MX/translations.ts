@@ -9,16 +9,12 @@
             <translation>Canales en vivo</translation>
         </message>
         <message>
-            <source>LiveChannels</source>
-            <translation>Canales en vivo</translation>
-        </message>
-        <message>
             <source>Clips</source>
             <translation>Clips</translation>
         </message>
         <message>
             <source>Browse</source>
-            <translation>Buscar</translation>
+            <translation>Explorar</translation>
         </message>
         <message>
             <source>Categories</source>
@@ -75,6 +71,88 @@
         <message>
             <source>Video Framerate</source>
             <translation>Velocidad de fotogramas del vídeo</translation>
+        </message>
+        <message>
+            <source>Home</source>
+            <translation>Descubrir</translation>
+            <context>User's "home" page / fyp</context>
+        </message>
+        <message>
+            <source>Viewers</source>
+            <translation>Espectadores</translation>
+            <context>displayed after the count of current viewership of a stream</context>
+        </message>
+        <message>
+            <source>Views</source>
+            <translation>Vistas</translation>
+            <context>The count of users that have watched a VOD/CLIP</context>
+        </message>
+        <message>
+            <source>Followers</source>
+            <translation>Seguidores</translation>
+            <context>Count of users currently following a user on Twitch</context>
+        </message>
+        <message>
+            <source>followers</source>
+            <translation>seguidores</translation>
+            <context>Lowercase, appended after a follower count number</context>
+        </message>
+        <message>
+            <source>Log Out</source>
+            <translation>Cerrar sesión</translation>
+            <context>Shown on the user profile page to disconnect their account</context>
+        </message>
+        <message>
+            <source>followedLiveUsers</source>
+            <translation>¡Están en vivo ahora!</translation>
+            <context>Title above a list of followed streamers currently live</context>
+        </message>
+        <message>
+            <source>followedOfflineUsers</source>
+            <translation>Canales sin conexión</translation>
+            <context>Title above a list of followed streamers not currently live</context>
+        </message>
+        <message>
+            <source>Channels</source>
+            <translation>Canales</translation>
+            <context>Shown above a list of streamers in the search results page</context>
+        </message>
+        <message>
+            <source>VODs</source>
+            <translation>VODs</translation>
+            <context>Shown above a list of past stream broadcasts in search results</context>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Configuración</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>Aceptar</translation>
+        </message>
+        <message>
+            <source>Follow</source>
+            <translation>Seguir</translation>
+        </message>
+        <message>
+            <source>Enter Search Query</source>
+            <translation>Ingresa tu búsqueda</translation>
+        </message>
+        <message>
+            <source>Testing connection...</source>
+            <translation>Probando conexión...</translation>
+        </message>
+        <message>
+            <source>Proxy not reachable</source>
+            <translation>Proxy no disponible</translation>
+        </message>
+        <message>
+            <source>Error: unknown failure. Try again.</source>
+            <translation>Error: fallo desconocido. Inténtalo de nuevo.</translation>
+        </message>
+        <message>
+            <source>Error: </source>
+            <translation>Error: </translation>
         </message>
     </context>
 </TS>
