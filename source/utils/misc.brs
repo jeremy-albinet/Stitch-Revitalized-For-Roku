@@ -469,3 +469,19 @@ function getRelativeTimePublished(timePublished as string) as string
     end if
 
 end function
+
+' Validates a deep property chain exists and is valid
+' Returns true if root is valid and all keys in path exist and resolve to valid values
+' Uses case-insensitive key lookup (LookupCI)
+function isChainValid(root as dynamic, path as string) as boolean
+    if not isValid(root) then return false
+    if path = "" then return true
+    parts = path.Split(".")
+    node = root
+    for each p in parts
+        if not isValid(node) then return false
+        if type(node) <> "roAssociativeArray" then return false
+        node = node.LookupCI(p)
+    end for
+    return isValid(node)
+end function
