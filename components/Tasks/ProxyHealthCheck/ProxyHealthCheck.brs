@@ -9,9 +9,9 @@ sub runCheck()
         return
     end if
 
-    scheme = LCase(Left(proxyUrl, 7))
-    schemeShort = LCase(Left(proxyUrl, 8))
-    if scheme <> "http://" and schemeShort <> "https://"
+    schemeHttp = LCase(Left(proxyUrl, 7)) ' "http://"  is 7 chars
+    schemeHttps = LCase(Left(proxyUrl, 8)) ' "https://" is 8 chars
+    if schemeHttp <> "http://" and schemeHttps <> "https://"
         m.top.result = { ok: false, reason: "scheme", message: "URL must start with http:// or https://" }
         return
     end if
