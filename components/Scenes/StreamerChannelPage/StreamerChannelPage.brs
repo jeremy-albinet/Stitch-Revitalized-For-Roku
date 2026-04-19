@@ -140,3 +140,12 @@ sub onButtonSelected()
         m.top.fullscreenchat = not m.top.fullscreenchat
     end if
 end sub
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    if m.menu <> invalid
+        m.menu.unobserveField("buttonSelected")
+    end if
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
+    m.GetShellTask = destroyTask(m.GetShellTask, "response")
+end sub
