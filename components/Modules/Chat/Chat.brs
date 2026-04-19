@@ -344,5 +344,6 @@ sub onDestroy()
     m.chat = destroyTask(m.chat, "nextCommentObj")
     if m.EmoteJob <> invalid
         m.EmoteJob.control = "stop"
+        m.EmoteJob = invalid
     end if
 end sub

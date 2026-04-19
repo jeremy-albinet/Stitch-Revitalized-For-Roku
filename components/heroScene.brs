@@ -183,6 +183,13 @@ sub onRecentSelected()
     m.recentBar.itemHasFocus = false
 
     if m.activeNode <> invalid
+        ' Save focus before pushing
+        focused = lastFocusedChild(m.activeNode)
+        if focused <> invalid and focused.id <> m.activeNode.id
+            m.activeNode.lastFocus = focused
+        else
+            m.activeNode.lastFocus = invalid
+        end if
         m.footprints.push(m.activeNode)
         m.activeNode = invalid
     end if
@@ -209,6 +216,13 @@ sub onContentSelected()
     content = createObject("roSGNode", "TwitchContentNode")
     setTwitchContentFields(content, holdContent)
     if m.activeNode <> invalid
+        ' Save focus before pushing
+        focused = lastFocusedChild(m.activeNode)
+        if focused <> invalid and focused.id <> m.activeNode.id
+            m.activeNode.lastFocus = focused
+        else
+            m.activeNode.lastFocus = invalid
+        end if
         m.footprints.push(m.activeNode)
         m.activeNode = invalid
     end if
@@ -235,7 +249,12 @@ sub onBackPressed()
             m.top.removeChild(m.activeNode)
         end if
         m.activeNode = m.footprints.pop()
-        m.activeNode.setFocus(false)
+        ' Restore focus to previously focused child if available
+        if m.activeNode.lastFocus <> invalid
+            m.activeNode.lastFocus.setFocus(true)
+        else
+            m.activeNode.setFocus(true)
+        end if
         if focusedMenuItem() = "LoginPage"
             m.menu.setFocus(true)
         end if
