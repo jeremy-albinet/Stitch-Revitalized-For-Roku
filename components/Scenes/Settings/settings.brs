@@ -181,6 +181,14 @@ sub closeKeyboardDialog()
     m.keyboardDialog.close = true
     m.keyboardDialog.unobserveField("buttonSelected")
     m.keyboardDialog = invalid
+    ' Cancel any in-flight health check so its result does not save the URL
+    ' after the user has already dismissed or cancelled the dialog.
+    if m.healthCheckTask <> invalid
+        m.healthCheckTask.unobserveField("result")
+        m.healthCheckTask.control = "stop"
+        m.healthCheckTask = invalid
+    end if
+    m.pendingProxySave = invalid
     m.settingsMenu.setFocus(true)
 end sub
 
