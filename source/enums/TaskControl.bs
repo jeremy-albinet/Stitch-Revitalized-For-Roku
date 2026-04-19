@@ -1,5 +1,5 @@
 enum TaskControl
     RUN = "run"
-    stop = "STOP"
+    stop = "stop"
     START = "start"
 end enum
