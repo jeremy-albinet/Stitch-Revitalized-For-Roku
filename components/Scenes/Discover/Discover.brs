@@ -100,3 +100,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     return false
 end function
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    if m.rowlist <> invalid
+        m.rowlist.unobserveField("itemSelected")
+    end if
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
+end sub
