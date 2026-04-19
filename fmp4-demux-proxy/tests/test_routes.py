@@ -69,6 +69,12 @@ async def proxy_client(aiohttp_client) -> TestClient:
     return await aiohttp_client(app)
 
 
+@pytest.fixture
+async def strict_proxy_client(aiohttp_client) -> TestClient:
+    app = create_app(config=make_test_config(upstream_host_allowlist=("ttvnw.net",)))
+    return await aiohttp_client(app)
+
+
 class TestM3U8Route:
     async def test_missing_params_400(self, proxy_client: TestClient) -> None:
         resp = await proxy_client.get("/m3u8")
@@ -106,6 +112,58 @@ class TestM3U8Route:
         )
         qs = parse_qs(urlparse(proxied_line).query)
         assert unquote(qs["u"][0]) == variant_url
+
+    async def test_variant_without_track_synthesizes_master_with_hints(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        init_url = str(upstream.make_url("/init.mp4"))
+        seg_url = str(upstream.make_url("/seg-1.m4s"))
+        variant_body = (
+            "#EXTM3U\n"
+            "#EXT-X-VERSION:6\n"
+            "#EXT-X-TARGETDURATION:2\n"
+            "#EXT-X-MEDIA-SEQUENCE:1\n"
+            f'#EXT-X-MAP:URI="{init_url}"\n'
+            "#EXTINF:2.000,\n"
+            f"{seg_url}\n"
+        ).encode()
+        upstream.app["variant"] = variant_body
+
+        upstream_url = str(upstream.make_url("/variant"))
+        hints_qs = (
+            "&codecs=hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2"
+            "&bw=6000000"
+            "&res=1920x1080"
+        )
+        resp = await proxy_client.get(
+            f"/m3u8?u={quote(upstream_url, safe='')}{hints_qs}"
+        )
+        assert resp.status == 200
+        body = await resp.text()
+        assert 'CODECS="hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2"' in body
+        assert "BANDWIDTH=6000000" in body
+        assert "RESOLUTION=1920x1080" in body
+
+    async def test_variant_without_hints_falls_back_to_default_codec(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        init_url = str(upstream.make_url("/init.mp4"))
+        seg_url = str(upstream.make_url("/seg-1.m4s"))
+        variant_body = (
+            "#EXTM3U\n"
+            "#EXT-X-VERSION:6\n"
+            "#EXT-X-TARGETDURATION:2\n"
+            f'#EXT-X-MAP:URI="{init_url}"\n'
+            "#EXTINF:2.000,\n"
+            f"{seg_url}\n"
+        ).encode()
+        upstream.app["variant"] = variant_body
+
+        upstream_url = str(upstream.make_url("/variant"))
+        resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
+        assert resp.status == 200
+        body = await resp.text()
+        assert 'CODECS="avc1.64001f,mp4a.40.2"' in body
 
     async def test_variant_rewrites_segment_and_init(
         self, proxy_client: TestClient, upstream: TestServer
@@ -199,3 +257,90 @@ class TestSegmentRoute:
         init_url = str(upstream.make_url("/init.mp4"))
         resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
         assert resp.status == 502
+
+    async def test_corrupt_init_returns_502(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        # Bytes that look like an fMP4 box but are truncated / not a valid moov.
+        # Triggers fmp4.Fmp4Error in extract_track_map; handler must turn that
+        # into a 502 rather than letting it bubble to a 500.
+        upstream.app["init"] = b"\x00\x00\x00\x08ftypisom"
+        init_url = str(upstream.make_url("/init.mp4"))
+        resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
+        assert resp.status == 502
+        body = await resp.text()
+        assert "fmp4 demux failed" in body
+
+    async def test_failed_fetch_does_not_leak_lock(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        from fmp4_demux_proxy.routes.segment_route import SEGMENT_LOCKS_KEY
+
+        app = proxy_client.app
+        assert app is not None
+        locks = app[SEGMENT_LOCKS_KEY]
+
+        upstream.app["status"]["/init.mp4"] = 500
+        init_url = str(upstream.make_url("/init.mp4"))
+
+        # Three failed fetches for the same URL must not accumulate lock entries.
+        for _ in range(3):
+            resp = await proxy_client.get(
+                f"/s?u={quote(init_url, safe='')}&k=init&track=video"
+            )
+            assert resp.status == 502
+
+        assert init_url not in locks
+
+
+class TestUpstreamAllowlist:
+    async def test_m3u8_rejects_disallowed_host(
+        self, strict_proxy_client: TestClient
+    ) -> None:
+        resp = await strict_proxy_client.get(
+            f"/m3u8?u={quote('http://evil.example.com/master', safe='')}"
+        )
+        assert resp.status == 400
+        body = await resp.text()
+        assert "disallowed upstream host" in body
+
+    async def test_m3u8_rejects_non_http_scheme(
+        self, strict_proxy_client: TestClient
+    ) -> None:
+        resp = await strict_proxy_client.get(
+            f"/m3u8?u={quote('file:///etc/passwd', safe='')}"
+        )
+        assert resp.status == 400
+
+    async def test_m3u8_rejects_suffix_lookalike(
+        self, strict_proxy_client: TestClient
+    ) -> None:
+        # "evilttvnw.net" must NOT match suffix "ttvnw.net" — only a proper
+        # subdomain ("*.ttvnw.net") or exact host should be accepted.
+        resp = await strict_proxy_client.get(
+            f"/m3u8?u={quote('http://evilttvnw.net/master', safe='')}"
+        )
+        assert resp.status == 400
+
+    async def test_segment_rejects_disallowed_host(
+        self, strict_proxy_client: TestClient
+    ) -> None:
+        resp = await strict_proxy_client.get(
+            "/s?u=" + quote("http://evil.example.com/seg.m4s", safe="")
+            + "&k=init&track=video"
+        )
+        assert resp.status == 400
+
+    async def test_empty_allowlist_permits_any_host(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        # proxy_client is built with upstream_host_allowlist=() → no restriction;
+        # scheme is still enforced, so the localhost test upstream must succeed.
+        upstream.app["master"] = (
+            b"#EXTM3U\n"
+            b'#EXT-X-STREAM-INF:BANDWIDTH=500000\n'
+            b"variant.m3u8\n"
+        )
+        upstream_url = str(upstream.make_url("/master"))
+        resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
+        assert resp.status == 200

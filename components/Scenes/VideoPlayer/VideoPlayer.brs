@@ -454,8 +454,8 @@ sub exitPlayer()
             selected_bitrate_kbps: 0
         }
         if m.top.content <> invalid
-            exitProps.is_transmux = m.top.content.isTransmux = true
-            exitProps.is_proxied = m.top.content.isProxied = true
+            exitProps.is_transmux = m.top.content.isTransmux
+            exitProps.is_proxied = m.top.content.isProxied
             if m.top.content.StreamBitrates <> invalid and m.top.content.StreamBitrates.Count() > 0
                 exitProps.selected_bitrate_kbps = m.top.content.StreamBitrates[0]
             end if

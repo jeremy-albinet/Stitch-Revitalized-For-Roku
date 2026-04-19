@@ -34,7 +34,7 @@ The Stitch channel points `content.url` at `/m3u8?u=<upstream>`. The proxy retur
 |-------|---------|
 | `GET /m3u8?u=<url>` | Proxy master playlist (rewrites variant URLs) or synthesize demuxed master from a variant |
 | `GET /m3u8?u=<url>&track=video\|audio` | Rewrite variant playlist segment URLs with `&track=` |
-| `GET /s?u=<url>&k=init\|media&track=video\|audio` | Fetch and split fMP4 init/media segments |
+| `GET /s?u=<url>&k=init\|media\|part\|prefetch&track=video\|audio` | Fetch and split fMP4 init/media/part/prefetch segments |
 | `GET /health` | Health check — returns `{"status":"ok","version":"..."}` |
 
 ## Getting Started
@@ -89,8 +89,13 @@ Leave empty to disable the proxy (regular Twitch streams are unaffected).
 | `PROXY_PUBLIC_URL` | *(auto)* | Public base URL of the proxy as seen by the Roku. Auto-detected from request headers for most setups. Set explicitly when running behind a reverse proxy: `http://192.168.1.50:8080` |
 | `UPSTREAM_CONNECT_TIMEOUT` | `5.0` | Seconds to wait for Twitch CDN TCP connect |
 | `UPSTREAM_READ_TIMEOUT` | `30.0` | Seconds to wait for Twitch CDN response bytes |
+| `UPSTREAM_HOST_ALLOWLIST` | `ttvnw.net,twitch.tv,twitchcdn.net` | Comma-separated suffix allowlist for upstream hosts. The proxy rejects any `u=` URL (including post-redirect) whose host does not match one of these suffixes. Set to a single empty comma (`,`) to disable host restriction (scheme is still enforced). |
 
 Copy `.env.example` to `.env` and adjust as needed.
+
+### Deploying Publicly
+
+This proxy is designed for home-LAN use. If you expose it to the public internet, keep `UPSTREAM_HOST_ALLOWLIST` populated and consider adding a reverse-proxy allowlist on the `/m3u8` and `/s` routes — otherwise anyone who reaches the port can use it as an HTTP relay for Twitch-CDN traffic.
 
 ## Development
 

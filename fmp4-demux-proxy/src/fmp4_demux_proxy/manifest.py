@@ -8,6 +8,10 @@ from enum import StrEnum
 from typing import Final
 from urllib.parse import quote, urljoin
 
+_DEFAULT_BANDWIDTH: Final[int] = 4_000_000
+_DEFAULT_CODECS: Final[str] = "avc1.64001f,mp4a.40.2"
+_CODEC_CHARS_RE: Final[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9.,_\-]+$")
+
 # ---------------------------------------------------------------------------
 # Public types
 # ---------------------------------------------------------------------------
@@ -25,6 +29,22 @@ class RewriteConfig:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "proxy_base", self.proxy_base.rstrip("/"))
+
+
+@dataclass(frozen=True)
+class VariantHints:
+    """Optional codec/bandwidth/resolution hints for synthesized master playlists.
+
+    Twitch Enhanced Broadcasting variants may use H.264, HEVC, or AV1. Because
+    the proxy only sees the variant body (not the original master), the caller
+    must supply the codec tuple parsed from the upstream master's
+    #EXT-X-STREAM-INF line; otherwise the fallback H.264 codec is advertised
+    and HEVC/AV1 streams will fail on the client decoder.
+    """
+
+    codecs: str | None = None
+    bandwidth: int | None = None
+    resolution: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -82,13 +102,14 @@ def rewrite(
     config: RewriteConfig,
     *,
     track: str | None = None,
+    hints: VariantHints | None = None,
 ) -> str:
     kind = classify(body)
     if kind == ManifestKind.UNKNOWN:
         return body
 
     if kind == ManifestKind.VARIANT and track is None:
-        return _synthesize_master(base_url, config)
+        return _synthesize_master(base_url, config, hints)
 
     lines = body.splitlines(keepends=True)
     result: list[str] = []
@@ -207,18 +228,45 @@ def _rewrite_uri_attr(
     return stripped[: m.start(1)] + proxy_url + stripped[m.end(1) :] + ending
 
 
-def _synthesize_master(upstream_url: str, config: RewriteConfig) -> str:
+def _synthesize_master(
+    upstream_url: str,
+    config: RewriteConfig,
+    hints: VariantHints | None,
+) -> str:
     encoded = quote(upstream_url, safe="")
     audio_uri = f"{config.proxy_base}/m3u8?u={encoded}&track=audio"
     video_uri = f"{config.proxy_base}/m3u8?u={encoded}&track=video"
+
+    codecs = _safe_codecs(hints.codecs if hints else None)
+    bandwidth = hints.bandwidth if hints and hints.bandwidth else _DEFAULT_BANDWIDTH
+    resolution_attr = ""
+    if hints and hints.resolution and _is_valid_resolution(hints.resolution):
+        resolution_attr = f",RESOLUTION={hints.resolution}"
+
     return (
         "#EXTM3U\n"
         "#EXT-X-VERSION:6\n"
         f'#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aac",NAME="Audio",'
         f'DEFAULT=YES,AUTOSELECT=YES,URI="{audio_uri}"\n'
-        f'#EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS="avc1.64001f,mp4a.40.2",AUDIO="aac"\n'
+        f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth}"
+        f'{resolution_attr},CODECS="{codecs}",AUDIO="aac"\n'
         f"{video_uri}\n"
     )
+
+
+def _safe_codecs(codecs: str | None) -> str:
+    if not codecs:
+        return _DEFAULT_CODECS
+    if not _CODEC_CHARS_RE.match(codecs):
+        return _DEFAULT_CODECS
+    return codecs
+
+
+def _is_valid_resolution(value: str) -> bool:
+    parts = value.split("x")
+    if len(parts) != 2:
+        return False
+    return parts[0].isdigit() and parts[1].isdigit()
 
 
 def _preload_hint_kind(stripped: str) -> str:

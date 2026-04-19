@@ -18,6 +18,8 @@ sub init()
     m.radioSetting = m.top.findNode("radioSetting")
 
     m.keyboardDialog = invalid
+    m.healthCheckTask = invalid
+    m.pendingProxySave = invalid
 
     ' Derive numRows from screen resolution so scrolling works on any Roku
     ' itemSize height=50, itemSpacing=5 → 55px per row
@@ -38,41 +40,6 @@ sub init()
 
     m.configTree = GetConfigTree()
     LoadMenu({ children: m.configTree })
-end sub
-
-sub updateScrollbar()
-    if m.scrollTrack = invalid or m.scrollThumb = invalid then return
-    totalItems = m.userLocation.peek().children.Count()
-    if totalItems <= 0 then return
-
-    trackHeight = m.scrollbarTrackHeight
-    thumbHeight = Int(trackHeight * m.settingsMenu.numRows / totalItems)
-    if thumbHeight < 20 then thumbHeight = 20
-
-    maxScroll = totalItems - m.settingsMenu.numRows
-    if maxScroll <= 0
-        ' All items fit — hide scrollbar
-        m.scrollTrack.visible = false
-        m.scrollThumb.visible = false
-        return
-    end if
-
-    m.scrollTrack.visible = true
-    m.scrollThumb.visible = true
-    m.scrollThumb.height = thumbHeight
-
-    ' With fixedFocus, firstVisible = itemFocused exactly — list scrolls on every keypress
-    maxFirstVisible = totalItems - m.settingsMenu.numRows
-    if maxFirstVisible < 0 then maxFirstVisible = 0
-
-    travelRange = trackHeight - thumbHeight
-    if maxFirstVisible > 0
-        thumbY = Int(travelRange * m.settingsMenu.itemFocused / maxFirstVisible)
-        if thumbY > travelRange then thumbY = travelRange
-    else
-        thumbY = 0
-    end if
-    m.scrollThumb.translation = [496, 10 + thumbY]
 end sub
 
 sub onGetFocus()
@@ -180,7 +147,6 @@ sub showTextKeyboard(selectedItem as object)
 
     m.keyboardDialog = CreateObject("roSGNode", "StandardKeyboardDialog")
     m.keyboardDialog.title = tr(selectedItem.title)
-    m.keyboardDialog.message = tr(selectedItem.description)
     m.keyboardDialog.text = currentVal
     m.keyboardDialog.buttons = ["Save", "Cancel"]
     m.keyboardDialog.observeField("buttonSelected", "onKeyboardButtonSelected")
@@ -194,15 +160,81 @@ sub onKeyboardButtonSelected()
     if m.keyboardDialog.buttonSelected = 0 ' Save
         selectedSetting = m.userLocation.peek().children[m.settingsMenu.itemFocused]
         newVal = m.keyboardDialog.text.trim()
+
+        ' For proxy.url, validate the endpoint with a /health probe before saving.
+        ' Empty string means "disable proxy" and bypasses the check.
+        if selectedSetting.settingName = "proxy.url" and newVal <> ""
+            startProxyHealthCheck(selectedSetting, newVal)
+            return
+        end if
+
         set_user_setting(selectedSetting.settingName, newVal)
         ' Refresh description to show new value
         settingFocused()
     end if
 
+    closeKeyboardDialog()
+end sub
+
+sub closeKeyboardDialog()
+    if m.keyboardDialog = invalid then return
     m.keyboardDialog.close = true
     m.keyboardDialog.unobserveField("buttonSelected")
     m.keyboardDialog = invalid
     m.settingsMenu.setFocus(true)
+end sub
+
+sub startProxyHealthCheck(selectedSetting as object, newVal as string)
+    ' Guard against concurrent health checks if the user somehow re-triggers.
+    if m.healthCheckTask <> invalid then return
+
+    m.pendingProxySave = {
+        settingName: selectedSetting.settingName,
+        value: newVal
+    }
+
+    if m.keyboardDialog <> invalid
+        m.keyboardDialog.title = tr("Testing connection...")
+    end if
+
+    m.healthCheckTask = CreateObject("roSGNode", "ProxyHealthCheck")
+    m.healthCheckTask.proxyUrl = newVal
+    m.healthCheckTask.observeField("result", "onProxyHealthResult")
+    m.healthCheckTask.control = "run"
+end sub
+
+sub onProxyHealthResult()
+    if m.healthCheckTask = invalid then return
+
+    result = m.healthCheckTask.result
+    m.healthCheckTask.unobserveField("result")
+    m.healthCheckTask = invalid
+
+    pending = m.pendingProxySave
+    m.pendingProxySave = invalid
+
+    if result = invalid
+        if m.keyboardDialog <> invalid
+            m.keyboardDialog.title = tr("Error: unknown failure. Try again.")
+        end if
+        return
+    end if
+
+    if result.ok <> true
+        if m.keyboardDialog <> invalid
+            reason = result.message
+            if reason = invalid or reason = "" then reason = tr("Proxy not reachable")
+            m.keyboardDialog.title = tr("Error: ") + reason
+        end if
+        return
+    end if
+
+    if pending <> invalid
+        set_user_setting(pending.settingName, pending.value)
+        settingFocused()
+    end if
+
+    closeKeyboardDialog()
 end sub
 
 sub boolSettingChanged()
@@ -256,5 +288,10 @@ sub onDestroy()
     if m.keyboardDialog <> invalid
         m.keyboardDialog.unobserveField("buttonSelected")
         m.keyboardDialog = invalid
+    end if
+    if m.healthCheckTask <> invalid
+        m.healthCheckTask.unobserveField("result")
+        m.healthCheckTask.control = "stop"
+        m.healthCheckTask = invalid
     end if
 end sub
