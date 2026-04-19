@@ -103,132 +103,6 @@ sub onQualityChangeRequested()
     m.allowBreak = true
 end sub
 
-sub configureVideoForLatency(video as object, isLive as boolean)
-    latencyPreference = get_user_setting("preferred.latency", "low")
-    isLowLatency = (latencyPreference = "low")
-
-    if video.isSubtype("StitchVideo")
-        return
-    end if
-
-    ' Original configuration for regular Video components only
-    if isLive and isLowLatency
-        ' Enable LL-HLS for regular Video components
-        try
-            video.enableLowLatencyHLS = true
-            video.hlsOptimization = "lowLatency"
-            video.enablePartialSegments = true
-            video.enablePreloadHints = true
-            video.enableBlockingPlaylistReload = true
-        catch e
-        end try
-
-        video.bufferingConfig = {
-            initialBufferingMs: 200,
-            minBufferMs: 500,
-            maxBufferMs: 1500,
-            bufferForPlaybackMs: 200,
-            bufferForPlaybackAfterRebufferMs: 500,
-            rebufferMs: 200
-        }
-
-        video.enableDecoderCompatibility = false
-        video.maxVideoDecodeResolution = "1440p"
-
-        video.adaptiveBitrateConfig = {
-            initialBandwidthBps: 5000000,
-            maxInitialBitrate: 8000000,
-            minDurationForQualityIncreaseMs: 60000,
-            maxDurationForQualityDecreaseMs: 2000,
-            minDurationToRetainAfterDiscardMs: 1000,
-            bandwidthMeterSlidingWindowMs: 3000
-        }
-
-    else if isLive
-        ' Normal latency configuration for live streams
-        video.bufferingConfig = {
-            initialBufferingMs: 2000,
-            minBufferMs: 5000,
-            maxBufferMs: 15000,
-            bufferForPlaybackMs: 2000,
-            bufferForPlaybackAfterRebufferMs: 5000,
-            rebufferMs: 2000
-        }
-
-        video.enableDecoderCompatibility = true
-
-        video.adaptiveBitrateConfig = {
-            initialBandwidthBps: 3000000,
-            maxInitialBitrate: 6000000,
-            minDurationForQualityIncreaseMs: 10000,
-            maxDurationForQualityDecreaseMs: 25000,
-            minDurationToRetainAfterDiscardMs: 5000,
-            bandwidthMeterSlidingWindowMs: 10000
-        }
-
-    else
-        ' VOD configuration
-        video.bufferingConfig = {
-            initialBufferingMs: 3000,
-            minBufferMs: 10000,
-            maxBufferMs: 30000,
-            bufferForPlaybackMs: 3000,
-            bufferForPlaybackAfterRebufferMs: 8000,
-            rebufferMs: 3000
-        }
-
-        video.enableDecoderCompatibility = true
-    end if
-end sub
-
-sub measureStreamDelay()
-    if m.video <> invalid and m.video.content <> invalid
-        currentTime = CreateObject("roDateTime").AsSeconds()
-        videoPosition = m.video.position
-
-        ' Initialize tracking on first call
-        if m.delayTrackingStartTime = invalid
-            m.delayTrackingStartTime = currentTime
-            m.delayTrackingStartPosition = videoPosition
-            m.lastRealTime = currentTime
-            m.lastVideoPosition = videoPosition
-            return
-        end if
-
-        ' Calculate time since we started tracking
-        realTimeElapsed = currentTime - m.lastRealTime
-        videoTimeElapsed = videoPosition - m.lastVideoPosition
-
-        ' For live streams, video should progress at same rate as real time
-        ' Any difference indicates buffering/delay from live edge
-        if realTimeElapsed > 0
-            progressionRate = videoTimeElapsed / realTimeElapsed
-
-            ' Estimate delay based on how video progression compares to real time
-            if m.estimatedLiveDelay = invalid then m.estimatedLiveDelay = 25 ' Start with reasonable estimate
-
-            ' If video is progressing slower than real time, we're falling behind
-            if progressionRate < 0.99 ' Allow small variance
-                ' We're falling behind the live stream
-                delayIncrease = realTimeElapsed * (1 - progressionRate)
-                m.estimatedLiveDelay = m.estimatedLiveDelay + delayIncrease
-            else if progressionRate > 1.01
-                ' We're catching up (unlikely but possible during buffering recovery)
-                delayCatchup = realTimeElapsed * (progressionRate - 1)
-                m.estimatedLiveDelay = m.estimatedLiveDelay - delayCatchup
-            end if
-
-            ' Keep delay within reasonable bounds for live streams
-            if m.estimatedLiveDelay < 5 then m.estimatedLiveDelay = 5
-            if m.estimatedLiveDelay > 120 then m.estimatedLiveDelay = 120
-        end if
-
-        ' Update tracking values
-        m.lastRealTime = currentTime
-        m.lastVideoPosition = videoPosition
-    end if
-end sub
-
 function FormatSeconds(seconds as integer) as string
     if seconds < 10
         return "0" + seconds.toStr()
@@ -244,6 +118,19 @@ sub playContent()
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectAttempts = 0
+
+    ' Reset buffering state so stale timers from prior attempts don't persist
+    m.bufferStartTime = 0
+    m.lastBufferState = ""
+    if m.bufferCheckTimer <> invalid
+        m.bufferCheckTimer.control = "stop"
+        m.bufferCheckTimer.unobserveField("fire")
+        m.bufferCheckTimer = invalid
+    end if
+
+    ' Stamp when this playback attempt started (used for grace period)
+    m.playbackInitTime = CreateObject("roTimeSpan")
+    m.playbackInitTime.Mark()
 
     ' Only track stream_started and reset the timer on user-initiated plays.
     ' Internal reconnects (m.allowBreak = false) must not fire this event again.
@@ -279,7 +166,6 @@ sub playContent()
         m.video.unobserveField("qualityChangeRequest") ' StitchVideo specific
         m.video.unobserveField("position")
         m.video.unobserveField("state")
-        m.video.unobserveField("errorCode")
         m.video.unobserveField("duration")
         m.video.unobserveField("back") ' CustomVideo specific
 
@@ -327,7 +213,6 @@ sub playContent()
         httpAgent.addheader("Sec-Fetch-Site", "cross-site")
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-        httpAgent.addheader("X-Device-Id", CreateObject("roDeviceInfo").GetRandomUUID())
         authToken = get_user_setting("access_token", "")
         if authToken <> ""
             httpAgent.addheader("Authorization", "Bearer " + authToken)
@@ -338,19 +223,10 @@ sub playContent()
         httpAgent.addheader("Referer", "https://android.tv.twitch.tv/")
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-        latencyPreference = get_user_setting("preferred.latency", "low")
-        if isLiveContent and latencyPreference = "low"
-            httpAgent.addheader("Cache-Control", "no-cache")
-            httpAgent.addheader("Connection", "keep-alive")
-            httpAgent.addheader("X-Low-Latency", "1")
-        end if
     end if
     m.video.setHttpAgent(httpAgent)
 
-    ' Configure video player properties (buffering, ABR config, etc.)
-    configureVideoForLatency(m.video, isLiveContent)
-
-    m.video.notificationInterval = 1
+    m.video.notificationInterval = 0.5 ' fire position/bufferingStatus every 500ms
 
     ' Add observers to the new video node
     m.video.observeField("toggleChat", "onToggleChat")
@@ -361,7 +237,6 @@ sub playContent()
     end if
     m.video.observeField("position", "onPositionChanged")
     m.video.observeField("state", "onVideoStateChange")
-    m.video.observeField("errorCode", "onVideoError")
     m.video.observeField("duration", "onDurationChanged")
 
     videoBookmarks = get_user_setting("VideoBookmarks", "")
@@ -378,22 +253,15 @@ sub playContent()
     if contentNodeToPlay <> invalid
         if isLiveContent
             contentNodeToPlay.ignoreStreamErrors = false ' Important for HLS error reporting
-
-            latencyPreference = get_user_setting("preferred.latency", "low")
-            isLowLatencyMode = (latencyPreference = "low")
-
-            currentQualityID = contentNodeToPlay.QualityID
-            isAutomaticQuality = (currentQualityID.Instr("Automatic") > -1)
-
-            if isLowLatencyMode and not isAutomaticQuality and currentQualityID <> ""
-                contentNodeToPlay.switchingStrategy = "no-adaptation"
-            else
-                contentNodeToPlay.switchingStrategy = "full-adaptation"
-            end if
+            contentNodeToPlay.switchingStrategy = "full-adaptation"
+            ' Seek to live edge. Roku clips this to the current availability window
+            ' and starts at the latest segment rather than buffering the full window.
+            ' Use max int32 — same as rokudev/transport-control official live sample.
+            ' https://developer.roku.com/en-ca/docs/specs/media/streaming-specifications.md
+            contentNodeToPlay.PlayStart = 2147483647
         else if isClipContent
             contentNodeToPlay.ignoreStreamErrors = true
             contentNodeToPlay.switchingStrategy = "no-adaptation"
-            contentNodeToPlay.streamFormat = "mp4"
             contentNodeToPlay.enableTrickPlay = false
         else ' VOD
             contentNodeToPlay.ignoreStreamErrors = true ' Or false, depending on desired strictness
@@ -427,12 +295,6 @@ sub playContent()
 
         if isLiveContent
             initChat()
-            ' Start measuring delay after a short delay to let the stream start
-            m.delayMeasureTimer = createObject("roSGNode", "Timer")
-            m.delayMeasureTimer.observeField("fire", "measureStreamDelay")
-            m.delayMeasureTimer.repeat = false
-            m.delayMeasureTimer.duration = 10 ' Wait 10 seconds before first measurement
-            m.delayMeasureTimer.control = "start"
         end if
     end if
 end sub
@@ -474,12 +336,12 @@ sub exitPlayer()
         m.reconnectTimer.control = "stop"
         m.reconnectTimer = invalid
     end if
-    cleanupReconnectTask()
-
-    if m.delayMeasureTimer <> invalid
-        m.delayMeasureTimer.control = "stop"
-        m.delayMeasureTimer = invalid
+    if m.retryTimer <> invalid
+        m.retryTimer.control = "stop"
+        m.retryTimer.unobserveField("fire")
+        m.retryTimer = invalid
     end if
+    cleanupReconnectTask()
 
     if m.video <> invalid
         m.video.unobserveField("toggleChat")
@@ -490,7 +352,6 @@ sub exitPlayer()
         end if
         m.video.unobserveField("position")
         m.video.unobserveField("state")
-        m.video.unobserveField("errorCode")
         m.video.unobserveField("duration")
 
         m.video.control = "stop"
@@ -527,17 +388,6 @@ sub init()
     end if
     m.allowBreak = true ' Default to allowing break unless in quality change
 
-    ' Initialize delay tracking variables
-    m.lastDelayMeasurement = invalid
-    m.estimatedDelay = 0
-    m.streamStartSystemTime = invalid
-    ' New variables for proper live delay tracking
-    m.delayTrackingStartTime = invalid
-    m.delayTrackingStartPosition = invalid
-    m.lastRealTime = invalid
-    m.lastVideoPosition = invalid
-    m.estimatedLiveDelay = invalid
-
     ' Initialize error handler
     m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
     m.bufferCheckTimer = invalid
@@ -556,6 +406,8 @@ sub init()
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectTimer = invalid
+    m.retryTimer = invalid
+    m.playbackInitTime = invalid ' tracks when current playback attempt started
 
     m.watchdogTimer = CreateObject("roSGNode", "Timer")
     m.watchdogTimer.repeat = true
@@ -615,27 +467,26 @@ sub onPositionChanged()
         end if
     end if
 
-    ' Measure delay every 30 seconds for debugging
-    if m.video <> invalid and Int(m.video.position) mod 30 = 0
-        measureStreamDelay()
-    end if
 end sub
 
 sub onVideoStateChange()
     if m.video = invalid then return
 
-    ' This is observed on m.video.
-    ' StitchVideo/CustomVideo have their own onVideoStateChange for UI.
-
     ' Handle buffering states
     if m.video.state = "buffering"
         handleBufferingState()
     else if m.lastBufferState = "buffering" and m.video.state = "playing"
-        ' Recovered from buffering
+        ' Recovered from buffering — cancel all pending retry/buffer timers
         m.errorHandler.callFunc("resetErrorState")
         if m.bufferCheckTimer <> invalid
             m.bufferCheckTimer.control = "stop"
+            m.bufferCheckTimer.unobserveField("fire")
             m.bufferCheckTimer = invalid
+        end if
+        if m.retryTimer <> invalid
+            m.retryTimer.control = "stop"
+            m.retryTimer.unobserveField("fire")
+            m.retryTimer = invalid
         end if
     end if
 
@@ -655,12 +506,42 @@ sub onVideoStateChange()
     if m.video.state = "finished" and m.allowBreak
         exitPlayer()
     else if m.video.state = "error"
-        handleStreamError()
-    end if
-end sub
+        ' Log the raw error immediately for debugging visibility
+        ? "[VideoPlayer] video.state=error — code="; m.video.errorCode; " msg="; m.video.errorStr
 
-sub onVideoError()
-    handleStreamError()
+        ' Grace period: within the first 5 seconds of a fresh playback attempt,
+        ' Roku's engine often fires a transient error on the initial segment fetch
+        ' (CDN 302, auth pre-check, etc.) and then self-recovers on the next segment.
+        ' Skip our retry machinery for non-fatal errors during this window.
+        elapsedMs = 999999
+        if m.playbackInitTime <> invalid
+            elapsedMs = m.playbackInitTime.TotalMilliseconds()
+        end if
+
+        errorCode = m.video.errorCode
+        errorMsg = m.video.errorStr
+        if errorMsg = invalid then errorMsg = ""
+
+        ' Enhanced Broadcasting / codec error — Roku cannot decode this stream at all.
+        ' Exit silently: no dialog, no retry loop.
+        if errorMsg.InStr("buffer:loop:demux") > -1 or errorMsg.InStr("970") > -1
+            m.allowBreak = true
+            exitPlayer()
+            return
+        end if
+
+        ' Classify as fatal immediately (don't wait): auth errors
+        isFatalError = false
+        if errorCode = 401 or errorCode = 403 or errorCode = 404
+            isFatalError = true
+        end if
+
+        if isFatalError or elapsedMs > 5000
+            handleStreamError()
+        else
+            ? "[VideoPlayer] Transient error within grace period ("; elapsedMs; "ms) — letting Roku self-recover"
+        end if
+    end if
 end sub
 
 sub handleStreamError()
@@ -687,16 +568,20 @@ sub handleStreamError()
 
     if recovery.shouldRetry
         if recovery.action = "retry"
-            ? "[VideoPlayer] Retry action with delay: "; recovery.delay
-            ' Show temporary message while retrying
+            ? "[VideoPlayer] Retry action with delay: "; recovery.delay; " errorCode="; errorCode; " errorMsg="; errorMessage
             showTemporaryMessage("Reconnecting...")
 
-            ' Retry with same content after delay
-            retryTimer = CreateObject("roSGNode", "Timer")
-            retryTimer.duration = recovery.delay / 1000
-            retryTimer.repeat = false
-            retryTimer.observeField("fire", "retryPlayback")
-            retryTimer.control = "start"
+            ' Cancel any in-flight retry timer before creating a new one
+            if m.retryTimer <> invalid
+                m.retryTimer.control = "stop"
+                m.retryTimer.unobserveField("fire")
+                m.retryTimer = invalid
+            end if
+            m.retryTimer = CreateObject("roSGNode", "Timer")
+            m.retryTimer.duration = recovery.delay / 1000
+            m.retryTimer.repeat = false
+            m.retryTimer.observeField("fire", "retryPlayback")
+            m.retryTimer.control = "start"
 
         else if recovery.action = "change_quality" and recovery.newContent <> invalid
             ' Show quality change message
@@ -759,19 +644,17 @@ sub handleBufferingState()
                     m.video.qualityChangeRequest = lowerQuality
                     onQualityChangeRequested()
                 end if
-            else if recovery.action = "adjust_buffer"
-                ' Adjust buffering configuration
-                adjustBufferConfig()
             end if
         end if
 
         m.bufferStartTime = 0 ' Reset timer
     end if
 
-    ' Start a timer to check for stuck buffering
+    ' Start a timer to check for stuck buffering.
+    ' 25s gives Twitch CDN enough time for initial segment delivery on busy streams.
     if m.bufferCheckTimer = invalid
         m.bufferCheckTimer = CreateObject("roSGNode", "Timer")
-        m.bufferCheckTimer.duration = 15 ' Check after 15 seconds
+        m.bufferCheckTimer.duration = 25
         m.bufferCheckTimer.repeat = false
         m.bufferCheckTimer.observeField("fire", "onBufferTimeout")
         m.bufferCheckTimer.control = "start"
@@ -779,10 +662,13 @@ sub handleBufferingState()
 end sub
 
 sub onBufferTimeout()
-    if m.video.state = "buffering"
-        handleStreamError()
-    end if
     m.bufferCheckTimer = invalid
+    if m.video = invalid then return
+    if m.video.state <> "buffering" then return
+    ' LIVE streams stall 15-20s waiting for the CDN segment to be produced — normal.
+    ' Let Roku self-recover; don't force an error retry.
+    if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" then return
+    handleStreamError()
 end sub
 
 ' ===== LIVE stall watchdog / reconnect =====
@@ -928,6 +814,8 @@ sub onLiveReconnectResponse()
 end sub
 
 sub retryPlayback()
+    ? "[VideoPlayer] retryPlayback() — restarting playback"
+    m.retryTimer = invalid
     m.allowBreak = false
     exitPlayer()
     m.allowBreak = true
@@ -966,20 +854,6 @@ function findLowerQuality() as dynamic
 
     return invalid
 end function
-
-sub adjustBufferConfig()
-    ' Increase buffer sizes to handle network issues
-    if m.video <> invalid
-        m.video.bufferingConfig = {
-            initialBufferingMs: 5000,
-            minBufferMs: 10000,
-            maxBufferMs: 30000,
-            bufferForPlaybackMs: 5000,
-            bufferForPlaybackAfterRebufferMs: 10000,
-            rebufferMs: 5000
-        }
-    end if
-end sub
 
 sub showErrorDialog(title as string, message as string)
     dialog = CreateObject("roSGNode", "Dialog")

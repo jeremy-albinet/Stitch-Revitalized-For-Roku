@@ -32,7 +32,6 @@
         <field id="StreamContentIds" type="array" />
         <field id="StreamBitrates" type="array" />
         <field id="StreamStickyHttpRedirects" type="array" />
-        <field id="lowLatencyStreamsAvailable" type="bool" />
         <!-- Enhanced Broadcasting detection -->
         <field id="isTransmux" type="bool" value="false" />
         <field id="isProxied" type="bool" value="false" />
