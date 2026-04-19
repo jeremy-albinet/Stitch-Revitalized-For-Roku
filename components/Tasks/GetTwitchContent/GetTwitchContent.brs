@@ -590,14 +590,28 @@ sub main()
             if proxyUrl.right(1) = "/" then proxyUrl = proxyUrl.left(proxyUrl.len() - 1)
             ? "[fmp4-demux] isTransmux=true, proxyUrl=" proxyUrl
             if proxyUrl <> ""
+                ' Preserve upstream codec/bandwidth/resolution per variant so the
+                ' proxy's synthesized demuxed master advertises the real decoder
+                ' requirements (H.264 / HEVC / AV1).
+                variantHints = {}
+                for each item in stream_objects
+                    if item["URL"] <> invalid
+                        variantHints[item["URL"]] = {
+                            codecs: item["CODECS"],
+                            bandwidth: item["BANDWIDTH"],
+                            resolution: item["RESOLUTION"]
+                        }
+                    end if
+                end for
+
                 if content.url <> invalid and content.url <> ""
                     ? "[fmp4-demux] rewriting url: " content.url
-                    content.url = proxyUrl + "/m3u8?u=" + content.url.EncodeUriComponent()
+                    content.url = buildProxyM3u8Url(proxyUrl, content.url, variantHints[content.url])
                 end if
                 if content.StreamUrls <> invalid
                     newStreamUrls = []
                     for each streamUrl in content.StreamUrls
-                        newStreamUrls.push(proxyUrl + "/m3u8?u=" + streamUrl.EncodeUriComponent())
+                        newStreamUrls.push(buildProxyM3u8Url(proxyUrl, streamUrl, variantHints[streamUrl]))
                     end for
                     content.StreamUrls = newStreamUrls
                 end if
@@ -625,6 +639,28 @@ sub main()
 
     m.top.response = content
 end sub
+
+function buildProxyM3u8Url(proxyUrl as string, streamUrl as string, hints as dynamic) as string
+    url = proxyUrl + "/m3u8?u=" + streamUrl.EncodeUriComponent()
+    if hints = invalid then return url
+
+    codecs = hints.codecs
+    if codecs <> invalid and Type(codecs) = "roString" and codecs <> ""
+        url = url + "&codecs=" + codecs.EncodeUriComponent()
+    end if
+
+    bw = hints.bandwidth
+    if bw <> invalid and Type(bw) = "roString" and bw <> ""
+        url = url + "&bw=" + bw.EncodeUriComponent()
+    end if
+
+    res = hints.resolution
+    if res <> invalid and Type(res) = "roString" and res <> ""
+        url = url + "&res=" + res.EncodeUriComponent()
+    end if
+
+    return url
+end function
 
 function getClipUrlViaGraphQL(clipSlug as string) as dynamic
     ' Try to get clip URL via GraphQL API with proper authentication

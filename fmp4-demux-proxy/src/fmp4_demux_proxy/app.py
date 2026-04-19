@@ -21,7 +21,7 @@ from fmp4_demux_proxy.upstream import CONFIG_KEY, upstream_session_cleanup_ctx
 def create_app(config: Config | None = None) -> web.Application:
     app = web.Application()
     app[CONFIG_KEY] = config if config is not None else get_config()
-    app[TRACK_MAP_KEY] = {}
+    app[TRACK_MAP_KEY] = OrderedDict()
     app[SEGMENT_CACHE_KEY] = OrderedDict()
     app[SEGMENT_LOCKS_KEY] = {}
     app.cleanup_ctx.append(upstream_session_cleanup_ctx)

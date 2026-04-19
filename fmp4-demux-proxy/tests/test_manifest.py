@@ -7,7 +7,13 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import pytest
 
-from fmp4_demux_proxy.manifest import ManifestKind, RewriteConfig, classify, rewrite
+from fmp4_demux_proxy.manifest import (
+    ManifestKind,
+    RewriteConfig,
+    VariantHints,
+    classify,
+    rewrite,
+)
 
 MASTER_BASIC = (
     "#EXTM3U\n"
@@ -255,6 +261,55 @@ class TestRewriteVariant:
             "#EXT-X-ENDLIST",
         ):
             assert tag in out
+
+
+class TestSynthesizeMaster:
+    def test_default_codecs_and_bandwidth_when_no_hints(self, config: RewriteConfig) -> None:
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config)
+        assert "BANDWIDTH=4000000" in out
+        assert 'CODECS="avc1.64001f,mp4a.40.2"' in out
+        assert "RESOLUTION=" not in out
+        assert "&track=audio" in out
+        assert "&track=video" in out
+
+    def test_hevc_codec_preserved(self, config: RewriteConfig) -> None:
+        hints = VariantHints(
+            codecs="hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2",
+            bandwidth=6000000,
+            resolution="1920x1080",
+        )
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
+        assert 'CODECS="hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2"' in out
+        assert "BANDWIDTH=6000000" in out
+        assert "RESOLUTION=1920x1080" in out
+
+    def test_av1_codec_preserved(self, config: RewriteConfig) -> None:
+        hints = VariantHints(
+            codecs="av01.0.13M.08,mp4a.40.2",
+            bandwidth=12583349,
+            resolution="3840x2160",
+        )
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
+        assert 'CODECS="av01.0.13M.08,mp4a.40.2"' in out
+        assert "BANDWIDTH=12583349" in out
+        assert "RESOLUTION=3840x2160" in out
+
+    def test_malicious_codecs_rejected_uses_default(self, config: RewriteConfig) -> None:
+        hints = VariantHints(codecs='"injection,EXTRA-TAG')
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
+        assert 'CODECS="avc1.64001f,mp4a.40.2"' in out
+        assert "EXTRA-TAG" not in out
+
+    def test_malformed_resolution_ignored(self, config: RewriteConfig) -> None:
+        hints = VariantHints(codecs="avc1.64001f,mp4a.40.2", resolution="notaresolution")
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
+        assert "RESOLUTION=" not in out
+
+    def test_partial_hints_only_codecs(self, config: RewriteConfig) -> None:
+        hints = VariantHints(codecs="avc1.640028,mp4a.40.2")
+        out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
+        assert 'CODECS="avc1.640028,mp4a.40.2"' in out
+        assert "BANDWIDTH=4000000" in out
 
 
 class TestUnknown:
