@@ -10,6 +10,9 @@ node_modules
 .env.local
 .env.*.local
 
+# Dev tool
+opencode.json
+
 # Roku device specific configs (credentials, IP addresses)
 bsconfig.dev.json
 bsconfig.local.json
