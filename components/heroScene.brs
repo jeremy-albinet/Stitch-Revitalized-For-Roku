@@ -120,24 +120,49 @@ sub handleDeviceCode()
 end sub
 
 function buildNode(name)
-    if name <> invalid
-        newNode = createObject("roSGNode", name)
-        if newNode = invalid then return invalid
-        newNode.id = name
-        newNode.translation = [0, 0]
-        newNode.observeField("backPressed", "onBackPressed")
-        newNode.observeField("contentSelected", "onContentSelected")
-        if name <> "GamePage" and name <> "ChannelPage" and name <> "VideoPlayer" and name <> "StreamerChannelPage"
-            m.top.insertChild(newNode, 1)
-        else
-            m.top.appendChild(newNode)
-        end if
-        if name = "LoginPage" or name = "StreamerChannelPage"
-            newNode.observeField("finished", "onLoginFinished")
-        end if
-        return newNode
+    if name = invalid then return invalid
+
+    ' Dispatch to scene-specific factory
+    if name = "Following"
+        newNode = build_Following()
+    else if name = "Discover"
+        newNode = build_Discover()
+    else if name = "LiveChannels"
+        newNode = build_LiveChannels()
+    else if name = "Categories"
+        newNode = build_Categories()
+    else if name = "Search"
+        newNode = build_Search()
+    else if name = "Settings"
+        newNode = build_Settings()
+    else if name = "LoginPage"
+        newNode = build_LoginPage()
+    else if name = "ChannelPage"
+        newNode = build_ChannelPage()
+    else if name = "GamePage"
+        newNode = build_GamePage()
+    else if name = "VideoPlayer"
+        newNode = build_VideoPlayer()
+    else if name = "StreamerChannelPage"
+        newNode = build_StreamerChannelPage()
+    else
+        return invalid
     end if
-    return invalid
+
+    if newNode = invalid then return invalid
+
+    ' Shared observer wiring
+    newNode.observeField("backPressed", "onBackPressed")
+    newNode.observeField("contentSelected", "onContentSelected")
+
+    ' Tree placement
+    if name = "GamePage" or name = "ChannelPage" or name = "VideoPlayer" or name = "StreamerChannelPage"
+        m.top.appendChild(newNode)
+    else
+        m.top.insertChild(newNode, 1)
+    end if
+
+    return newNode
 end function
 
 sub onLoginFinished()
