@@ -1,0 +1,5 @@
+enum VideoErrorCode
+    VOD_MANIFEST_RESTRICTED = "vod_manifest_restricted"
+    VOD_MANIFEST_EXPIRED = "vod_manifest_expired"
+    VOD_MANIFEST_MISSING = "vod_manifest_missing"
+end enum

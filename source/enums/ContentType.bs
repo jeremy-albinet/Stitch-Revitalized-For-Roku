@@ -1,0 +1,9 @@
+enum ContentType
+    LIVE = "LIVE"
+    VOD = "VOD"
+    CLIP = "CLIP"
+    GAME = "GAME"
+    USER = "USER"
+    STREAMER = "STREAMER"
+    ERROR = "ERROR"
+end enum

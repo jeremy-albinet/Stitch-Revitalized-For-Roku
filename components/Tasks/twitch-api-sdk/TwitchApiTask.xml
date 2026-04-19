@@ -7,6 +7,8 @@
         <field id="request" type="assocarray" />
         <field id="response" type="assocarray" />
     </interface>
+    <script type="text/brightscript" uri="pkg:/source/enums/TaskControl.bs" />
+    <script type="text/brightscript" uri="pkg:/source/enums/ContentType.bs" />
     <script type="text/brightscript" uri="shared.bs" />
     <script type="text/brightscript" uri="auth.bs" />
     <script type="text/brightscript" uri="player.bs" />

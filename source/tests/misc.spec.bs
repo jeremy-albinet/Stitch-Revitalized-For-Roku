@@ -432,6 +432,57 @@ namespace tests
             m.assertEqual(result[4], 5)
         end sub
 
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("isChainValid")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns true for fully valid chain")
+        sub isChainValid_validChain()
+            root = { "user": { "profile": { "name": "John" } } }
+            m.assertTrue(isChainValid(root, "user.profile.name"))
+        end sub
+
+        @it("returns false for invalid root")
+        sub isChainValid_invalidRoot()
+            m.assertFalse(isChainValid(invalid, "user.profile"))
+        end sub
+
+        @it("returns false for missing intermediate key")
+        sub isChainValid_missingIntermediate()
+            root = { "user": { "settings": {} } }
+            m.assertFalse(isChainValid(root, "user.profile.name"))
+        end sub
+
+        @it("returns false for missing final key")
+        sub isChainValid_missingFinal()
+            root = { "user": { "profile": {} } }
+            m.assertFalse(isChainValid(root, "user.profile.name"))
+        end sub
+
+        @it("returns true for empty path with valid root")
+        sub isChainValid_emptyPath()
+            root = { "key": "value" }
+            m.assertTrue(isChainValid(root, ""))
+        end sub
+
+        @it("returns false when intermediate value is non-AA")
+        sub isChainValid_nonAAIntermediate()
+            root = { "user": "stringValue" }
+            m.assertFalse(isChainValid(root, "user.profile"))
+        end sub
+
+        @it("returns true with single-key path")
+        sub isChainValid_singleKey()
+            root = { "user": { "id": 123 } }
+            m.assertTrue(isChainValid(root, "user"))
+        end sub
+
+        @it("returns true with case-insensitive key match")
+        sub isChainValid_caseInsensitive()
+            root = { "USER": { "PROFILE": { "NAME": "John" } } }
+            m.assertTrue(isChainValid(root, "user.profile.name"))
+        end sub
+
     end class
 
 end namespace
