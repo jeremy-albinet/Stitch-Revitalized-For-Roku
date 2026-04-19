@@ -27,8 +27,6 @@ sub init()
     screenHeight = m.top.getScene().currentDesignResolution.height
     m.settingsMenu.numRows = Int((screenHeight - 80 - 10) / 55)
 
-
-
     m.categoryList.setFocus(true)
 
     m.settingsMenu.observeField("itemFocused", "settingFocused")
@@ -79,8 +77,6 @@ sub settingFocused()
     selectedSetting = m.userLocation.peek().children[m.settingsMenu.itemFocused]
     m.settingDesc.text = tr(selectedSetting.Description)
     m.settingTitle.text = tr(selectedSetting.Title)
-
-
 
     m.boolSetting.visible = false
     m.radioSetting.visible = false
