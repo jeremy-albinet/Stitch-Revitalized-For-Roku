@@ -112,6 +112,9 @@ sub settingFocused()
             itemIndex++
         end for
         m.radioSetting.content = radioContent
+    else if selectedSetting.type = "action"
+        m.boolSetting.visible = false
+        m.radioSetting.visible = false
     else
         print "Unknown setting type " + selectedSetting.type
     end if
@@ -129,6 +132,10 @@ sub settingSelected()
             m.radioSetting.setFocus(true)
         else if selectedItem.type = "text"
             showTextKeyboard(selectedItem)
+        else if selectedItem.type = "action"
+            if selectedItem.action = "logout"
+                performLogout()
+            end if
         end if
     else if selectedItem.children <> invalid and selectedItem.children.Count() > 0
         LoadMenu(selectedItem)
@@ -281,6 +288,21 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
     return false
 end function
+
+sub performLogout()
+    active_user = get_setting("active_user", "$default$")
+    if active_user <> "$default$"
+        NukeRegistry(active_user)
+        set_setting("active_user", "$default$")
+    else
+        for each key in getRegistryKeys("$default$")
+            if key <> "temp_device_code"
+                unset_user_setting(key)
+            end if
+        end for
+    end if
+    m.top.finished = true
+end sub
 
 sub onDestroy()
     m.top.unobserveField("focusedChild")
