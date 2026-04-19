@@ -9,10 +9,6 @@
             <translation>Canais Ao Vivo</translation>
         </message>
         <message>
-            <source>LiveChannels</source>
-            <translation>Canais Ao Vivo</translation>
-        </message>
-        <message>
             <source>Clips</source>
             <translation>Cortes</translation>
         </message>
@@ -75,11 +71,6 @@
         <message>
             <source>Video Framerate</source>
             <translation>Taxa de atualização</translation>
-        </message>
-        <message>
-            <source>Home</source>
-            <translation>Início</translation>
-            <context>User's "home" page / fyp</context>
         </message>
         <message>
             <source>Viewers</source>

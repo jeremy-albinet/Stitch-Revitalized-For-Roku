@@ -8,10 +8,7 @@
             <source>Live Channels</source>
             <translation>Canales en vivo</translation>
         </message>
-        <message>
-            <source>LiveChannels</source>
-            <translation>Canales en vivo</translation>
-        </message>
+
         <message>
             <source>Clips</source>
             <translation>Clips</translation>
@@ -75,11 +72,6 @@
         <message>
             <source>Video Framerate</source>
             <translation>Velocidad de fotogramas del vídeo</translation>
-        </message>
-        <message>
-            <source>Home</source>
-            <translation>Descubrir</translation>
-            <context>User's "home" page / fyp</context>
         </message>
         <message>
             <source>Viewers</source>
