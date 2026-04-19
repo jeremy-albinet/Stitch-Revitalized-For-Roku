@@ -1,4 +1,7 @@
 <component name="Settings" extends="SceneManagerGroup" initialFocus="categoryList">
+    <interface>
+        <field id="finished" type="bool" />
+    </interface>
     <children>
         <Group translation="[10, 80]">
             <Rectangle width="1280" height="720" color="0x0e0e10FF" />
@@ -53,4 +56,5 @@
     </children>
     <script type="text/brightscript" uri="settings.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
 </component>
