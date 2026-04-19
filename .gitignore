@@ -17,6 +17,9 @@ bsconfig.local.json
 # Local developer docs (device credentials, personal config)
 DEV.md
 
+# AI tooling config (local model selection, not project config)
+opencode.json
+
 # Python (fmp4-demux-proxy)
 __pycache__/
 *.pyc
