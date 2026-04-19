@@ -342,7 +342,7 @@ sub setConstants()
                 pause: "pkg:/images/icons/pause.png",
                 play: "pkg:/images/icons/play.png",
                 search: "pkg:/images/icons/search.png",
-                time_travel: "pkg:/images/icons/clock.png"
+                time_travel: "pkg:/images/icons/clock-o.png"
             }
         }
     })
