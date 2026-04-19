@@ -1,133 +1,127 @@
-function getBrowsePagePopularQuery()
+function getBrowsePagePopularQuery() as object
     variables = {
-        "imageWidth": 300,
         "limit": 30,
-        "platformType": "all",
-        "options": {
-            "includeRestricted": [
-                "SUB_ONLY_LIVE"
-            ],
-            "sort": get_user_setting("LiveChannelSorting", "VIEWER_COUNT"), '"RELEVANCE" | "VIEWER_COUNT" | "VIEWER_COUNT_ASC" | "RECENT"
-            "freeformTags": invalid,
-            "tags": [],
-            "recommendationsContext": {
-                "platform": "web"
-            },
-            "requestID": "JIRA-VXP-2397",
-            "broadcasterLanguages": []
-        },
-        "sortTypeIsRecency": false
+        "sort": get_user_setting("LiveChannelSorting", "VIEWER_COUNT"),
+        "broadcasterLanguages": []
     }
     if m.top.request.cursor <> invalid
-        variables["cursor"] = m.top.request.cursor
+        variables["after"] = m.top.request.cursor
     end if
     rsp = TwitchGraphQLRequest({
-        "operationName": "BrowsePage_Popular",
-        "variables": variables,
-        "extensions": {
-            "persistedQuery": {
-                "version": 1,
-                "sha256Hash": "19cd6b171185fa3937c4fd6f80363a7a38a7dc269c43eb205732159bc932cb01"
-            }
-        }
+        query: ReadAsciiFile("pkg:/source/graphql/BrowseLiveChannels_Query.gql"),
+        variables: variables
     })
     if rsp = invalid
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid
     end if
-    edges = rsp?.data?.streams?.edges ?? []
-    hasNextPage = rsp?.data?.streams?.pageInfo?.hasNextPage ?? false
-    validEdges = []
-    skippedEdges = 0
-    for each edge in edges
-        try
-            if edge?.node <> invalid
-                validEdges.push(edge)
-            end if
-        catch e
-            skippedEdges = skippedEdges + 1
-        end try
-    end for
-    if skippedEdges > 0
-        ? "[TwitchApiTask] getBrowsePagePopularQuery skipped "; skippedEdges; " malformed edge(s)"
-    end if
-    cursor = ""
-    if validEdges.count() > 0
-        cursor = validEdges.peek()?.cursor ?? ""
-    end if
-    safeHasNextPage = hasNextPage
-    if cursor = ""
-        safeHasNextPage = false
-    end if
-    m.top.response = {
-        edges: validEdges,
-        cursor: cursor,
-        hasNextPage: safeHasNextPage
-    }
+    m.top.response = api.twitch.browse.extractLiveStreams(rsp)
     m.top.control = TaskControl.STOP
     return invalid
 end function
 
-function getBrowsePageQuery()
+function getBrowsePageQuery() as object
     variables = {
-        "limit": 100,
-        "options": {
-            "recommendationsContext": {
-                "platform": "web"
-            },
-            "requestID": "JIRA-VXP-2397",
-            "sort": "VIEWER_COUNT",
-            "tags": []
-        }
+        "first": 80
     }
     if m.top.request.cursor <> invalid
-        variables["cursor"] = m.top.request.cursor
+        variables["after"] = m.top.request.cursor
     end if
     rsp = TwitchGraphQLRequest({
-        "operationName": "BrowsePage_AllDirectories",
-        "variables": variables,
-        "extensions": {
-            "persistedQuery": {
-                "version": 1,
-                "sha256Hash": "1d1914ca3cbfaa607ecd5595b2e305e96acf987c8f25328f7713b25f604c4668"
-            }
-        }
+        query: ReadAsciiFile("pkg:/source/graphql/BrowseCategories_Query.gql"),
+        variables: variables
     })
     if rsp = invalid
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid
     end if
-    edges = rsp?.data?.directoriesWithTags?.edges ?? []
-    hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
-    validEdges = []
-    skippedEdges = 0
-    for each edge in edges
-        try
-            if edge <> invalid and edge?.node <> invalid
-                validEdges.push(edge)
-            end if
-        catch e
-            skippedEdges = skippedEdges + 1
-        end try
-    end for
-    if skippedEdges > 0
-        ? "[TwitchApiTask] getBrowsePageQuery skipped "; skippedEdges; " malformed edge(s)"
-    end if
-    cursor = ""
-    if validEdges.count() > 0
-        cursor = validEdges.peek()?.cursor ?? ""
-    end if
-    safeHasNextPage = hasNextPage
-    if cursor = ""
-        safeHasNextPage = false
-    end if
-    m.top.response = {
-        edges: validEdges,
-        cursor: cursor,
-        hasNextPage: safeHasNextPage
-    }
+    m.top.response = api.twitch.browse.extractGames(rsp)
     m.top.control = TaskControl.STOP
     return invalid
 end function
+
+namespace api.twitch.browse
+
+    function extractLiveStreams(rsp as object) as object
+        edges = rsp?.data?.streams?.edges ?? []
+        hasNextPage = rsp?.data?.streams?.pageInfo?.hasNextPage ?? false
+        streams = []
+        for each edge in edges
+            try
+                node = edge?.node
+                if node <> invalid
+                    item = {
+                        contentId: node.id,
+                        contentType: "LIVE",
+                        previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", node.broadcaster.login, "1280", "720"),
+                        contentTitle: node?.broadcaster?.broadcastSettings?.title ?? node?.broadcaster?.displayName ?? "",
+                        viewersCount: node.viewersCount,
+                        streamerDisplayName: node.broadcaster.displayName,
+                        streamerLogin: node.broadcaster.login,
+                        streamerId: node.broadcaster.id,
+                        streamerProfileImageUrl: node.broadcaster.profileImageURL
+                    }
+                    if node.game <> invalid
+                        item.gameDisplayName = node.game.displayName
+                        item.gameName = node.game.name
+                        item.gameId = node.game.id
+                    end if
+                    streams.push(item)
+                end if
+            catch e
+                ? "[browse] extractLiveStreams error: "; e
+            end try
+        end for
+        cursor = ""
+        if edges.count() > 0
+            cursor = edges[edges.count() - 1]?.cursor ?? ""
+        end if
+        if cursor = "" then hasNextPage = false
+        return {
+            streams: streams,
+            cursor: cursor,
+            hasNextPage: hasNextPage
+        }
+    end function
+
+    function extractGames(rsp as object) as object
+        edges = rsp?.data?.directoriesWithTags?.edges ?? []
+        hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
+        games = []
+        for each edge in edges
+            try
+                node = edge?.node
+                if node <> invalid
+                    item = {
+                        contentId: node.id,
+                        contentType: "GAME",
+                        viewersCount: node.viewersCount,
+                        contentTitle: node.displayName,
+                        gameDisplayName: node.displayName,
+                        gameId: node.id,
+                        gameName: node.name
+                    }
+                    if node.boxArtURL <> invalid and node.boxArtURL <> ""
+                        item.gameBoxArtUrl = Left(node.boxArtURL, Len(node.boxArtURL) - 20) + "188x250.jpg"
+                    end if
+                    games.push(item)
+                end if
+            catch e
+                ? "[browse] extractGames error: "; e
+            end try
+        end for
+        cursor = ""
+        if edges.count() > 0
+            cursor = edges[edges.count() - 1]?.cursor ?? ""
+        end if
+        if cursor = "" then hasNextPage = false
+        return {
+            games: games,
+            cursor: cursor,
+            hasNextPage: hasNextPage
+        }
+    end function
+
+end namespace
