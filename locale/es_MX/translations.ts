@@ -150,5 +150,13 @@
             <source>Error: </source>
             <translation>Error: </translation>
         </message>
+        <message>
+            <source>Stream Language</source>
+            <translation>Idioma de Transmisión</translation>
+        </message>
+        <message>
+            <source>Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.</source>
+            <translation>Filtra transmisiones en vivo en la página Explorar por idioma del streamer. Se aplica en la próxima visita a Explorar.</translation>
+        </message>
     </context>
 </TS>

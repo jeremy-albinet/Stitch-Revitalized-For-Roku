@@ -151,5 +151,13 @@
             <source>Error: </source>
             <translation>Error: </translation>
         </message>
+        <message>
+            <source>Stream Language</source>
+            <translation>Stream Language</translation>
+        </message>
+        <message>
+            <source>Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.</source>
+            <translation>Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.</translation>
+        </message>
     </context>
 </TS>

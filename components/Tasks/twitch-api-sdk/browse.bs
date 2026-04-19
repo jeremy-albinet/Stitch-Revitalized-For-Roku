@@ -1,8 +1,13 @@
 function getBrowsePagePopularQuery() as object
+    language = get_user_setting("BrowseLanguage", "")
+    broadcasterLanguages = []
+    if language <> ""
+        broadcasterLanguages = [language]
+    end if
     variables = {
         "limit": 30,
         "sort": get_user_setting("LiveChannelSorting", "VIEWER_COUNT"),
-        "broadcasterLanguages": []
+        "broadcasterLanguages": broadcasterLanguages
     }
     if m.top.request.cursor <> invalid
         variables["after"] = m.top.request.cursor
