@@ -109,6 +109,31 @@
         ]
     },
     {
+        "title": "Stream Language",
+        "description": "Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.",
+        "settingName": "BrowseLanguage",
+        "type": "radio",
+        "default": "",
+        "options": [
+            { "title": "All Languages", "id": "" },
+            { "title": "English", "id": "en" },
+            { "title": "Español", "id": "es" },
+            { "title": "Português", "id": "pt" },
+            { "title": "Deutsch", "id": "de" },
+            { "title": "Français", "id": "fr" },
+            { "title": "Italiano", "id": "it" },
+            { "title": "한국어", "id": "ko" },
+            { "title": "日本語", "id": "ja" },
+            { "title": "中文", "id": "zh" },
+            { "title": "Polski", "id": "pl" },
+            { "title": "Русский", "id": "ru" },
+            { "title": "Türkçe", "id": "tr" },
+            { "title": "العربية", "id": "ar" },
+            { "title": "Tiếng Việt", "id": "vi" },
+            { "title": "ไทย", "id": "th" }
+        ]
+    },
+    {
         "title": "Offline Follow Sorting",
         "description": "Determines how the offline channels on the following page are sorted.",
         "settingName": "FollowPageSorting",
