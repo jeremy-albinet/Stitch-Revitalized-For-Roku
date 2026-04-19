@@ -20,7 +20,7 @@
             rowItemSpacing="[[30,0]]"
             itemSize="[1280,295]"
             itemSpacing="[0,0]"
-            focusBitmapUri="pkg:/images/focusIndicator.9.png"
+            focusBitmapUri="pkg:/images/focusindicator.9.png"
             vertFocusAnimationStyle="fixedFocus"
             rowFocusAnimationStyle="floatingFocus"
             showRowLabel="[ false ]"

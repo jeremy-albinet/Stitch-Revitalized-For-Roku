@@ -41,8 +41,8 @@ function buildIcon(icon)
     newItem.focusedIconUri = map[icon]
     newItem.minWidth = 0
     newItem.height = m.top.menuOptionsHeight
-    newItem.focusFootprintBitmapUri = "pkg:/images/FocusFootprint.9.png"
-    newItem.focusBitmapUri = "pkg:/images/FocusFootprint.9.png"
+    newItem.focusFootprintBitmapUri = "pkg:/images/focusfootprint.9.png"
+    newItem.focusBitmapUri = "pkg:/images/focusfootprint.9.png"
     newItem.showFocusFootprint = false
     newItem.getchild(3).blendColor = m.top.menuTextColor
     newItem.getchild(3).width = m.top.menuFontSize * 2
@@ -88,8 +88,8 @@ sub updateMenuOptions()
             newItem.iconUri = ""
             newItem.focusedIconUri = ""
             newItem.height = m.top.menuOptionsHeight
-            newItem.focusFootprintBitmapUri = "pkg:/images/FocusFootprint.9.png"
-            newItem.focusBitmapUri = "pkg:/images/FocusIndicator.9.png"
+            newItem.focusFootprintBitmapUri = "pkg:/images/focusfootprint.9.png"
+            newItem.focusBitmapUri = "pkg:/images/focusindicator.9.png"
             newItem.showFocusFootprint = false
             newItem.id = m.top.menuOptionsText[i]
             newItem.text = tr(m.top.menuOptionsText[i])

@@ -31,7 +31,7 @@ end sub
 '     newRowList.itemSize = "[1080,275]"
 '     newRowList.itemSpacing = "[ 0, 40 ]"
 '     newRowList.showRowLabel = "[true]"
-'     newRowList.focusBitmapUri = "pkg:/images/focusIndicator.9.png"
+'     newRowList.focusBitmapUri = "pkg:/images/focusindicator.9.png"
 '     newRowList.vertFocusAnimationStyle = "fixedFocus"
 '     newRowList.rowFocusAnimationStyle = "fixedFocusWrap"
 '     return newRowList

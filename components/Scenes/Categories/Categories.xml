@@ -22,7 +22,7 @@
             rowItemSize="[[188, 250]]"
             rowHeights="[325]"
             showRowLabel="[ false ]"
-            focusBitmapUri="pkg:/images/focusIndicator.9.png"
+            focusBitmapUri="pkg:/images/focusindicator.9.png"
             vertFocusAnimationStyle="fixedFocus"
             rowFocusAnimationStyle="floatingFocus"
         />
