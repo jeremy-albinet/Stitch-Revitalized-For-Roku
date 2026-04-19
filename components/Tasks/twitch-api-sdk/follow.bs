@@ -19,7 +19,7 @@ function followChannel() as object
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -43,6 +43,6 @@ function unfollowChannel() as object
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function

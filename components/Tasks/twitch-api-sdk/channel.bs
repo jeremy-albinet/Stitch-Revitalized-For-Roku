@@ -10,7 +10,7 @@ function getChannelHomeQuery() as object
     })
     if rsp = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     channel = rsp?.data?.channel
@@ -21,7 +21,7 @@ function getChannelHomeQuery() as object
         isLive: channel?.stream <> invalid,
         videoShelves: channel?.videoShelves?.edges ?? []
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -41,12 +41,12 @@ function getChannelShell()
     })
     if rsp = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     m.top.response = {
         bannerImageUrl: rsp?.data?.userOrError?.bannerImageUrl
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function

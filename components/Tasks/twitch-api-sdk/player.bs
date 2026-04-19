@@ -13,7 +13,7 @@ sub getStreamPlayerQuery()
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
 end sub
 
 function getVodPlayerWrapperQuery() as object
@@ -31,7 +31,7 @@ function getVodPlayerWrapperQuery() as object
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -51,6 +51,6 @@ function getChannelInterstitialQuery() as object
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
