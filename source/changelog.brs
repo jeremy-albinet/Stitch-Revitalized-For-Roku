@@ -9,8 +9,8 @@ function getChangelog() as object
             "New: Optional anonymous analytics to help catch bugs (opt-out in Settings)",
             "Fix: Chat failing to load and IRC connection drops",
             "Fix: Clips no longer missing from search results and browse grids",
-            "Fix: Several crashes on scene transitions and network failures",
-        ],
+            "Fix: Several crashes on scene transitions and network failures"
+        ]
     }
 end function
 

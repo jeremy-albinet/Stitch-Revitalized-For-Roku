@@ -109,7 +109,6 @@ sub VersionJobs()
         end if
     end if
 
-    currentVersion = m.global.appInfo.Version.Version
     lastSeenVersion = get_setting("last_seen_version")
 
     changelog = getChangelog()
@@ -119,7 +118,7 @@ sub VersionJobs()
     ' When lastSeenVersion is invalid (first install), all entries are shown.
     pendingLines = []
     for each v in sortedVersions
-        isNew = lastSeenVersion = invalid or compareVersions(v, lastSeenVersion) > 0
+        isNew = (lastSeenVersion = invalid) or (compareVersions(v, lastSeenVersion) > 0)
         if isNew and changelog[v] <> invalid
             if pendingLines.count() > 0
                 pendingLines.push("")
@@ -170,8 +169,9 @@ sub onChangelogDialogButtonSelected()
 end sub
 
 ' Fired when the dialog is dismissed via Back without clicking "Got it".
-' Version is intentionally NOT persisted so the dialog shows again next launch.
+' Persists last_seen_version so the dialog is not reshown for this version.
 sub onChangelogDialogClosed()
+    set_setting("last_seen_version", m.global.appInfo.Version.Version)
     if m.changelogDialog <> invalid
         m.changelogDialog.unobserveField("buttonSelected")
         m.changelogDialog.unobserveField("wasClosed")
@@ -246,7 +246,7 @@ sub onMenuSelection()
     if menuItem <> ""
         trackEvent("tab_visited", { tab: menuItem })
     end if
-    isFirstLoad = m.activeNode = invalid
+    isFirstLoad = (m.activeNode = invalid)
     ' If user is already logged in, show them their user page
     if menuItem = "LoginPage" and get_setting("active_user", "$default$") <> "$default$"
         content = createObject("roSGNode", "TwitchContentNode")
