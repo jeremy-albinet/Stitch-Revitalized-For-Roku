@@ -17,7 +17,7 @@ function getHomePageQuery() as object
     else
         m.top.response = invalid
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -45,7 +45,7 @@ function getFollowingPageQuery() as object
     else
         m.top.response = invalid
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -222,6 +222,6 @@ function getRecommendedSections() as object
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function

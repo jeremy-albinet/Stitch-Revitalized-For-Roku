@@ -16,13 +16,13 @@ function getSearchQuery()
     })
     if rsp = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     searchFor = rsp?.data?.searchFor
     if searchFor = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     channels = searchFor?.channels?.items ?? []
@@ -51,6 +51,6 @@ function getSearchQuery()
         games: validGames,
         videos: validVideos
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function

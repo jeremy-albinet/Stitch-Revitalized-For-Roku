@@ -80,5 +80,5 @@ sub TwitchHelixApiRequest()
     else
         m.top.response = { "response": invalid }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
 end sub

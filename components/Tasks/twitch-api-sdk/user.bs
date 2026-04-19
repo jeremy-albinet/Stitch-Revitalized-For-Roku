@@ -24,7 +24,7 @@ sub getTwitchBookmarks()
             end try
         end if
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
 end sub
 
 sub updateUserViewedVideo()
@@ -47,5 +47,5 @@ sub updateUserViewedVideo()
             }
         })
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
 end sub

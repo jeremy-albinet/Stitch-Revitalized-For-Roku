@@ -33,7 +33,7 @@ function getBrowsePagePopularQuery()
     })
     if rsp = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     edges = rsp?.data?.streams?.edges ?? []
@@ -65,7 +65,7 @@ function getBrowsePagePopularQuery()
         cursor: cursor,
         hasNextPage: safeHasNextPage
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
 
@@ -96,7 +96,7 @@ function getBrowsePageQuery()
     })
     if rsp = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     edges = rsp?.data?.directoriesWithTags?.edges ?? []
@@ -128,6 +128,6 @@ function getBrowsePageQuery()
         cursor: cursor,
         hasNextPage: safeHasNextPage
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function

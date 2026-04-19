@@ -29,7 +29,7 @@ function validateOauthToken() as object
     sendResult = req.send()
     if sendResult = invalid
         m.top.response = { "tokenValid": false }
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     rsp = ParseJSON(sendResult)
@@ -41,7 +41,7 @@ function validateOauthToken() as object
     if rsp?.expires_in <> invalid
         m.top.response = { "tokenValid": true }
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     ? "pause"
     return invalid
 end function
@@ -59,7 +59,7 @@ sub getRendezvouzToken()
     rsp = ParseJSON(req.send())
     if rsp = invalid or rsp?.device_code = invalid or rsp?.user_code = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return
     end if
     m.top.response = {
@@ -67,14 +67,14 @@ sub getRendezvouzToken()
         user_code: rsp.user_code,
         interval: rsp?.interval ?? 5
     }
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
 end sub
 
 
 function getOauthToken()
     if m.top.request.params.device_code = invalid
         m.top.response = invalid
-        m.top.control = "STOP"
+        m.top.control = TaskControl.STOP
         return invalid
     end if
     req = HttpRequest({
@@ -101,6 +101,6 @@ function getOauthToken()
     else
         m.top.response = invalid
     end if
-    m.top.control = "STOP"
+    m.top.control = TaskControl.STOP
     return invalid
 end function
