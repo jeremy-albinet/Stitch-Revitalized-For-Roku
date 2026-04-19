@@ -321,22 +321,11 @@ sub onContentSelected()
         if m.activeNode = invalid then return
     end if
     m.activeNode.contentRequested = content
-    if holdContent.contentType = "STREAMER"
-        m.activeNode.cameFromLogin = true
-    end if
     m.activeNode.setfocus(true)
 end sub
 
 sub onBackPressed()
     if m.activeNode.backPressed = invalid or not m.activeNode.backPressed then return
-    if m.activeNode.id = "ChannelPage" and m.activeNode.cameFromLogin = true
-        if m.footprints.Count() > 0 and m.footprints[0].id = "LoginPage"
-            m.footprints.pop()
-        end if
-        m.top.removeChild(m.activeNode)
-        m.activeNode = invalid
-        m.menu.buttonFocus = 0
-    end if
     if m.footprints.Count() > 0
         if m.activeNode <> invalid
             m.top.removeChild(m.activeNode)
