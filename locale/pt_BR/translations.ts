@@ -9,10 +9,6 @@
             <translation>Canais Ao Vivo</translation>
         </message>
         <message>
-            <source>LiveChannels</source>
-            <translation>Canais Ao Vivo</translation>
-        </message>
-        <message>
             <source>Clips</source>
             <translation>Cortes</translation>
         </message>
@@ -84,7 +80,7 @@
         <message>
             <source>Viewers</source>
             <translation>pessoas assistindo</translation>
-            <context>displayed after the count of current viewership of a stream. i.e. this streamer has 200 viewers</context>
+            <context>displayed after the count of current viewership of a stream</context>
         </message>
         <message>
             <source>Views</source>
@@ -94,22 +90,27 @@
         <message>
             <source>Followers</source>
             <translation>Seguidores</translation>
-            <context>Count of users that are currenlty 'following' a user on their Twitch account</context>
+            <context>Count of users currently following a user on Twitch</context>
+        </message>
+        <message>
+            <source>followers</source>
+            <translation>seguidores</translation>
+            <context>Lowercase, appended after a follower count number</context>
         </message>
         <message>
             <source>Log Out</source>
             <translation>Sair</translation>
-            <context>Shown on the user's profile page to disconnect their account from the app</context>
+            <context>Shown on the user profile page to disconnect their account</context>
         </message>
         <message>
             <source>followedLiveUsers</source>
             <translation>Eles estão ao vivo!</translation>
-            <context>Title shown above a list of streamers that the app user follows that are currently live streaming</context>
+            <context>Title above a list of followed streamers currently live</context>
         </message>
         <message>
             <source>followedOfflineUsers</source>
             <translation>Canais Offline</translation>
-            <context>Shown above a list of streamers that the app user follows that are not currently live</context>
+            <context>Title above a list of followed streamers not currently live</context>
         </message>
         <message>
             <source>Channels</source>
@@ -118,8 +119,40 @@
         </message>
         <message>
             <source>VODs</source>
-            <translation>TransmissÃµes anteriores</translation>
-            <context>Shown above a list of past stream broadcasts in the search results page</context>
+            <translation>Transmissões anteriores</translation>
+            <context>Shown above a list of past stream broadcasts in search results</context>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Configurações</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>OK</translation>
+        </message>
+        <message>
+            <source>Follow</source>
+            <translation>Seguir</translation>
+        </message>
+        <message>
+            <source>Enter Search Query</source>
+            <translation>Digite sua pesquisa</translation>
+        </message>
+        <message>
+            <source>Testing connection...</source>
+            <translation>Testando conexão...</translation>
+        </message>
+        <message>
+            <source>Proxy not reachable</source>
+            <translation>Proxy inacessível</translation>
+        </message>
+        <message>
+            <source>Error: unknown failure. Try again.</source>
+            <translation>Erro: falha desconhecida. Tente novamente.</translation>
+        </message>
+        <message>
+            <source>Error: </source>
+            <translation>Erro: </translation>
         </message>
     </context>
 </TS>
