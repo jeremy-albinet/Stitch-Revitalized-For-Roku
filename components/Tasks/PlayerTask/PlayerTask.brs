@@ -6,139 +6,66 @@
 '** without the permission of Roku, Inc. is strictly prohibited.
 '*********************************************************************
 
-' Library "Roku_Ads.brs"
-
 sub init()
     m.top.functionName = "playContentWithAds"
     m.top.id = "PlayerTask"
 end sub
 
 sub playContentWithAds()
-
     video = m.top.video
 
-    ' RAF = Roku_Ads()
-    'RAF.clearAdBufferScreenLayers()        ' in case it was set earlier
-    'RAF.enableAdBufferMessaging(true, true) ' could have been cleared by custom screen
-    'RAF.setAdBufferScreenContent({})
-    ' RAF.setAdUrl(content.ad_url)
-    ' for generic measurements api
-    ' RAF.enableAdMeasurements(true)
-    ' RAF.setContentGenre(content.categories) 'if unset, ContentNode has it as []
-    ' RAF.setContentLength(content.length)
-
-    ' log tracking events
-    '     logObj = {
-    '         log : Function(evtType = invalid as Dynamic, ctx = invalid as Dynamic)
-    '                   if GetInterface(evtType, "ifString") <> invalid
-    '                       print "*** tracking event " + evtType + " fired."
-    '                       if ctx.companion = true then
-    '                           print "***** companion = true"
-    '                       end if
-    '                       if ctx.errMsg <> invalid then print "*****   Error message: " + ctx.errMsg
-    '                       if ctx.adIndex <> invalid then print "*****  Ad Index: " + ctx.adIndex.ToStr()
-    '                       if ctx.ad <> invalid and ctx.ad.adTitle <> invalid then print "*****  Ad Title: " + ctx.ad.adTitle
-    '                   else if ctx <> invalid and ctx.time <> invalid
-    '                       print "*** checking tracking events for ad progress: " + ctx.time.ToStr()
-    '                   end if
-    '               End Function
-    '     }
-    '     logFunc = Function(obj = Invalid as Dynamic, evtType = invalid as Dynamic, ctx = invalid as Dynamic)
-    '                   obj.log(evtType, ctx)
-    '               End Function
-    '     RAF.setTrackingCallback(logFunc, logObj)
-
-    ' adPods = RAF.getAds() 'array of ad pods
-    keepPlaying = true 'gets set to `false` when showAds() was exited via Back button
-
-    ' show the pre-roll ads, if any
-    ' if adPods <> invalid and adPods.count() > 0
-    '     keepPlaying = RAF.showAds(adPods, invalid, view)
-    ' end if
-
     port = CreateObject("roMessagePort")
-    if keepPlaying
-        video.observeField("position", port)
-        video.observeField("state", port)
-        video.visible = true
-        video.control = "play"
-        video.setFocus(true) 'so we can handle a Back key interruption
-    end if
+    video.observeField("position", port)
+    video.observeField("state", port)
+
+    video.visible = true
+    video.control = "play"
+    video.setFocus(true)
 
     curPos = 0
     adPods = invalid
     isPlayingPostroll = false
-    while keepPlaying
+    while true
         msg = wait(0, port)
         if type(msg) = "roSGNodeEvent"
-            if msg.GetField() = "position"
-                ' keep track of where we reached in content
+            field = msg.GetField()
+
+            if field = "position"
                 curPos = msg.GetData()
-                ' check for mid-roll ads
-                ' adPods = RAF.getAds(msg)
-                ' if video.qualityChangeRequestflag = true
-                '     m.top.qualityChangeRequestflag = true
-                '     video.qualityChangeRequestflag = false
-                ' end if
                 if adPods <> invalid and adPods.count() > 0
-                    print "PlayerTask: mid-roll ads, stopping video"
-                    'ask the video to stop - the rest is handled in the state=stopped event below
                     video.control = "stop"
                 end if
-            else if msg.GetField() = "state"
-                curState = msg.GetData()
-                print "PlayerTask: state = "; curState
-                if curState = "error"
-                    ? "[Video Playback Error] =================="
-                    ? "[Error Code]: "; video.errorCode
-                    ? "[Error String]: " video.errorStr
-                    ? "[Error Info]: " video.errorInfo
-                    ? "[Error Message]: "; video.errorMessage
-                    ? "[Streaming Segment]: "; video.streamingSegment
 
-                    ' Provide more detailed error context
-                    if video.errorInfo <> invalid and video.errorInfo.category <> invalid
-                        ? "[Error Category]: "; video.errorInfo.category
-                    end if
-                    if video.errorInfo <> invalid and video.errorInfo.source <> invalid
-                        ? "[Error Source]: "; video.errorInfo.source
-                    end if
-                    ? "======================================"
-                end if
-                if curState = "stopped"
+            else if field = "state"
+                curState = msg.GetData()
+
+                if curState = "error"
+                    ? "[PlayerTask] error code="; video.errorCode; " msg="; video.errorStr
+
+                else if curState = "stopped"
                     if adPods = invalid or adPods.count() = 0
                         exit while
                     end if
-
-                    print "PlayerTask: playing midroll/postroll ads"
-                    ' keepPlaying = RAF.showAds(adPods, invalid, view)
                     adPods = invalid
                     if isPlayingPostroll
                         exit while
                     end if
-                    if keepPlaying
-                        print "PlayerTask: mid-roll finished, seek to "; stri(curPos)
-                        video.visible = true
-                        video.seek = curPos
-                        video.control = "play"
-                        video.setFocus(true) 'important: take the focus back (RAF took it above)
-                    end if
+                    video.visible = true
+                    video.seek = curPos
+                    video.control = "play"
+                    video.setFocus(true)
 
                 else if curState = "finished"
-                    print "PlayerTask: main content finished"
-                    ' render post-roll ads
-                    ' adPods = RAF.getAds(msg)
                     if adPods = invalid or adPods.count() = 0
                         exit while
                     end if
-                    print "PlayerTask: has postroll ads"
                     isPlayingPostroll = true
-                    ' stop the video, the post-roll would show when the state changes to  "stopped" (above)
                     video.control = "stop"
                 end if
             end if
         end if
     end while
 
-    print "PlayerTask: exiting playContentWithAds()"
+    video.unobserveField("position")
+    video.unobserveField("state")
 end sub

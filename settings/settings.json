@@ -21,23 +21,6 @@
         ]
     },
     {
-        "title": "Stream Latency",
-        "description": "Configures the latency mode for live streams. Low latency reduces delay but may increase buffering.",
-        "settingName": "preferred.latency",
-        "type": "radio",
-        "default": "normal",
-        "options": [
-            {
-                "title": "Low Latency (Lowest possible latency)",
-                "id": "low"
-            },
-            {
-                "title": "Normal Latency (Stable playback)",
-                "id": "normal"
-            }
-        ]
-    },
-    {
         "title": "Chat On-By-Default",
         "description": "Determines default state of chat window when opening a stream",
         "settingName": "ChatOption",

@@ -24,25 +24,7 @@
                 height="25"
                 width="50"
                 translation="[5,5]" />
-            <Rectangle
-                id="lowLatencyBg"
-                color="0x9146FF"
-                width="24"
-                height="16"
-                translation="[60,5]"
-                visible="false" />
-            <Label
-                id="lowLatencyIcon"
-                text="LL"
-                color="0xFFFFFF"
-                translation="[62,5]"
-                width="20"
-                height="16"
-                horizAlign="center"
-                vertAlign="center"
-                visible="false">
-                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="10" />
-            </Label>
+
         </Poster>
         <CirclePoster id="circlePoster" height="150" width="150" visible="false" />
         <Rectangle

@@ -21,18 +21,7 @@
         <field id="video_type" type="string" />
         <field id="qualityOptions" type="array" />
         <field id="selectedQuality" type="string" value="" />
-        <field id="isActualLowLatency" type="bool" value="false" />
-        
-        <!-- Low-Latency HLS Properties -->
-        <field id="enableLowLatencyHLS" type="bool" value="false" />
-        <field id="hlsOptimization" type="string" value="" />
-        <field id="enablePartialSegments" type="bool" value="false" />
-        <field id="enablePreloadHints" type="bool" value="false" />
-        <field id="enableBlockingPlaylistReload" type="bool" value="false" />
-        <field id="bufferingConfig" type="assocarray" />
-        <field id="adaptiveBitrateConfig" type="assocarray" />
-        <field id="enableDecoderCompatibility" type="bool" value="true" />
-        <field id="maxVideoDecodeResolution" type="string" value="" />
+
     </interface>
     
     <!-- rest of your XML stays the same -->
@@ -102,20 +91,7 @@
                 <SimpleLabel translation="[12,3]" text="LIVE" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
             </Group>
             
-            <!-- Stream Mode Indicator (Bottom Right - only visible with overlay) -->
-            <Group translation="[850,100]">
-                <!-- Low Latency Indicator -->
-                <Group id="lowLatencyIndicator" visible="false">
-                    <Rectangle color="0x9146FFFF" width="270" height="22" />
-                    <SimpleLabel id="lowLatencyIndicatorLabel" text="Stream Mode: Low Latency" color="0xFFFFFFFF" fontSize="11" fontUri="pkg:/fonts/Archivo-Bold.otf" translation="[10,5]" />
-                </Group>
-                
-                <!-- Normal Latency Indicator -->
-                <Group id="normalLatencyIndicator" visible="false">
-                    <Rectangle color="0x9146FFFF" width="155" height="22" />
-                    <SimpleLabel id="normalLatencyIndicatorLabel" text="Stream Mode: Normal" color="0xFFFFFFFF" fontSize="11" fontUri="pkg:/fonts/Archivo-Bold.otf" translation="[10,5]" />
-                </Group>
-            </Group>
+
         </Group>
         
         <!-- Quality Dialog -->
@@ -141,9 +117,7 @@
                     text="Loading stream..."
                     color="0xFFFFFFFF"
                     fontSize="18"
-                    fontUri="pkg:/fonts/Archivo-Regular.otf"
-                    horizAlign="center"
-                    width="280" />
+                    fontUri="pkg:/fonts/Archivo-Regular.otf" />
             </LayoutGroup>
         </Group>
     </children>

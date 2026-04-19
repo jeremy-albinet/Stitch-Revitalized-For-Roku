@@ -1,9 +1,8 @@
 sub init()
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
     m.top.observeField("focusedChild", "onGetfocus")
-    ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
-    m.rowlist.ObserveField("itemSelected", "handleItemSelected")
+    m.rowlist.observeField("itemSelected", "handleItemSelected")
     m.username = m.top.findNode("username")
     m.followers = m.top.findNode("followers")
     m.description = m.top.findNode("description")
@@ -12,7 +11,6 @@ sub init()
     m.avatar = m.top.findNode("avatar")
     m.videoPlayer = m.top.findNode("videoPlayer")
     m.plyrTask = invalid
-    ' m.button = m.top.findnode("exampleButton")
 end sub
 
 sub updatePage()
@@ -133,7 +131,7 @@ sub updateRowList(contentCollection)
 end sub
 
 sub handleItemSelected()
-    selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    selectedRow = m.rowlist.content.getChild(m.rowlist.rowItemSelected[0])
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.top.playContent = true
     m.top.contentSelected = selectedItem
@@ -153,6 +151,11 @@ sub onGetFocus()
     else
         FocusRowlist()
     end if
+end sub
+
+sub onDestroy()
+    m.top.unobserveField("focusedChild")
+    m.rowlist.unobserveField("itemSelected")
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean

@@ -28,14 +28,6 @@ sub init()
 
     ' Other elements
     m.liveIndicator = m.top.findNode("liveIndicator")
-    m.lowLatencyIndicator = m.top.findNode("lowLatencyIndicator")
-    if m.lowLatencyIndicator <> invalid
-        m.lowLatencyIndicatorLabel = m.lowLatencyIndicator.findNode("lowLatencyIndicatorLabel")
-    end if
-    m.normalLatencyIndicator = m.top.findNode("normalLatencyIndicator")
-    if m.normalLatencyIndicator <> invalid
-        m.normalLatencyIndicatorLabel = m.normalLatencyIndicator.findNode("normalLatencyIndicatorLabel") ' Though not changed in this iteration, good practice to have the reference
-    end if
 
     ' Video info
     m.videoTitle = m.top.findNode("videoTitle")
@@ -76,7 +68,6 @@ sub init()
     ' Initialize UI
     updateProgressBar()
     setupLiveUI()
-    updateLatencyIndicator()
 
     ' Show loading overlay initially
     showLoadingOverlay()
@@ -130,33 +121,6 @@ sub setupLiveUI()
     m.liveIndicator.visible = m.isOverlayVisible
 end sub
 
-sub updateLatencyIndicator()
-    latencySetting = get_user_setting("preferred.latency", "low")
-    userPrefersLowLatency = (latencySetting = "low")
-    isActuallyLowLatency = m.top.isActualLowLatency ' This field is set from VideoPlayer.brs
-
-    ' Hide both indicators initially
-    if m.lowLatencyIndicator <> invalid then m.lowLatencyIndicator.visible = false
-    if m.normalLatencyIndicator <> invalid then m.normalLatencyIndicator.visible = false
-
-    if m.isOverlayVisible
-        if userPrefersLowLatency
-            if m.lowLatencyIndicator <> invalid and m.lowLatencyIndicatorLabel <> invalid
-                if isActuallyLowLatency
-                    m.lowLatencyIndicatorLabel.text = "Stream Mode: Low Latency"
-                else
-                    m.lowLatencyIndicatorLabel.text = "Stream Mode: Low Latency (Unavailable)"
-                end if
-                m.lowLatencyIndicator.visible = true
-            end if
-        else ' User prefers normal latency
-            if m.normalLatencyIndicator <> invalid and m.normalLatencyIndicatorLabel <> invalid
-                m.normalLatencyIndicatorLabel.text = "Stream Mode: Normal" ' Ensure text is set
-                m.normalLatencyIndicator.visible = true
-            end if
-        end if
-    end if
-end sub
 
 sub onPositionChange()
     m.currentPositionSeconds = m.top.position
@@ -184,17 +148,10 @@ sub onVideoStateChange()
 end sub
 
 sub onChatVisibilityChange()
-    ' Adjust layout based on chat visibility
     if m.top.chatIsVisible
         m.progressBarBase.width = 900
-        ' Adjust latency indicator position when chat is visible (move further left)
-        m.lowLatencyIndicator.translation = [750, 0]
-        m.normalLatencyIndicator.translation = [750, 0]
     else
         m.progressBarBase.width = 1160
-        ' Reset latency indicator position (bottom right of overlay)
-        m.lowLatencyIndicator.translation = [0, 0]
-        m.normalLatencyIndicator.translation = [0, 0]
     end if
     updateProgressBar()
 end sub
@@ -214,8 +171,6 @@ end sub
 
 sub onSelectedQualityChange()
     setupLiveUI()
-    updateLatencyIndicator()
-    ' ? "[StitchVideo] Quality changed to: "; m.top.selectedQuality
 end sub
 
 sub setupQualityDialog()
@@ -254,9 +209,6 @@ sub onQualityButtonSelect()
         m.top.selectedQuality = selectedQuality
         m.top.QualityChangeRequest = selectedIndex
         m.top.QualityChangeRequestFlag = true
-
-        ' Update latency indicator
-        updateLatencyIndicator()
     else
         ' ? "[StitchVideo] Invalid selection index: "; selectedIndex
     end if
@@ -280,8 +232,7 @@ end sub
 sub showOverlay()
     m.isOverlayVisible = true
     m.controlOverlay.visible = true
-    m.liveIndicator.visible = true ' Show LIVE indicator with overlay
-    updateLatencyIndicator() ' Update latency indicator visibility
+    m.liveIndicator.visible = true
     focusButton(m.currentFocusedButton)
 
     ' Start fade timer
@@ -292,8 +243,7 @@ end sub
 sub hideOverlay()
     m.isOverlayVisible = false
     m.controlOverlay.visible = false
-    m.liveIndicator.visible = false ' Hide LIVE indicator with overlay
-    updateLatencyIndicator() ' Hide latency indicators
+    m.liveIndicator.visible = false
     clearAllButtonFocus()
 end sub
 
