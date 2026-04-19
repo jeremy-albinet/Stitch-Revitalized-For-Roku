@@ -62,9 +62,8 @@ components/                # SceneGraph components (XML + BRS pairs)
     Categories/            # Game/category browser
     Search/                # Search interface
     Settings/              # User settings screen
-    ChannelPage/           # Individual channel view
+    ChannelPage/           # Unified channel view (profile, VODs, chat for own channel)
     GamePage/              # Game/category detail page
-    StreamerChannelPage/   # Streamer profile page
     VideoPlayer/           # Video playback scene
     LoginPage/             # OAuth device code login flow
   Modules/                 # Reusable UI components
