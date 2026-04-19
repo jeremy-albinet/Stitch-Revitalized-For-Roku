@@ -304,6 +304,11 @@ sub exitPlayer()
     ' reconnects we set allowBreak=false before calling exitPlayer().
     if m.allowBreak
         m.isExiting = true
+        ' Stop chat immediately so the IRC connection and ChatJob task are
+        ' released before the scene tears down, regardless of chat visibility.
+        if m.chatWindow <> invalid
+            m.chatWindow.callFunc("stopJobs")
+        end if
     end if
 
     if m.allowBreak and m.top.contentRequested <> invalid
@@ -369,9 +374,6 @@ end sub
 function onKeyEvent(key, press) as boolean
     if press
         if key = "back"
-            if m.chatWindow <> invalid and m.chatWindow.visible = true
-                m.chatWindow.callFunc("stopJobs") ' Stop chat jobs if chat is open
-            end if
             m.allowBreak = true ' Ensure exitPlayer signals upwards
             exitPlayer()
             return true
@@ -921,10 +923,6 @@ end sub
 
 sub onVideoBack()
     ' Called when CustomVideo's back field is true
-    ' ? "[VideoPlayer] Back key propagated from CustomVideo"
-    if m.chatWindow <> invalid and m.chatWindow.visible = true
-        m.chatWindow.callFunc("stopJobs")
-    end if
     m.allowBreak = true
     exitPlayer()
 end sub
