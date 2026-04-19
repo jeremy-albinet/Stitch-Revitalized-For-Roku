@@ -3,38 +3,45 @@ sub init()
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
-    m.rowlist.observeField("itemHasFocus", "handleItemFocus")
     m.GetContentTask = createApiTask("getBrowsePageQuery", "handleRecommendedSections")
 end sub
 
 function buildContentNodeFromShelves(games)
     contentCollection = createObject("RoSGNode", "ContentNode")
+    if games = invalid or games.count() = 0
+        return contentCollection
+    end if
     row = createObject("RoSGNode", "ContentNode")
     for i = 0 to (games.count() - 1) step 1
-        if i mod 5 = 0
-            row = createObject("RoSGNode", "ContentNode")
-        end if
-        row.title = ""
-        game = games[i]
-        rowItem = createObject("RoSGNode", "TwitchContentNode")
-        rowItem.contentId = game.node.Id
-        rowItem.contentType = "GAME"
-        rowItem.viewersCount = game.node.viewersCount
-        rowItem.contentTitle = game.node.displayName
-        rowItem.gameDisplayName = game.node.displayName
-        rowItem.gameBoxArtUrl = Left(game.node.avatarUrl, Len(game.node.avatarUrl) - 11) + "188x250.jpg"
-        rowItem.gameId = game.node.Id
-        rowItem.gameName = game.node.name
-
-        rowItem.Title = game.node.displayName
-        rowItem.secondaryTitle = game.node.viewersCount
-        rowItem.HDPosterUrl = Left(game.node.avatarUrl, Len(game.node.avatarUrl) - 11) + "188x250.jpg"
-        rowItem.ShortDescriptionLine1 = game.node.viewersCount
-        row.appendChild(rowItem)
-        if row.getChildCount() = 5
-            contentCollection.appendChild(row)
-        end if
+        try
+            if i mod 5 = 0
+                row = createObject("RoSGNode", "ContentNode")
+            end if
+            row.title = ""
+            game = games[i]
+            node = game.node
+            rowItem = createObject("RoSGNode", "TwitchContentNode")
+            rowItem.contentId = node.id
+            rowItem.contentType = "GAME"
+            rowItem.viewersCount = node.viewersCount
+            rowItem.contentTitle = node.displayName
+            rowItem.gameDisplayName = node.displayName
+            rowItem.gameId = node.id
+            rowItem.gameName = node.name
+            if node.boxArtURL <> invalid and node.boxArtURL <> ""
+                rowItem.gameBoxArtUrl = Left(node.boxArtURL, Len(node.boxArtURL) - 11) + "188x250.jpg"
+            end if
+            row.appendChild(rowItem)
+            if row.getChildCount() = 5
+                contentCollection.appendChild(row)
+            end if
+        catch e
+            ? "[Categories] buildContentNodeFromShelves error at index "; i; ": "; e
+        end try
     end for
+    if row <> invalid and row.getChildCount() > 0 and row.getChildCount() < 5
+        contentCollection.appendChild(row)
+    end if
     return contentCollection
 end function
 
@@ -137,7 +144,6 @@ sub onDestroy()
     m.top.unobserveField("focusedChild")
     if m.rowlist <> invalid
         m.rowlist.unobserveField("itemSelected")
-        m.rowlist.unobserveField("itemHasFocus")
     end if
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
 end sub
