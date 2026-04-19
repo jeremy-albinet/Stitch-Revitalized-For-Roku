@@ -134,8 +134,6 @@ sub VersionJobs()
     if pendingLines.count() > 0
         m.pendingChangelog = pendingLines
     end if
-
-    set_setting("last_seen_version", currentVersion)
 end sub
 
 sub showChangelogDialog()
@@ -149,20 +147,35 @@ sub showChangelogDialog()
     dialog.title = "What's New"
     dialog.message = lines
     dialog.buttons = ["Got it"]
-    dialog.observeField("buttonSelected", "onChangelogDialogClosed")
+    dialog.observeField("buttonSelected", "onChangelogDialogButtonSelected")
     dialog.observeField("wasClosed", "onChangelogDialogClosed")
 
     scene = m.top.getScene()
     if scene <> invalid
         scene.dialog = dialog
+        m.changelogDialog = dialog
     end if
     m.pendingChangelog = invalid
 end sub
 
+' Fired when the user clicks "Got it" — persist version and close.
+sub onChangelogDialogButtonSelected()
+    set_setting("last_seen_version", m.global.appInfo.Version.Version)
+    if m.changelogDialog <> invalid
+        m.changelogDialog.unobserveField("buttonSelected")
+        m.changelogDialog.unobserveField("wasClosed")
+        m.changelogDialog.close = true
+        m.changelogDialog = invalid
+    end if
+end sub
+
+' Fired when the dialog is dismissed via Back without clicking "Got it".
+' Version is intentionally NOT persisted so the dialog shows again next launch.
 sub onChangelogDialogClosed()
-    scene = m.top.getScene()
-    if scene <> invalid and scene.dialog <> invalid
-        scene.dialog.close = true
+    if m.changelogDialog <> invalid
+        m.changelogDialog.unobserveField("buttonSelected")
+        m.changelogDialog.unobserveField("wasClosed")
+        m.changelogDialog = invalid
     end if
 end sub
 
@@ -389,6 +402,11 @@ function onKeyEvent(key, press) as boolean
 end function
 
 sub onDestroy()
+    if m.changelogDialog <> invalid
+        m.changelogDialog.unobserveField("buttonSelected")
+        m.changelogDialog.unobserveField("wasClosed")
+        m.changelogDialog = invalid
+    end if
     if m.recentBar <> invalid
         m.recentBar.unobserveField("contentSelected")
     end if
