@@ -15,13 +15,13 @@
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@rokucommunity/bslint": "^0.8.41",
-    "brighterscript-formatter": "^1.7.19",
+    "brighterscript-formatter": "^1.7.23",
     "husky": "^9.1.7",
     "rooibos-roku": "^5.15.7",
     "ropm": "^0.11.5"
   },
   "dependencies": {
-    "brighterscript": "0.67.4"
+    "brighterscript": "0.71.1"
   },
   "overrides": {
     "form-data": "^4.0.5",
