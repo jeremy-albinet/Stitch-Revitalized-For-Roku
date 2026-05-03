@@ -4,11 +4,13 @@
 function getChangelog() as object
     return {
         "2.4.0": [
-            "New: Recently Watched sidebar — quickly rejoin streams you've watched",
+            "New: Following + Browse — simpler 2-tab layout (was 4 tabs)",
+            "New: Recently Watched sidebar — quickly rejoin streams you've been to",
+            "New: Filter Live Channels by language in Settings → Stream Language",
             "New: Streams now auto-reconnect after ad breaks instead of freezing",
+            "New: Settings → Log Out",
             "New: Optional anonymous analytics to help catch bugs (opt-out in Settings)",
-            "Fix: Chat failing to load and IRC connection drops",
-            "Fix: Clips no longer missing from search results and browse grids",
+            "Fix: Chat connection now closes properly when leaving a stream",
             "Fix: Several crashes on scene transitions and network failures"
         ]
     }
