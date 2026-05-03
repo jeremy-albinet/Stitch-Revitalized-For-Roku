@@ -28,7 +28,7 @@ function build_Settings()
     node = createObject("roSGNode", "Settings")
     node.id = "Settings"
     node.translation = [0, 0]
-    node.observeField("finished", "onLoginFinished")
+    node.observeField("finished", "onLogoutFinished")
     return node
 end function
 
