@@ -43,6 +43,20 @@ sub init()
 
     m.top.menuTextColor = m.global.constants.colors.muted.ice
     m.top.menuFocusColor = m.global.constants.colors.twitch.purple10
+
+    ' Tracks whether MenuOptions has been shifted right by the logo width.
+    ' updateMenuOptions() can be re-invoked when icon visibility changes,
+    ' but the translation must only be applied once.
+    m.menuOptionsTranslated = false
+end sub
+
+' Remove all children from a ButtonGroup so updateMenuOptions can be re-run.
+sub clearGroup(group as object)
+    if group = invalid then return
+    children = group.getChildren(-1, 0)
+    for each child in children
+        group.removeChild(child)
+    end for
 end sub
 
 sub onMenuSelected()
@@ -180,12 +194,30 @@ end function
 
 sub updateMenuOptions()
     '*******************'
-    '* Include Width of Logo in Menu Option Offset
+    '* Bail out until heroScene has supplied menuOptionsText. The icon-flag
+    '* onChange handlers fire during heroScene.init() before menuOptionsText
+    '* is assigned, and rebuilding icons that early causes Button child
+    '* Posters to not be fully materialized yet (brs-engine quirk).
     '*******************'
-    if m.top.MenuOptionsText.count() > 0
+    if m.top.menuOptionsText.count() = 0 then return
+
+    '*******************'
+    '* Clear existing children so this can be re-run when any of the
+    '* observed inputs (menuOptionsText, showSearchIcon, showSettingsIcon,
+    '* showLoginIcon) changes. Without this, repeated calls would
+    '* append duplicate buttons.
+    '*******************'
+    clearGroup(m.menuOptions)
+    clearGroup(m.iconOptions)
+
+    '*******************'
+    '* Include Width of Logo in Menu Option Offset (apply once)
+    '*******************'
+    if not m.menuOptionsTranslated
         xoffset = m.menuOptions.translation[0] + m.logo.width + m.logo.translation[0]
         yoffset = m.menuOptions.translation[1]
         m.menuOptions.translation = "[" + xoffset.ToStr() + "," + yoffset.ToStr() + "]"
+        m.menuOptionsTranslated = true
     end if
 
     '*******************'

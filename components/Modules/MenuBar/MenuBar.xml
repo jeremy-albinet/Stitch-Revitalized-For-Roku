@@ -48,9 +48,9 @@
     />
     <field id="menuFontSize" type="int" value="20" />
     <field id="menuFontUri" type="uri" value="pkg:/fonts/Archivo-Bold.otf" />
-    <field id="showSearchIcon" type="bool" value="true" />
-    <field id="showSettingsIcon" type="bool" value="true" />
-    <field id="showLoginIcon" type="bool" value="true" />
+    <field id="showSearchIcon" type="bool" value="true" onChange="updateMenuOptions" />
+    <field id="showSettingsIcon" type="bool" value="true" onChange="updateMenuOptions" />
+    <field id="showLoginIcon" type="bool" value="true" onChange="updateMenuOptions" />
     <field id="updateUserIcon" type="bool" value="false" />
   </interface>
   <script type="text/brightscript" uri="MenuBar.brs" />
