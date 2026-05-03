@@ -9,7 +9,8 @@
     "fmt": "brighterscript-formatter --write 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
     "fmt:check": "brighterscript-formatter --check 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
     "test": "bsc --project bsconfig.test.json --create-package && node tools/deploy-test.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sign": "node scripts/sign-package.js"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
