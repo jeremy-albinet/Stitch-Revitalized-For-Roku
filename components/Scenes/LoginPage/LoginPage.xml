@@ -32,6 +32,14 @@
             fontSize="18"
             fontUri="pkg:/fonts/Archivo-Regular.otf" />
         <ButtonGroup id="buttonGroup" visible="false" translation="[100,172]" />
+        <Poster
+            id="qrCode"
+            translation="[900,200]"
+            width="280"
+            height="280"
+            uri="pkg:/images/qr_activate.png"
+            loadDisplayMode="scaleToFit"
+            visible="false" />
     </children>
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
 </component>

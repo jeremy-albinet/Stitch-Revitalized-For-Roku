@@ -4,6 +4,7 @@ sub init()
     m.loginText = m.top.findNode("topText")
     m.bottomText = m.top.findNode("bottomText")
     m.buttonGroup = m.top.findNode("buttonGroup")
+    m.qrCode = m.top.findNode("qrCode")
     RunContentTask()
 end sub
 
@@ -54,6 +55,26 @@ sub handleRendezvouzToken()
     set_user_setting("temp_device_code", rsp.device_code)
     m.code.text = rsp.user_code
     m.OauthTask = createApiTask("getOauthToken", "handleOauthToken", { params: rsp })
+    loadDynamicQr(rsp.user_code)
+end sub
+
+sub loadDynamicQr(userCode as string)
+    urlTransfer = CreateObject("roUrlTransfer")
+    encodedUrl = urlTransfer.Escape("https://twitch.tv/activate?device-code=" + userCode)
+    dynamicUri = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodedUrl
+    m.qrCode.observeField("loadStatus", "onQrLoadStatus")
+    m.qrCode.uri = dynamicUri
+end sub
+
+sub onQrLoadStatus()
+    status = m.qrCode.loadStatus
+    if status = "failed"
+        ? "[LoginPage] QR dynamic load failed, using static fallback"
+        m.qrCode.unobserveField("loadStatus")
+        m.qrCode.uri = "pkg:/images/qr_activate.png"
+    else if status = "ready"
+        m.qrCode.unobserveField("loadStatus")
+    end if
 end sub
 
 sub onGetFocus()
@@ -76,8 +97,13 @@ sub RunContentTask()
         m.loginText.visible = true
         m.bottomText.visible = true
         m.buttonGroup.visible = false
+        m.qrCode.visible = true
         m.RendezvouzTask = createApiTask("getRendezvouzToken", "handleRendezvouzToken")
     end if
+end sub
+
+sub onDestroy()
+    m.qrCode.unobserveField("loadStatus")
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
