@@ -14,9 +14,13 @@ sub setConstants()
             maxResolution = res.height
         end if
     end for
+    ' Sideloaded dev builds get a separate registry section so they don't share
+    ' login state or settings with the channel-store install.
+    appID = "StitchRevitalizedForRoku"
+    if appInfo.IsDev() then appID = appID + "Dev"
     ' Set Global Constants
     m.global.addFields({
-        appID: "StitchRevitalizedForRoku",
+        appID: appID,
         appInfo: {
             ID: appInfo.GetID(),
             IsDev: appInfo.IsDev(),
