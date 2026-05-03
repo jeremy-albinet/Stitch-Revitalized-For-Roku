@@ -11,9 +11,11 @@ sub init()
     m.recentBar = m.top.findNode("recentlyWatchedBar")
     m.recentBar.observeField("contentSelected", "onRecentSelected")
     m.menu = m.top.findNode("MenuBar")
+    m.menu.showSearchIcon = false
     m.menu.menuOptionsText = [
         "Following",
         "Browse",
+        "Search",
     ]
     m.menu.observeField("buttonSelected", "onMenuSelection")
     m.menu.setFocus(true)
@@ -138,11 +140,13 @@ sub showChangelogDialog()
 
     lines = m.pendingChangelog
     lines.push("")
-    lines.push("Found a bug or have a suggestion? -> bit.ly/roku-twitch")
+    lines.push("Found a bug or have a suggestion? Visit bit.ly/roku-twitch")
 
     dialog = createObject("roSGNode", "StandardMessageDialog")
     dialog.title = "What's New"
     dialog.message = lines
+    dialog.width = 1100
+    dialog.maxWidth = 1100
     dialog.buttons = ["Got it"]
     dialog.observeField("buttonSelected", "onChangelogDialogButtonSelected")
     dialog.observeField("wasClosed", "onChangelogDialogClosed")
@@ -231,6 +235,28 @@ sub onLoginFinished()
     if get_user_setting("device_code") = invalid
         m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
     end if
+    if m.activeNode = invalid then return
+    m.activeNode.unobserveField("backPressed")
+    m.activeNode.unobserveField("contentSelected")
+    m.activeNode.unobserveField("finished")
+    m.top.removeChild(m.activeNode)
+    m.activeNode = invalid
+    m.activeNode = buildNode("Following")
+    if m.activeNode <> invalid
+        m.activeNode.setFocus(true)
+    end if
+end sub
+
+sub onLogoutFinished()
+    m.menu.updateUserIcon = true
+    if m.activeNode = invalid then return
+    m.activeNode.unobserveField("backPressed")
+    m.activeNode.unobserveField("contentSelected")
+    m.activeNode.unobserveField("finished")
+    m.top.removeChild(m.activeNode)
+    m.activeNode = invalid
+    ' Rebuild Settings so the logout option disappears
+    m.activeNode = buildNode("Settings")
 end sub
 
 sub onMenuSelection()
