@@ -2,11 +2,9 @@ query BrowseLiveChannels_Query(
             $limit: Int!
             $after: Cursor
             $sort: StreamSort
-            $broadcasterLanguages: [String!]
         ) {
             streams(first: $limit, after: $after, options: {
                 sort: $sort
-                broadcasterLanguages: $broadcasterLanguages
                 includeRestricted: ["SUB_ONLY_LIVE"]
             }) {
                 edges {
