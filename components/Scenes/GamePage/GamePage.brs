@@ -88,6 +88,17 @@ sub onGetFocus()
     else if m.rowlist.focusedChild.id = "homeRowList"
         m.rowlist.focusedChild.setFocus(true)
     end if
+    updateRowListFocusFeedback()
+end sub
+
+' Hide the RowList focus rectangle when focus leaves the scene; restore on return.
+sub updateRowListFocusFeedback()
+    if m.rowlist = invalid then return
+    hasFocus = false
+    if m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
+        hasFocus = true
+    end if
+    m.rowlist.drawFocusFeedback = hasFocus
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
