@@ -47,7 +47,7 @@ sub setConstants()
             maskScaleFactor: scaleFactor,
             defaultIcons: {
                 search: "pkg:/images/iconSearch.png",
-                settings: "pkg:/images/iconSettings.png",
+                settings: "pkg:/images/icons/sliders.png",
                 login: "pkg:/images/iconLogin.png"
             },
             menuOptions: [
