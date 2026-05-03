@@ -47,7 +47,7 @@
         </message>
         <message>
             <source>LoginPageTopText</source>
-            <translation>Go to https://www.twitch.tv/activate and type the following code:</translation>
+            <translation>Scan the QR code or go to https://www.twitch.tv/activate and type:</translation>
         </message>
         <message>
             <source>LoginPageBottomText</source>
