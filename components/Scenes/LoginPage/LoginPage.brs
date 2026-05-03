@@ -114,6 +114,9 @@ sub onDestroy()
     if m.qrCode <> invalid
         m.qrCode.unobserveField("loadStatus")
     end if
+    m.RendezvouzTask = destroyTask(m.RendezvouzTask, "response")
+    m.OauthTask = destroyTask(m.OauthTask, "response")
+    m.UserLoginTask = destroyTask(m.UserLoginTask, "response")
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
