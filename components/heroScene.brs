@@ -230,17 +230,33 @@ function buildNode(name)
     return newNode
 end function
 
+' Tear down activeNode and any footprints (back-stack) so login/logout
+' transitions don't leave stale, detached scenes wired up with observers.
+sub teardownAllScenes()
+    if m.activeNode <> invalid
+        m.activeNode.unobserveField("backPressed")
+        m.activeNode.unobserveField("contentSelected")
+        m.activeNode.unobserveField("finished")
+        m.top.removeChild(m.activeNode)
+        m.activeNode = invalid
+    end if
+    for each node in m.footprints
+        if node <> invalid
+            node.unobserveField("backPressed")
+            node.unobserveField("contentSelected")
+            node.unobserveField("finished")
+            m.top.removeChild(node)
+        end if
+    end for
+    m.footprints = []
+end sub
+
 sub onLoginFinished()
     m.menu.updateUserIcon = true
     if get_user_setting("device_code") = invalid
         m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
     end if
-    if m.activeNode = invalid then return
-    m.activeNode.unobserveField("backPressed")
-    m.activeNode.unobserveField("contentSelected")
-    m.activeNode.unobserveField("finished")
-    m.top.removeChild(m.activeNode)
-    m.activeNode = invalid
+    teardownAllScenes()
     m.activeNode = buildNode("Following")
     if m.activeNode <> invalid
         m.activeNode.setFocus(true)
@@ -249,12 +265,7 @@ end sub
 
 sub onLogoutFinished()
     m.menu.updateUserIcon = true
-    if m.activeNode = invalid then return
-    m.activeNode.unobserveField("backPressed")
-    m.activeNode.unobserveField("contentSelected")
-    m.activeNode.unobserveField("finished")
-    m.top.removeChild(m.activeNode)
-    m.activeNode = invalid
+    teardownAllScenes()
     ' Rebuild Settings so the logout option disappears
     m.activeNode = buildNode("Settings")
 end sub
