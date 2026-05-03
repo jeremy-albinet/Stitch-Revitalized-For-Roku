@@ -143,21 +143,5 @@
             <source>Proxy not reachable</source>
             <translation>Proxy not reachable</translation>
         </message>
-        <message>
-            <source>Error: unknown failure. Try again.</source>
-            <translation>Error: unknown failure. Try again.</translation>
-        </message>
-        <message>
-            <source>Error: </source>
-            <translation>Error: </translation>
-        </message>
-        <message>
-            <source>Stream Language</source>
-            <translation>Stream Language</translation>
-        </message>
-        <message>
-            <source>Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.</source>
-            <translation>Filter live streams on the Browse page by broadcaster language. Applies on next visit to Browse.</translation>
-        </message>
     </context>
 </TS>
