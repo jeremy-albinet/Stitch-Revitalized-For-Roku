@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="Browse" extends="SceneManagerGroup" initialFocus="browseRowList">
-    <interface>
-        <field id="contentSelected" type="node" />
-        <field id="backPressed" type="bool" value="false" />
-    </interface>
     <script type="text/brightscript" uri="Browse.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
