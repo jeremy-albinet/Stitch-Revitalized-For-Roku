@@ -59,6 +59,10 @@ sub handleRendezvouzToken()
 end sub
 
 sub loadDynamicQr(userCode as string)
+    ' Note: twitch.tv/activate accepts the short user_code in its `device-code=`
+    ' query parameter — that is Twitch's own naming, not the long OAuth
+    ' device_code credential. Do not "fix" this to pass rsp.device_code; the
+    ' opaque device_code is not what the activation page expects.
     urlTransfer = CreateObject("roUrlTransfer")
     encodedUrl = urlTransfer.Escape("https://twitch.tv/activate?device-code=" + userCode)
     dynamicUri = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodedUrl
@@ -67,6 +71,10 @@ sub loadDynamicQr(userCode as string)
 end sub
 
 sub onQrLoadStatus()
+    ' The Poster's loadStatus observer can fire after the scene starts
+    ' tearing down (e.g., user logs in via the short code before the QR
+    ' image finishes loading), so guard against m.qrCode being invalid.
+    if m.qrCode = invalid then return
     status = m.qrCode.loadStatus
     if status = "failed"
         ? "[LoginPage] QR dynamic load failed, using static fallback"
@@ -103,7 +111,9 @@ sub RunContentTask()
 end sub
 
 sub onDestroy()
-    m.qrCode.unobserveField("loadStatus")
+    if m.qrCode <> invalid
+        m.qrCode.unobserveField("loadStatus")
+    end if
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
