@@ -4,8 +4,6 @@ const fs = require("node:fs");
 
 const rokuDeploy = require("roku-deploy");
 
-const HOST = process.env.ROKU_HOST || "192.168.0.157";
-const PASSWORD = process.env.ROKU_PASSWORD || "oscarjo";
 const ROOT_DIR = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(ROOT_DIR, "out");
 const OUT_FILE = "Stitch-Revitalized-For-Roku";
@@ -14,6 +12,9 @@ function fail(msg) {
     console.error(`error: ${msg}`);
     process.exit(1);
 }
+
+const HOST = process.env.ROKU_HOST || fail("missing ROKU_HOST env var\nusage: ROKU_HOST=<ip> ROKU_PASSWORD=<pw> ROKU_SIGNING_PASSWORD=<pw> npm run sign");
+const PASSWORD = process.env.ROKU_PASSWORD || fail("missing ROKU_PASSWORD env var\nusage: ROKU_HOST=<ip> ROKU_PASSWORD=<pw> ROKU_SIGNING_PASSWORD=<pw> npm run sign");
 
 function readSigningPassword() {
     const cliArg = process.argv[2];
@@ -45,35 +46,30 @@ async function main() {
 
     fs.mkdirSync(OUT_DIR, { recursive: true });
 
-    const options = {
+    const zipPath = path.join(OUT_DIR, `${OUT_FILE}.zip`);
+    if (!fs.existsSync(zipPath)) {
+        fail(`pre-built zip not found at ${zipPath} — run 'npm run package' first`);
+    }
+
+    const baseOptions = {
         host: HOST,
         password: PASSWORD,
-        signingPassword,
-        rootDir: ROOT_DIR,
         outDir: OUT_DIR,
         outFile: OUT_FILE,
-        files: [
-            "manifest",
-            "source/**/*",
-            "components/**/*",
-            "images/**/*",
-            "fonts/**/*",
-            "locale/**/*",
-            "settings/**/*",
-        ],
-        retainStagingDir: false,
     };
 
     console.log(`>>  ${manifest.title} v${manifest.version}`);
     console.log(`>>  TV: ${HOST}`);
     console.log(`>>  Output: ${path.join(OUT_DIR, OUT_FILE)}.pkg`);
     console.log("");
-    console.log(">>  [1/3] zipping + sideloading to TV...");
+    console.log(">>  [1/3] sideloading pre-built zip to TV...");
     console.log(">>  [2/3] signing package on TV...");
     console.log(">>  [3/3] downloading signed .pkg...");
     console.log("");
 
-    const pkgPath = await rokuDeploy.deployAndSignPackage(options);
+    await rokuDeploy.publish(baseOptions);
+    const remotePkgPath = await rokuDeploy.signExistingPackage({ ...baseOptions, signingPassword });
+    const pkgPath = await rokuDeploy.retrieveSignedPackage(remotePkgPath, baseOptions);
     console.log("");
     console.log(`>>  signed package: ${pkgPath}`);
 
@@ -83,7 +79,8 @@ async function main() {
     console.log("");
     console.log(">>  fetching DevID for sanity check...");
     try {
-        const devId = await rokuDeploy.getDevId({ host: HOST, password: PASSWORD });
+        const deviceInfo = await rokuDeploy.getDeviceInfo({ host: HOST, password: PASSWORD });
+        const devId = deviceInfo["keyed-developer-id"];
         console.log(`>>  DevID: ${devId}`);
         console.log(">>  Verify this matches the DevID on the Roku Developer Dashboard");
         console.log(">>  for channel 817397 before uploading.");
