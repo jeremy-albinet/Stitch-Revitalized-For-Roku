@@ -8,7 +8,6 @@ function getChangelog() as object
             "New: Recently Watched sidebar — quickly rejoin streams you've been to",
             "New: Sign in with a QR code — scan with your phone instead of typing the device code",
             "New: Search tab in the top menu — dedicated destination for finding channels and games",
-            "New: Filter Live Channels by language in Settings → Stream Language",
             "New: Streams now auto-reconnect after ad breaks instead of freezing",
             "New: Settings → Log Out",
             "New: Optional anonymous analytics to help catch bugs (opt-out in Settings)",
