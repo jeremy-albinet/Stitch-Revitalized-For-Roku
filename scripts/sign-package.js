@@ -82,8 +82,7 @@ async function main() {
         const deviceInfo = await rokuDeploy.getDeviceInfo({ host: HOST, password: PASSWORD });
         const devId = deviceInfo["keyed-developer-id"];
         console.log(`>>  DevID: ${devId}`);
-        console.log(">>  Verify this matches the DevID on the Roku Developer Dashboard");
-        console.log(">>  for channel 817397 before uploading.");
+        console.log(">>  Verify this matches the DevID on the Roku Developer Dashboard before uploading.");
     } catch (err) {
         console.warn(`>>  (could not fetch DevID: ${err.message})`);
     }
