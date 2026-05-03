@@ -268,6 +268,9 @@ sub onLogoutFinished()
     teardownAllScenes()
     ' Rebuild Settings so the logout option disappears
     m.activeNode = buildNode("Settings")
+    if m.activeNode <> invalid
+        m.activeNode.setFocus(true)
+    end if
 end sub
 
 sub onMenuSelection()
