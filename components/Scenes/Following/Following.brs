@@ -26,8 +26,9 @@ sub handleDefaultSections()
     if rsp = invalid or rsp.shelves = invalid or rsp.shelves.count() = 0 then return
     contentCollection = createObject("RoSGNode", "ContentNode")
     for each shelf in rsp.shelves
-        ' Skip the "Categories we think you'll like" shelf (GAME tiles).
-        ' It renders with the wrong row height in the shared RowList. See TODO.md.
+        ' Skip any GAME-tile shelf (e.g., "Categories we think you'll like").
+        ' GAME tiles render with the wrong row height in the shared RowList,
+        ' which only handles LIVE stream tiles correctly. See TODO.md.
         isGameShelf = shelf.streams <> invalid and shelf.streams.count() > 0 and shelf.streams[0].contentType = "GAME"
         if not isGameShelf
             row = createObject("RoSGNode", "ContentNode")
