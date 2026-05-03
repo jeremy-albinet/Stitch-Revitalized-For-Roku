@@ -109,10 +109,6 @@ end sub
 '* 9-patch (inactive). Setting the URI to "" leaves the previously
 '* loaded bitmap rendered on screen, so a real (transparent) image
 '* must be supplied to forcibly clear the indicator.
-'*
-'* We additionally toggle the group's own opacity briefly to force the
-'* render tree to re-evaluate the new focusBitmapUri values, since
-'* Roku caches the previously rendered bitmap on a non-focused group.
 '*******************'
 sub updateGroupFocusVisuals()
     if m.menuOptions = invalid or m.iconOptions = invalid then return
