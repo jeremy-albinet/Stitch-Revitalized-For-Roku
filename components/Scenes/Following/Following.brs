@@ -26,15 +26,20 @@ sub handleDefaultSections()
     if rsp = invalid or rsp.shelves = invalid or rsp.shelves.count() = 0 then return
     contentCollection = createObject("RoSGNode", "ContentNode")
     for each shelf in rsp.shelves
-        row = createObject("RoSGNode", "ContentNode")
-        row.title = shelf.title
-        for each stream in shelf.streams
-            rowItem = createObject("RoSGNode", "TwitchContentNode")
-            setTwitchContentFields(rowItem, stream)
-            row.appendChild(rowItem)
-        end for
-        if row.getchildcount() > 0
-            contentCollection.appendChild(row)
+        ' Skip the "Categories we think you'll like" shelf (GAME tiles).
+        ' It renders with the wrong row height in the shared RowList. See TODO.md.
+        isGameShelf = shelf.streams <> invalid and shelf.streams.count() > 0 and shelf.streams[0].contentType = "GAME"
+        if not isGameShelf
+            row = createObject("RoSGNode", "ContentNode")
+            row.title = shelf.title
+            for each stream in shelf.streams
+                rowItem = createObject("RoSGNode", "TwitchContentNode")
+                setTwitchContentFields(rowItem, stream)
+                row.appendChild(rowItem)
+            end for
+            if row.getchildcount() > 0
+                contentCollection.appendChild(row)
+            end if
         end if
     end for
     updateRowList(contentCollection)
