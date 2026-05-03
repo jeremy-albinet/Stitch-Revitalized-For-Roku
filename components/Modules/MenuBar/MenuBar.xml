@@ -25,10 +25,11 @@
       height="56"
     />
     <ButtonGroupHoriz id="MenuOptions" layoutDirection="horiz" horizAlignment="left" />
+    <ButtonGroupHoriz id="IconOptions" layoutDirection="horiz" horizAlignment="left" />
   </children>
   <interface>
-    <field id="buttonFocused" alias="MenuOptions.buttonFocused" />
-    <field id="buttonSelected" alias="MenuOptions.buttonSelected" />
+    <field id="buttonFocused" type="int" value="-1" alwaysNotify="true" />
+    <field id="buttonSelected" type="int" value="-1" alwaysNotify="true" />
     <field
       id="menuOptionsText"
       type="stringarray"
