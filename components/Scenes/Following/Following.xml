@@ -12,7 +12,7 @@
         <Label
             id="countLabel"
             text=""
-            translation="[130, 90]"
+            translation="[94, 84]"
             width="1000"
             height="30"
             color="0xC8C8D0FF"
@@ -24,7 +24,7 @@
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[ 130, 140 ]"
+            translation="[94, 110]"
             itemComponentName="VideoItem"
             numRows="50"
             rowItemSize="[[320,180]]"
