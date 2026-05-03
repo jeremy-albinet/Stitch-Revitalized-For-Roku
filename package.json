@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
-    "@commitlint/config-conventional": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.3",
     "@rokucommunity/bslint": "^0.8.41",
     "brighterscript-formatter": "^1.7.19",
     "husky": "^9.1.7",
