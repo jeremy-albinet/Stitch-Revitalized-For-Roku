@@ -48,6 +48,13 @@
                         <ContentNode title="Enabled" />
                     </ContentNode>
                 </RadioButtonList>
+                <Poster
+                    id="supportQrPoster"
+                    uri="pkg:/images/qr_buymeacoffee.png"
+                    width="240"
+                    height="240"
+                    visible="false"
+                    />
             </LayoutGroup>
             <RadioButtonList id="radioSetting" translation="[650, 200]" visible="false"
                 inheritParentTransform="false" vertFocusAnimationStyle="floatingFocus" />

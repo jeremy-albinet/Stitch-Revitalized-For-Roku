@@ -16,6 +16,7 @@ sub init()
 
     m.boolSetting = m.top.findNode("boolSetting")
     m.radioSetting = m.top.findNode("radioSetting")
+    m.supportQrPoster = m.top.findNode("supportQrPoster")
 
     m.keyboardDialog = invalid
     m.healthCheckTask = invalid
@@ -89,6 +90,7 @@ sub settingFocused()
 
     m.boolSetting.visible = false
     m.radioSetting.visible = false
+    m.supportQrPoster.visible = false
 
     if selectedSetting.type = invalid
         return
@@ -124,6 +126,9 @@ sub settingFocused()
     else if selectedSetting.type = "action"
         m.boolSetting.visible = false
         m.radioSetting.visible = false
+        if selectedSetting.action = "support_stitch"
+            m.supportQrPoster.visible = true
+        end if
     else
         print "Unknown setting type " + selectedSetting.type
     end if
@@ -144,6 +149,7 @@ sub settingSelected()
         else if selectedItem.type = "action"
             if selectedItem.action = "logout"
                 performLogout()
+            else if selectedItem.action = "support_stitch"
             end if
         end if
     else if selectedItem.children <> invalid and selectedItem.children.Count() > 0
