@@ -1,5 +1,12 @@
 [
     {
+        "title": "Support Stitch",
+        "description": "Stitch is a free, community-built Twitch client. If it's useful to you, scan the QR code to support development on Buy Me a Coffee. Thank you!",
+        "settingName": "support",
+        "type": "action",
+        "action": "support_stitch"
+    },
+    {
         "title": "Preferred Video Quality",
         "description": "Determines the default behavior of video quality selection when starting a stream.",
         "settingName": "playback.video.quality",
