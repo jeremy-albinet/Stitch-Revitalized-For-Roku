@@ -271,7 +271,10 @@ function toString(input) as string
 end function
 
 function select(arr, start = invalid, finish = invalid, step_ = 1):
-    if step_ = 0 then print "ValueError: slice step cannot be zero" : stop
+    if step_ = 0
+        ? "ValueError: slice step cannot be zero"
+        return []
+    end if
     if start = invalid then if step_ > 0 then start = 0 else start = arr.count() - 1
     if finish = invalid then if step_ > 0 then finish = arr.count() - 1 else finish = 0
     if start < 0 then start = arr.count() + start 'negative counts backwards from the end
