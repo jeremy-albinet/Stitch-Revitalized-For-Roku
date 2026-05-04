@@ -20,9 +20,6 @@ sub updatePanelTranslation()
 end sub
 
 sub setSizingParameters()
-    '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    ' Size and Spacing Settings
-    '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     m.left_bound = m.font_size / 2
     m.right_bound = m.chatPanel.width - m.font_size
     m.badge_size = (m.font_size * 1.6)
@@ -32,13 +29,10 @@ sub setSizingParameters()
     m.message_height = (m.badge_size * 1.8)
 
     m.lower_bound = m.chatPanel.height - m.message_height
-    '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 end sub
 
 sub setChatPanelSize()
     m.font_size = m.top.fontSize
-    ' m.chatPanel.width = m.global.constants.screenWidth
-    ' m.chatPanel.height = m.global.constants.screenHeight
     m.translation = m.chatPanel.height - m.font_size
     m.lower_bound = m.chatPanel.height - m.font_size
     m.right_bound = m.chatPanel.width - m.font_size
@@ -76,7 +70,6 @@ sub onVideoChange()
 end sub
 
 sub onEnterChannel()
-    ' ? "Chat >> onEnterChannel > " m.top.channel
     m.chat = m.top.findnode("ChatJob")
     m.chat.forceLive = m.top.forceLive
     m.chat.observeField("nextCommentObj", "onNewCommentObj")
@@ -170,9 +163,6 @@ function buildColon()
     return colon
 end function
 
-
-
-
 function wordOrImage(word, isUrl = false)
     if m.global.emoteCache.DoesExist(word)
         return buildEmote(m.global.emoteCache[word])
@@ -188,8 +178,6 @@ function wordOrImage(word, isUrl = false)
         return message_text
     end if
 end function
-
-'
 
 function buildMessage(message, x_translation)
     message_group = createObject("roSGNode", "Group")
@@ -207,12 +195,6 @@ function buildMessage(message, x_translation)
 
         block = wordOrImage(word, isUrl)
         block_width = block.localBoundingRect().width
-        '* '  "Useful for Debug"
-        ' ? "left_bound: " m.left_bound
-        ' ? "right_bound: " m.right_bound
-        ' ? "x_translation: " x_translation
-        ' ? "Block Width: " block_width
-        ' ? "line_available_space: " line_available_space
         if block_width > m.right_bound
             ? "break it up!"
             block = createObject("roSGNode", "Group")
@@ -267,7 +249,6 @@ sub onNewCommentObj()
         badges = []
         if comment?.tags?.badges <> invalid
             for each key in comment.tags.badges
-                ' badgeID = key + "/" + comment.tags.badges[key]
                 badgeID = key
                 badges.push(badgeID)
             end for
@@ -286,7 +267,6 @@ sub onNewCommentObj()
 
         quoteRegex = createObject("roRegex", "[\x{2018}\x{2019}]", "")
         message = quoteRegex.replace(message, "'")
-        ' This Section grabs missing emotes on the fly... not sure if there is a better way to optimize.
         for each emoticon in emote_set.Items()
             e_start = emoticon.value.starts[0]
             emote_word = Mid(message, (e_start + 1), emoticon.value.length)
