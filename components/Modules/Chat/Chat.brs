@@ -53,12 +53,18 @@ sub onInvisible()
     end if
 end sub
 
+' Stops the ChatJob (IRC) and EmoteJob tasks and releases their observers.
+' Called from VideoPlayer.exitPlayer() so the IRC socket loop and emote
+' fetcher are torn down at user-initiated exit, not just when SceneGraph
+' eventually fires onDestroy.
+'
+' Uses destroyTask() per AGENTS.md: unobserve first so any in-flight
+' nextCommentObj callback is suppressed before the task thread halts.
 sub stopJobs()
-    if m.chat <> invalid
-        m.chat.control = "stop"
-    end if
+    m.chat = destroyTask(m.chat, "nextCommentObj")
     if m.EmoteJob <> invalid
         m.EmoteJob.control = "stop"
+        m.EmoteJob = invalid
     end if
 end sub
 
