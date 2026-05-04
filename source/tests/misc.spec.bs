@@ -432,6 +432,16 @@ namespace tests
             m.assertEqual(result[4], 5)
         end sub
 
+        @it("returns empty array when step is zero")
+        sub select_zeroStep()
+            ' step=0 used to drop into the BrightScript debugger via `stop`,
+            ' which halts the channel on production devices. The helper now
+            ' logs a ValueError and returns [] gracefully.
+            result = select([1, 2, 3, 4, 5], 0, 4, 0)
+            m.assertEqual(type(result), "roArray")
+            m.assertEqual(result.count(), 0)
+        end sub
+
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         @describe("isChainValid")
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
