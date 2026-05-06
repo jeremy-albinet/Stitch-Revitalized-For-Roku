@@ -674,6 +674,7 @@ end function
 function isUrlAccessible(url as string) as boolean
     ' Make a quick HEAD request to test if the URL is accessible
     req = CreateObject("roUrlTransfer")
+    if req = invalid then return false
     req.SetCertificatesFile("common:/certs/ca-bundle.crt")
     req.InitClientCertificates()
     req.SetUrl(url)

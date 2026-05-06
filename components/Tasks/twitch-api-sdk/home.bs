@@ -139,6 +139,7 @@ namespace api.twitch.home
         results = []
         for each liveUser in edges
             try
+                if liveUser.node = invalid then continue for
                 stream = liveUser.node.stream
                 item = {
                     contentId: stream.Id,

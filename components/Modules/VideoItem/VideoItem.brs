@@ -31,12 +31,14 @@ end sub
 
 sub GlobalSettings()
     if m.global = invalid or m.global.constants = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
     m.itemSubtitle.color = m.global.constants.colors.hinted.grey9
     m.itemThirdTitle.color = m.global.constants.colors.hinted.grey9
 
 end sub
 
 sub GameSettings()
+    if m.itemposter = invalid then return
     m.runtimeRect.visible = false
     m.runtimeLabel.visible = false
     m.itemposter.width = 188
@@ -58,6 +60,7 @@ sub GameSettings()
 end sub
 
 sub LiveSettings()
+    if m.itemposter = invalid then return
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.viewsRect.height = m.itemViewers.boundingRect().height
     m.viewsRect.width = m.itemViewers.boundingRect().width + 6
@@ -71,6 +74,7 @@ sub LiveSettings()
 end sub
 
 sub VodSettings()
+    if m.itemposter = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -86,6 +90,7 @@ sub VodSettings()
 end sub
 
 sub ClipSettings()
+    if m.itemposter = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -101,6 +106,7 @@ sub ClipSettings()
 end sub
 
 sub UserSettings()
+    if m.itemposter = invalid then return
     m.runtimeRect.visible = false
     m.runtimeLabel.visible = false
     m.itemposter.visible = false
