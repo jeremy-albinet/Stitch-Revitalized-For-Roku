@@ -10,6 +10,7 @@ end sub
 
 sub updatePanelTranslation()
     ' m.chatPanel.translation = [(m.top.width * 3), 0]
+    if m.maskGroup = invalid or m.global = invalid or m.global.constants = invalid then return
     setChatPanelSize()
     setSizingParameters()
     m.maskGroup.maskSize = [(m.chatpanel.width * m.global.constants.maskScaleFactor), (m.chatPanel.height * m.global.constants.maskScaleFactor)]

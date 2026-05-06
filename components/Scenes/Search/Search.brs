@@ -2,9 +2,11 @@ sub init()
     m.top.observeField("focusedChild", "onGetfocus")
     m.recents = m.top.findnode("recents")
     ' m.recents.buttons = ["Ammo", "paymoneywubby", "three"]
-    m.recents.TextColor = m.global.constants.colors.muted.ice
-    m.recents.FocusedTextColor = m.global.constants.colors.twitch.purple10
-    m.recents.observeField("buttonSelected", "onRecentItemSelected")
+    if m.recents <> invalid
+        m.recents.TextColor = m.global.constants.colors.muted.ice
+        m.recents.FocusedTextColor = m.global.constants.colors.twitch.purple10
+        m.recents.observeField("buttonSelected", "onRecentItemSelected")
+    end if
     m.kb = m.top.findNode("keyboard")
     m.kb.textEditBox.hintText = tr("Enter Search Query")
     m.kb.textEditBox.voiceEnabled = true
