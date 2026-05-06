@@ -98,20 +98,49 @@ end sub
 ' Sends a PostHog $exception event for a caught BrightScript error.
 ' data must have: message (string), location (string).
 ' Optionally: number (integer) — BrightScript error code.
-' No stacktrace is included — BrightScript does not expose structured frames.
-' PostHog auto-generates a fingerprint from type + message.
-' Rate-limited per unique message to prevent burst duplicates from loop iterations.
+'
+' Enhancements over a bare $exception event:
+'   - $exception_fingerprint   groups by type+message+location so two different
+'     call sites with the same error message become separate PostHog issues.
+'   - $exception_level         set to "error" for all caught exceptions.
+'   - stacktrace               single synthetic frame built from location so
+'     PostHog renders a function+filename instead of nothing.
+'   - $os / $device_model      injected from the already-available roDeviceInfo.
+'
+' Rate-limited per unique message+location pair to prevent burst duplicates.
 sub sendException(err as object)
-    if isRateLimited("$exception:" + err.message) then return
+    rateLimitKey = "$exception:" + err.message + ":" + err.location
+    if isRateLimited(rateLimitKey) then return
+
+    ' Build a synthetic single-frame stacktrace from the location string.
+    ' BrightScript does not expose structured frames, so we construct one from
+    ' the "Component/function" convention used at every call site.
+    frame = {
+        "function": err.location,
+        "filename": "pkg:/components/" + err.location,
+        "in_app": true,
+        "platform": "other"
+    }
+    ' Split "Component/function" into filename + function name when possible.
+    locationParts = err.location.split("/")
+    if locationParts.count() >= 2
+        frame["filename"] = "pkg:/components/" + locationParts[0] + ".brs"
+        frame["function"] = locationParts[1]
+    end if
 
     exceptionItem = {
         type: "BrightScriptException",
         value: err.message,
         mechanism: {
             handled: true,
-            synthetic: false
+            synthetic: false,
+            type: "generic"
         },
-        module: err.location
+        module: err.location,
+        stacktrace: {
+            type: "raw",
+            frames: [frame]
+        }
     }
     if err.number <> invalid and err.number <> 0
         exceptionItem["number"] = err.number
@@ -123,6 +152,10 @@ sub sendException(err as object)
     mergedProps.append(getGlobalProps())
     mergedProps["distinct_id"] = distinctId
     mergedProps["$exception_list"] = [exceptionItem]
+    mergedProps["$exception_level"] = "error"
+    mergedProps["$exception_fingerprint"] = ["BrightScriptException", err.message, err.location]
+    mergedProps["$os"] = "Roku OS"
+    mergedProps["$device_model"] = m.deviceInfo.GetModel()
 
     payload = {
         api_key: POSTHOG_API_KEY,
