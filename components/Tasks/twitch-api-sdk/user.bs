@@ -13,6 +13,7 @@ sub getTwitchBookmarks()
         if rsp?.data?.currentUser?.viewedVideos?.edges <> invalid
             videoBookmarks = {}
             for each edge in rsp.data.currentUser.viewedVideos.edges
+                if edge.node = invalid then continue for
                 videoId = edge.node.id
                 positionSecs = edge.history.position
                 videoBookmarks[videoId] = Int(positionSecs).toStr()

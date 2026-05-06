@@ -214,6 +214,7 @@ sub handleItemSelected()
         updateRecents(m.kb.text)
     end if
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.top.contentSelected = selectedItem
 end sub

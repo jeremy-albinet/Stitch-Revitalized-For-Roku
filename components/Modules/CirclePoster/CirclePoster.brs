@@ -1,4 +1,5 @@
 sub updateMask()
+    if m.global = invalid or m.global.constants = invalid then return
     m.poster = m.top.findNode("examplePoster")
     m.maskGroup = m.top.findNode("exampleMaskGroup")
     m.background = m.top.findNode("background")

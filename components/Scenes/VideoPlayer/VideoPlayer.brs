@@ -8,6 +8,7 @@ end sub
 
 sub handleItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
     m.PlayVideo.observeField("response", "OnResponse")

@@ -270,7 +270,9 @@ end sub
 sub radioSettingChanged()
     if m.radioSetting.focusedChild = invalid then return
     selectedSetting = m.userLocation.peek().children[m.settingsMenu.itemFocused]
-    set_user_setting(selectedSetting.settingName, m.radioSetting.content.getChild(m.radioSetting.checkedItem).id)
+    selectedOption = m.radioSetting.content.getChild(m.radioSetting.checkedItem)
+    if selectedOption = invalid then return
+    set_user_setting(selectedSetting.settingName, selectedOption.id)
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean

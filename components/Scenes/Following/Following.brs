@@ -162,6 +162,7 @@ sub handleItemSelected()
     end if
     if item <> invalid
         selectedRow = item.content.getchild(item.rowItemSelected[0])
+        if selectedRow = invalid then return
         selectedItem = selectedRow.getChild(item.rowItemSelected[1])
     else
         return

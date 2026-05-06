@@ -64,6 +64,7 @@ sub loadDynamicQr(userCode as string)
     ' device_code credential. Do not "fix" this to pass rsp.device_code; the
     ' opaque device_code is not what the activation page expects.
     urlTransfer = CreateObject("roUrlTransfer")
+    if urlTransfer = invalid then return
     encodedUrl = urlTransfer.Escape("https://twitch.tv/activate?device-code=" + userCode)
     dynamicUri = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodedUrl
     m.qrCode.observeField("loadStatus", "onQrLoadStatus")

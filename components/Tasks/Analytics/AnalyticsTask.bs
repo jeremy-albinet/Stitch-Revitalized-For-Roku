@@ -158,6 +158,7 @@ end function
 ' Synchronous avoids the GC risk of async transfers without a retained port.
 sub postToPostHog(payload as object)
     transfer = CreateObject("roUrlTransfer")
+    if transfer = invalid then return
     transfer.SetUrl(POSTHOG_CAPTURE_URL)
     transfer.SetRequest("POST")
     transfer.AddHeader("Content-Type", "application/json")
