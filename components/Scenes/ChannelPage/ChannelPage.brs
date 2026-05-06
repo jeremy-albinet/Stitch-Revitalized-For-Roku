@@ -1,5 +1,7 @@
 sub init()
-    m.top.backgroundColor = m.global.constants.colors.hinted.grey1
+    if m.global.constants <> invalid
+        m.top.backgroundColor = m.global.constants.colors.hinted.grey1
+    end if
     m.top.observeField("focusedChild", "onGetfocus")
     m.rowlist = m.top.findNode("homeRowList")
     m.rowlist.observeField("itemSelected", "handleItemSelected")

@@ -92,7 +92,7 @@ sub main()
             end if
             usherUrl = "https://usher.ttvnw.net/vod/" + rsp.data.video.id + ".m3u8?playlist_include_framerate=true&allow_source=true&player_type=pulsar&player_backend=mediaplayer&reassignments_supported=true&nauth=" + rsp.data.video.playbackAccessToken.value.EncodeUri() + "&nauthsig=" + rsp.data.video.playbackAccessToken.signature
         else if m.top.contentRequested.contentType = "LIVE"
-            if rsp = invalid or rsp.data = invalid or rsp.data.user = invalid or rsp.data.user.stream = invalid or rsp.data.user.stream.playbackAccessToken = invalid
+            if rsp = invalid or rsp.data = invalid or rsp.data.user = invalid or rsp.data.user.stream = invalid or rsp.data.user.stream.playbackAccessToken = invalid or rsp.data.user.stream.playbackAccessToken.value = invalid
                 trackEvent("content_fetch_error", { content_type: "LIVE", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
                 m.top.response = invalid
                 return
