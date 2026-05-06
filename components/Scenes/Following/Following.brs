@@ -164,6 +164,7 @@ sub handleItemSelected()
         selectedRow = item.content.getchild(item.rowItemSelected[0])
         if selectedRow = invalid then return
         selectedItem = selectedRow.getChild(item.rowItemSelected[1])
+        if selectedItem = invalid then return
     else
         return
     end if
@@ -180,7 +181,9 @@ end sub
 
 sub handleLiveItemSelected()
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
+    if selectedItem = invalid then return
     m.top.playContent = true
     m.top.contentSelected = selectedItem
 end sub

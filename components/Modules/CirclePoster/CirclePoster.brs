@@ -1,5 +1,4 @@
 sub updateMask()
-    if m.global = invalid or m.global.constants = invalid then return
     m.poster = m.top.findNode("examplePoster")
     m.maskGroup = m.top.findNode("exampleMaskGroup")
     m.background = m.top.findNode("background")
@@ -8,8 +7,6 @@ sub updateMask()
     ' Make outline slightly larger than poster
     m.outline.width = m.poster.width + 5
     m.outline.height = m.poster.height + 5
-    ' match the maskSize for the outline
-    m.maskGroup2.maskSize = [(m.outline.width * m.global.constants.maskScaleFactor), (m.outline.height * m.global.constants.maskScaleFactor)]
 
     ' add a default black circle background
     m.background.width = m.poster.width + 2
@@ -17,9 +14,13 @@ sub updateMask()
     m.background.translation = [1, 1]
     m.maskGroup.translation = [2, 2]
 
-    m.maskGroup.maskSize = [(m.poster.width * m.global.constants.maskScaleFactor), (m.poster.height * m.global.constants.maskScaleFactor)]
     m.maskGroup.maskOffset = [0, 0]
     m.outline.visible = true
+
+    ' maskScaleFactor requires constants — skip sizing if not yet available.
+    if m.global = invalid or m.global.constants = invalid then return
+    m.maskGroup2.maskSize = [(m.outline.width * m.global.constants.maskScaleFactor), (m.outline.height * m.global.constants.maskScaleFactor)]
+    m.maskGroup.maskSize = [(m.poster.width * m.global.constants.maskScaleFactor), (m.poster.height * m.global.constants.maskScaleFactor)]
 end sub
 
 sub showContent()
