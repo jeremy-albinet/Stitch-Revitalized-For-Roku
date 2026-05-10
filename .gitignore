@@ -5,8 +5,7 @@ out/
 template.env
 .dev
 node_modules
-bsconfig.json
-# Environment variables
+
 .env
 .env.local
 .env.*.local

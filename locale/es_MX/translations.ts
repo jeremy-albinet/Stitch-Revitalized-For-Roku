@@ -54,7 +54,7 @@
         </message>
         <message>
             <source>LoginPageBottomText</source>
-            <translation>Stitch debería iniciar sesión poco después de autorizar tu cuenta para usarse.</translation>
+            <translation>Twaruto debería iniciar sesión poco después de autorizar tu cuenta para usarse.</translation>
         </message>
         <message>
             <source>LIVE</source>
