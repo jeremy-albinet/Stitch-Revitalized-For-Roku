@@ -1,4 +1,4 @@
-# Stitch Revitalized Roadmap
+# Twaruto roadmap
 
 This roadmap describes the path toward full parity with the official Twitch app for Android, plus additional features that go beyond what the Android app offers.
 

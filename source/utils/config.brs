@@ -29,7 +29,7 @@ sub registry_delete(key, section = invalid)
 end sub
 
 
-' "StitchRevitalizedForRoku" registry accessors for the default global settings
+' "Twaruto" registry accessors for the default global settings
 function get_setting(key, default = invalid)
     value = registry_read(key, m.global.appid)
     if value = invalid then return default

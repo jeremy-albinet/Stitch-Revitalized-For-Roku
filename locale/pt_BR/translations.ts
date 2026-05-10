@@ -54,7 +54,7 @@
         </message>
         <message>
             <source>LoginPageBottomText</source>
-            <translation>Stitch deve te conectar logo após você autorizar o uso da sua conta.</translation>
+            <translation>Twaruto deve te conectar logo após você autorizar o uso da sua conta.</translation>
         </message>
         <message>
             <source>LIVE</source>

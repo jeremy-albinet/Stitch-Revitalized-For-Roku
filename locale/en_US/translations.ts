@@ -54,7 +54,7 @@
         </message>
         <message>
             <source>LoginPageBottomText</source>
-            <translation>Stitch should log you in soon after you authorize your account for use.</translation>
+            <translation>Twaruto should log you in soon after you authorize your account for use.</translation>
         </message>
         <message>
             <source>LIVE</source>

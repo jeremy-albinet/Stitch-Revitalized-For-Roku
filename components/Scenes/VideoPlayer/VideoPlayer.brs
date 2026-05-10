@@ -633,7 +633,7 @@ end sub
 sub onEmoteSelected()
     if m.emotePickerOverlay = invalid then return
     emoteCode = m.emotePickerOverlay.emoteSelected
-    if emoteCode = invalid or emoteCode = "" then
+    if emoteCode = invalid or emoteCode = ""
         showChatCompose()
         return
     end if
