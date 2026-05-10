@@ -1,10 +1,10 @@
 # fmp4-demux-proxy
 
-A lightweight self-hosted proxy that demuxes Twitch Enhanced Broadcasting (EB) muxed fMP4 HLS streams into separate audio and video tracks — the format Roku requires for playback.
+A lightweight self-hosted proxy that splits Twitch Enhanced Broadcasting (EB) HLS streams into separate audio and video renditions — the CMAF-conformant packaging Roku requires for playback.
 
 ## Problem
 
-Twitch Enhanced Broadcasting streams deliver muxed fMP4 HLS: a single media playlist containing both audio and video in the same segments. Roku devices only support demuxed HLS (separate audio and video renditions declared via `#EXT-X-MEDIA:TYPE=AUDIO`). Without demuxing, Roku either fails with error 970 or plays video with no audio.
+Twitch Enhanced Broadcasting streams deliver audio and video as two separate tracks bundled into a single HLS rendition: one segment file containing both an audio `traf` and a video `traf` (with audio listed first), and no `EXT-X-MEDIA:TYPE=AUDIO` declaration in the manifest. Roku's Media Player implements fMP4 HLS as CMAF, which expects one elementary stream per rendition. Without splitting the bundled tracks into separate HLS renditions, Roku either fails with error 970 or plays video with no audio.
 
 Bug reference: [jeremy-albinet/roku-fmp4-track-order-bug](https://github.com/jeremy-albinet/roku-fmp4-track-order-bug)
 

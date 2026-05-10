@@ -34,11 +34,13 @@ Add the channel directly from Roku's channel store:
 
 ## Known Limitations
 
-**Enhanced Broadcasting streams** use muxed fMP4 HLS, a single track containing both audio and video. Roku requires demuxed HLS (separate audio and video tracks) and will either fail to load (error 970) or play video with no audio when given muxed fMP4.
+### Twitch Enhanced Broadcasting (1440p / multi-track HLS)
 
-Affected streams are those where the broadcaster has enabled Twitch Enhanced Broadcasting, visible as "Enhanced Broadcasting" on their stream dashboard. Regular streams are unaffected.
+Streams using **Twitch Enhanced Broadcasting** deliver audio and video as two separate tracks bundled into a single HLS rendition (one segment file containing both an audio `traf` and a video `traf`, with audio listed first). Roku's Media Player implements fMP4 HLS as CMAF, which expects one elementary stream per HLS rendition (audio declared as a separate `EXT-X-MEDIA:TYPE=AUDIO` rendition). EB's single-rendition-with-two-tracks packaging therefore fails to load on Roku (error 970) or plays silent video.
 
-Workaround: the [`fmp4-demux-proxy`](./fmp4-demux-proxy/README.md) is a lightweight self-hosted proxy that transparently demuxes EB streams before they reach the Roku. See its README for setup instructions.
+Roku has officially confirmed they will not support this packaging shape. Twitch is aware but does not plan a server-side change. Affected streams are visible as "Enhanced Broadcasting" on the broadcaster's dashboard. Regular (non-EB) streams are unaffected.
+
+**Workaround:** the self-hosted [`fmp4-demux-proxy`](./fmp4-demux-proxy/README.md) splits the bundled segments into separate audio and video HLS renditions on the fly, producing a CMAF-conformant manifest Roku accepts. Configure under **Settings → Proxy URL** in the app. See [issue #14](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues/14) for the full investigation and current status.
 
 ## Contributing
 
