@@ -1,12 +1,12 @@
-[![CI](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/pull_requests.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/pull_requests.yml)
-[![Release](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/release.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/release.yml)
+[![CI](https://github.com/awest813/Stitch-Revitalized-For-Roku/actions/workflows/pull_requests.yml/badge.svg)](https://github.com/awest813/Stitch-Revitalized-For-Roku/actions/workflows/pull_requests.yml)
+[![Release](https://github.com/awest813/Stitch-Revitalized-For-Roku/actions/workflows/release.yml/badge.svg)](https://github.com/awest813/Stitch-Revitalized-For-Roku/actions/workflows/release.yml)
 
-[![stars - Stitch-Revitalized-For-Roku](https://img.shields.io/github/stars/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
-[![forks - Stitch-Revitalized-For-Roku](https://img.shields.io/github/forks/jeremy-albinet/Stitch-Revitalized-For-Roku?style=social)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku)
-[![GitHub release](https://img.shields.io/github/release/jeremy-albinet/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/)
-[![License](https://img.shields.io/badge/License-Unlicense-blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/blob/main/LICENSE)
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/jeremy-albinet/Stitch-Revitalized-For-Roku?utm_source=oss&utm_medium=github&utm_campaign=jeremy-albinet%2FStitch-Revitalized-For-Roku&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
-[![issues - Stitch-Revitalized-For-Roku](https://img.shields.io/github/issues/jeremy-albinet/Stitch-Revitalized-For-Roku)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues)
+[![stars - Stitch-Revitalized-For-Roku](https://img.shields.io/github/stars/awest813/Stitch-Revitalized-For-Roku?style=social)](https://github.com/awest813/Stitch-Revitalized-For-Roku)
+[![forks - Stitch-Revitalized-For-Roku](https://img.shields.io/github/forks/awest813/Stitch-Revitalized-For-Roku?style=social)](https://github.com/awest813/Stitch-Revitalized-For-Roku)
+[![GitHub release](https://img.shields.io/github/release/awest813/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/awest813/Stitch-Revitalized-For-Roku/releases/)
+[![License](https://img.shields.io/badge/License-Unlicense-blue)](https://github.com/awest813/Stitch-Revitalized-For-Roku/blob/main/LICENSE)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/awest813/Stitch-Revitalized-For-Roku?utm_source=oss&utm_medium=github&utm_campaign=awest813%2FStitch-Revitalized-For-Roku&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+[![issues - Stitch-Revitalized-For-Roku](https://img.shields.io/github/issues/awest813/Stitch-Revitalized-For-Roku)](https://github.com/awest813/Stitch-Revitalized-For-Roku/issues)
 
 ![Roku](https://img.shields.io/badge/roku-6f1ab1?style=for-the-badge&logo=roku&logoColor=white)
 ![Twitch](https://img.shields.io/badge/Twitch-9347FF?style=for-the-badge&logo=twitch&logoColor=white)
@@ -27,7 +27,7 @@ If the link is not loading or you otherwise want to sideload this you can do so 
 
 Easy:
 
-- Download the ZIP from the [latest release](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/latest) (artifact name: `Twaruto.zip`).
+- Download the ZIP from the [latest release](https://github.com/awest813/Stitch-Revitalized-For-Roku/releases/latest) (artifact name: `Twaruto.zip`).
 - Enable or configure developer mode on your Roku.
 - Upload the ZIP file to your Roku through a web browser.
 
@@ -43,7 +43,7 @@ Manual compiling:
 
 ## Contributing
 
-If you are comfortable using the GitHub interface, you can report bugs or request features by opening a [GitHub Issue](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues). Please check whether your issue has already been reported before opening a new one.
+If you are comfortable using the GitHub interface, you can report bugs or request features by opening a [GitHub Issue](https://github.com/awest813/Stitch-Revitalized-For-Roku/issues). Please check whether your issue has already been reported before opening a new one.
 
 In addition to issues, pull requests are welcome. All contributions must be made [under the Unlicense](./LICENSE).
 
