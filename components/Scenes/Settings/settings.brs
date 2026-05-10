@@ -150,6 +150,9 @@ sub settingSelected()
             if selectedItem.action = "logout"
                 performLogout()
             else if selectedItem.action = "support_stitch"
+                ' No-op: OK press on the QR item does nothing; focus already shows the QR poster.
+            else
+                print "Unknown action: " + selectedItem.action
             end if
         end if
     else if selectedItem.children <> invalid and selectedItem.children.Count() > 0
