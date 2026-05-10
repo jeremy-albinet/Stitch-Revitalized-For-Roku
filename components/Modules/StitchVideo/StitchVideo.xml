@@ -21,6 +21,11 @@
         <field id="video_type" type="string" />
         <field id="qualityOptions" type="array" />
         <field id="selectedQuality" type="string" value="" />
+        <!-- Set to roDateTime.AsSeconds() right before issuing an app-initiated
+             seek=999999 to live edge. VideoPlayer's stall watchdog reads this
+             and skips stall detection for ~10s after a seek, since the player
+             freezes position briefly while re-buffering near the live edge. -->
+        <field id="recentSeekTimestamp" type="Integer" value="0" />
 
     </interface>
     

@@ -29,7 +29,6 @@ function reconnectToChat(tcpListen, addr) as object
 end function
 
 sub main()
-    ? "[ChatJob] - main"
     if m.top.channel <> ""
         receivedNewMessage = false
         tcpListen = createObject("roStreamSocket")
@@ -44,7 +43,6 @@ sub main()
         tcpListen.IsWritable()
         tcpListen.IsException()
         tcpListen.eSuccess()
-        ? "[ChatJob] - JOIN - "; m.top.channel
         tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
         queue = createObject("roArray", 300, true)
         waitingComment = ""
@@ -79,12 +77,12 @@ sub main()
                 if _parsedMessage?.command?.command <> invalid
                     command = _parsedMessage.command.command
                     if command <> "PRIVMSG" and command <> "USERNOTICE" and command <> "USERSTATE"
-                        ? "Chat Command: "; FormatJson(_parsedMessage, 256)
+                        ' ? "Chat Command: "; FormatJson(_parsedMessage, 256)
                     end if
                     if command = "USERNOTICE" or command = "USERSTATE"
                         sleep(5)
                     else if command = "RECONNECT"
-                        ? "[ChatJob] Server requested reconnect, reconnecting..."
+                        ' ? "[ChatJob] Server requested reconnect, reconnecting..."
                         tcpListen = reconnectToChat(tcpListen, addr)
                         queue.clear()
                     else if command = "CLEARMSG" or command = "CLEARCHAT"
@@ -339,7 +337,7 @@ function parseCommand(rawCommandComponent)
             command: commandParts[0]
         }
     else if commandParts[0] = "CLEARMSG" or commandParts[0] = "CLEARCHAT"
-        ? "Twitch is requesting a message to be cleared"; formatJSON(commandParts, 256)
+        ' ? "Twitch is requesting a message to be cleared"; formatJSON(commandParts, 256)
         parsedCommand = {
             command: commandParts[0],
             channel: commandParts[1]
@@ -356,7 +354,7 @@ function parseCommand(rawCommandComponent)
             channel: commandParts[1]
         }
     else if commandParts[0] = "002" or commandParts[0] = "003" or commandParts[0] = "004" or commandParts[0] = "353" or commandParts[0] = "366" or commandParts[0] = "372" or commandParts[0] = "375" or commandParts[0] = "376"
-        ? "Numeric Message: "; formatJSON(commandParts, 256)
+        ' ? "Numeric Message: "; formatJSON(commandParts, 256)
         return invalid
     else
         ? "Unexpected Command: ";formatJSON(commandParts, 256)

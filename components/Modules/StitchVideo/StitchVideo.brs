@@ -56,9 +56,36 @@ sub init()
     m.fadeAwayTimer.duration = 5
     m.fadeAwayTimer.control = "stop"
 
+    ' Live-edge latency diagnostic timer.
+    ' Logs streamingSegment.latency every 5s while playing, so we can measure
+    ' real-world distance from the live edge on a TV. See AGENTS.md / DEV.md
+    ' for how to read these logs over the debug console.
+    m.latencyLogTimer = createObject("roSGNode", "Timer")
+    m.latencyLogTimer.observeField("fire", "onLatencyLogFire")
+    m.latencyLogTimer.repeat = true
+    m.latencyLogTimer.duration = 5
+    m.latencyLogTimer.control = "stop"
+
+    ' One-shot timer for the post-startup live-edge re-anchor.
+    ' Fires ~3s after state=playing settles, then issues a single seek=999999.
+    ' Roku's streaming spec endorses seek=999999 as the canonical "go to live"
+    ' sentinel: the player clips it to the current availability window.
+    ' m.startupSeekFired guards against re-firing on every state transition -
+    ' a single seek causes its own buffering/playing cycle, which would
+    ' otherwise re-arm this timer in onVideoStateChange and create a tight
+    ' 3s seek loop. Reset to false only when content is reassigned (i.e. a
+    ' new stream is loaded).
+    m.startupSeekFired = false
+    m.liveEdgeStartupTimer = createObject("roSGNode", "Timer")
+    m.liveEdgeStartupTimer.observeField("fire", "onLiveEdgeStartupFire")
+    m.liveEdgeStartupTimer.repeat = false
+    m.liveEdgeStartupTimer.duration = 3
+    m.liveEdgeStartupTimer.control = "stop"
+
     ' Observers
     m.top.observeField("position", "onPositionChange")
     m.top.observeField("state", "onVideoStateChange")
+    m.top.observeField("content", "onContentChange")
     m.top.observeField("chatIsVisible", "onChatVisibilityChange")
     m.top.observeField("duration", "onDurationChange")
     m.top.observeField("bufferingStatus", "onBufferingStatusChange")
@@ -127,24 +154,140 @@ sub onPositionChange()
     ' Live streams don't need position-based updates
 end sub
 
+' Re-arm the one-shot startup seek when a fresh stream is loaded.
+' Setting m.top.content fires this; we use it to reset the latched flag so
+' the next stream session gets its own startup seek. Also clear the recent
+' seek timestamp - otherwise the watchdog cooldown could be triggered by a
+' stale value from the previous stream session.
+sub onContentChange()
+    if m.top.content <> invalid
+        m.startupSeekFired = false
+        m.top.recentSeekTimestamp = 0
+    end if
+end sub
+
 sub onVideoStateChange()
+    ? getLogTimestamp(); " [StitchVideo][state] state="; m.top.state; " pos="; m.top.position
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
         hideLoadingOverlay()
         hideMessage()
+        startLatencyLog()
+        ' Fire one immediate sample so we see latency even if the repeating
+        ' timer is delayed/blocked for some reason.
+        onLatencyLogFire()
+        ' Arm the one-shot live-edge re-anchor (latched via m.startupSeekFired
+        ' so it fires exactly once per stream session).
+        startLiveEdgeStartupTimer()
     else if m.top.state = "paused"
         m.controlButton.uri = "pkg:/images/play.png"
         hideLoadingOverlay()
+        stopLatencyLog()
+        stopLiveEdgeStartupTimer()
     else if m.top.state = "buffering"
         showLoadingOverlay()
+        stopLiveEdgeStartupTimer()
     else if m.top.state = "error"
         hideLoadingOverlay()
+        stopLatencyLog()
+        stopLiveEdgeStartupTimer()
         if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
             showErrorMessage("Incompatible Video Format", "This stream cannot be played on your device")
         else
             showErrorMessage("Stream Error", "Having trouble loading the live stream. Retrying...")
         end if
+    else if m.top.state = "finished" or m.top.state = "stopped"
+        stopLatencyLog()
+        stopLiveEdgeStartupTimer()
     end if
+end sub
+
+' ===== Live-edge latency diagnostics =====
+' streamingSegment.latency = ms between live edge and the segment currently
+' being played. This is the only Roku-exposed measurement of how far behind
+' live we are. Useful for evaluating low-latency tuning.
+
+sub startLatencyLog()
+    if m.latencyLogTimer <> invalid
+        m.latencyLogTimer.control = "start"
+    end if
+end sub
+
+sub stopLatencyLog()
+    if m.latencyLogTimer <> invalid
+        m.latencyLogTimer.control = "stop"
+    end if
+end sub
+
+sub onLatencyLogFire()
+    ' Always print one line per fire so we can debug. No early returns:
+    ' if streamingSegment is invalid we want to SEE that, not silently skip.
+    seg = m.top.streamingSegment
+    segValid = "no"
+    segType = "?"
+    latencyMs = "?"
+    bitrate = "?"
+    segSeq = "?"
+
+    if seg <> invalid
+        segValid = "yes"
+        if seg.segType <> invalid then segType = seg.segType.toStr()
+        if seg.latency <> invalid then latencyMs = seg.latency.toStr()
+        if seg.segBitrateBps <> invalid then bitrate = seg.segBitrateBps.toStr()
+        if seg.segSequence <> invalid then segSeq = seg.segSequence.toStr()
+    end if
+
+    measured = m.top.measuredBitrate
+
+    ? getLogTimestamp(); " [StitchVideo][latency] state="; m.top.state; " pos="; m.top.position; " seg_valid="; segValid; " seg_type="; segType; " live_edge_ms="; latencyMs; " seg_bitrate_bps="; bitrate; " measured_bps="; measured; " seg_seq="; segSeq
+end sub
+
+' ===== Live-edge re-anchor (strategies B and C) =====
+' Roku's streaming spec endorses seek=999999 as the canonical "go to live"
+' sentinel - the platform clips the position to the current availability
+' window. Both timers below use this mechanism. We log a one-line snapshot
+' of live_edge_ms BEFORE every seek so we can correlate before/after impact
+' against the regular 5s latency timer.
+
+sub startLiveEdgeStartupTimer()
+    if m.startupSeekFired = true then return
+    if m.liveEdgeStartupTimer <> invalid
+        m.liveEdgeStartupTimer.control = "stop"
+        m.liveEdgeStartupTimer.control = "start"
+    end if
+end sub
+
+sub stopLiveEdgeStartupTimer()
+    if m.liveEdgeStartupTimer <> invalid
+        m.liveEdgeStartupTimer.control = "stop"
+    end if
+end sub
+
+sub onLiveEdgeStartupFire()
+    m.startupSeekFired = true
+    issueLiveEdgeSeek("startup")
+end sub
+
+' Single point of seek=999999 application. Logs a snapshot of live_edge_ms
+' before issuing the seek so we can compare against the next 5s latency log
+' line. Bails if not in steady-state playing.
+sub issueLiveEdgeSeek(reason as string)
+    if m.top.state <> "playing"
+        ? getLogTimestamp(); " [StitchVideo][seek] action=skip reason="; reason; " state="; m.top.state
+        return
+    end if
+
+    seg = m.top.streamingSegment
+    preLatency = "?"
+    if seg <> invalid and seg.latency <> invalid
+        preLatency = seg.latency.toStr()
+    end if
+
+    ? getLogTimestamp(); " [StitchVideo][seek] action=fire reason="; reason; " pre_live_edge_ms="; preLatency; " pos="; m.top.position
+    ' Tell VideoPlayer's stall watchdog we just seeked so it doesn't treat
+    ' the brief re-buffer that follows as a fake stall and force a reconnect.
+    m.top.recentSeekTimestamp = CreateObject("roDateTime").AsSeconds()
+    m.top.seek = 999999
 end sub
 
 sub onChatVisibilityChange()
@@ -516,11 +659,20 @@ sub onDestroy()
         m.messageTimer.control = "stop"
         m.messageTimer.unobserveField("fire")
     end if
+    if m.latencyLogTimer <> invalid
+        m.latencyLogTimer.control = "stop"
+        m.latencyLogTimer.unobserveField("fire")
+    end if
+    if m.liveEdgeStartupTimer <> invalid
+        m.liveEdgeStartupTimer.control = "stop"
+        m.liveEdgeStartupTimer.unobserveField("fire")
+    end if
     if m.qualityDialog <> invalid
         m.qualityDialog.unobserveFieldScoped("buttonSelected")
     end if
     m.top.unobserveField("position")
     m.top.unobserveField("state")
+    m.top.unobserveField("content")
     m.top.unobserveField("chatIsVisible")
     m.top.unobserveField("duration")
     m.top.unobserveField("bufferingStatus")

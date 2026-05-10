@@ -111,7 +111,7 @@ sub init()
     ' Show loading overlay initially
     showLoadingOverlay()
 
-    ? "[CustomVideo] Initialized"
+    ? getLogTimestamp(); " [CustomVideo] Initialized"
 end sub
 
 sub createMessageOverlay()
@@ -224,7 +224,7 @@ sub onVideoStateChange()
         end if
     else if m.top.state = "error"
         hideLoadingOverlay()
-        ? "[CustomVideo] Video error occurred"
+        ? getLogTimestamp(); " [CustomVideo] Video error occurred"
         if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
             showErrorMessage("Incompatible Video Format", "This video cannot be played on your device")
         else
@@ -376,7 +376,7 @@ sub executeButtonAction()
     if m.isLiveStream
         ' Live stream button actions
         if m.currentFocusedButton = 0 ' Back
-            ? "[CustomVideo] Back button pressed - attempting to exit"
+            ? getLogTimestamp(); " [CustomVideo] Back button pressed - attempting to exit"
             m.top.back = true
             if m.top.getParent() <> invalid
                 m.top.getParent().back = true
@@ -392,7 +392,7 @@ sub executeButtonAction()
     else
         ' VOD/Clips button actions
         if m.currentFocusedButton = 0 ' Back
-            ? "[CustomVideo] Back button pressed - attempting to exit"
+            ? getLogTimestamp(); " [CustomVideo] Back button pressed - attempting to exit"
             m.top.back = true
             if m.top.getParent() <> invalid
                 m.top.getParent().back = true
@@ -434,7 +434,7 @@ end sub
 
 sub seekRelative(seconds)
     if m.isLiveStream
-        ? "[CustomVideo] Seeking disabled for live streams"
+        ? getLogTimestamp(); " [CustomVideo] Seeking disabled for live streams"
         return
     end if
 
@@ -497,7 +497,7 @@ end sub
 
 sub openTimeTravelDialog()
     if m.isLiveStream
-        ? "[CustomVideo] Time travel disabled for live streams"
+        ? getLogTimestamp(); " [CustomVideo] Time travel disabled for live streams"
         return
     end if
 
@@ -765,7 +765,7 @@ sub hideLoadingOverlay()
 end sub
 
 function onKeyEvent(key, press) as boolean
-    ? "[CustomVideo] KeyEvent: "; key; " "; press
+    ? getLogTimestamp(); " [CustomVideo] KeyEvent: "; key; " "; press
 
     if press
         ' Reset fade timer on any key press

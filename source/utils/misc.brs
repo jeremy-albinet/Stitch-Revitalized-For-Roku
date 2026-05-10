@@ -291,6 +291,32 @@ function TimeStamp()
     return date.AsSeconds()
 end function
 
+' Returns local-time wall clock as "MM-DD HH:MM:SS.mmm" - matches the format
+' used by Roku's own beacon/sdkl debug lines. Use to prefix tagged debug
+' prints when timing matters. roDateTime is UTC by default; ToLocalTime() is
+' not idempotent so it's only called once per fresh object.
+function getLogTimestamp() as string
+    date = CreateObject("roDateTime")
+    date.ToLocalTime()
+    mm = _padInt(date.GetMonth(), 2)
+    dd = _padInt(date.GetDayOfMonth(), 2)
+    hh = _padInt(date.GetHours(), 2)
+    nn = _padInt(date.GetMinutes(), 2)
+    ss = _padInt(date.GetSeconds(), 2)
+    ms = _padInt(date.GetMilliseconds(), 3)
+    return mm + "-" + dd + " " + hh + ":" + nn + ":" + ss + "." + ms
+end function
+
+' Zero-pads an integer to `width` digits. width must be 2 or 3 (only callers
+' in getLogTimestamp need those sizes).
+function _padInt(n as integer, width as integer) as string
+    s = n.toStr()
+    while Len(s) < width
+        s = "0" + s
+    end while
+    return s
+end function
+
 
 sub setTwitchContentFields(twitchContentNode, fields)
     if fields.contentId <> invalid
