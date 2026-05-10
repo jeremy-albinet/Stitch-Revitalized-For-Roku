@@ -5,7 +5,7 @@ end sub
 sub getGlobalTwitchEmotes()
     emoteCache = m.global.emoteCache
     try
-        ? "[EmoteJob] - getGlobalTwitchEmotes"
+        ' ? "[EmoteJob] - getGlobalTwitchEmotes"
         access_token = ""
         if get_user_setting("access_token") <> invalid
             access_token = "Bearer " + get_user_setting("access_token")
@@ -37,7 +37,7 @@ end sub
 sub getChannelTwitchEmotes(channel_id)
     emoteCache = m.global.emoteCache
     try
-        ? "[EmoteJob] - getChannelTwitchEmotes"
+        ' ? "[EmoteJob] - getChannelTwitchEmotes"
         access_token = ""
         if get_user_setting("access_token") <> invalid
             access_token = "Bearer " + get_user_setting("access_token")
@@ -67,7 +67,7 @@ sub getChannelTwitchEmotes(channel_id)
 end sub
 
 sub getTwitchBadges()
-    ? "[EmoteJob] - getTwitchBadges"
+    ' ? "[EmoteJob] - getTwitchBadges"
     badgelist = {}
     try
         access_token = ""
@@ -137,7 +137,7 @@ function invokerest(link as string) as object
 end function
 
 sub getChannel7tvEmotes(channel_id)
-    ? "[EmoteJob] - getChannel7tvEmotes"
+    ' ? "[EmoteJob] - getChannel7tvEmotes"
     emoteCache = m.global.emoteCache
     try
         temp = invokerest("https://7tv.io/v3/users/twitch/" + channel_id)
@@ -156,7 +156,7 @@ sub getChannel7tvEmotes(channel_id)
 end sub
 
 sub getGlobal7tvEmotes()
-    ? "[EmoteJob] - getGlobal7tvEmotes"
+    ' ? "[EmoteJob] - getGlobal7tvEmotes"
     emoteCache = m.global.emoteCache
     try
         temp = invokerest("https://7tv.io/v3/emote-sets/global")
@@ -171,7 +171,7 @@ sub getGlobal7tvEmotes()
 end sub
 
 sub getGlobalTTVEmotes()
-    ? "[EmoteJob] - getGlobalTTVEmotes"
+    ' ? "[EmoteJob] - getGlobalTTVEmotes"
     emoteCache = m.global.emoteCache
     try
         temp = invokerest("https://api.betterttv.net/3/cached/emotes/global")
@@ -186,7 +186,7 @@ sub getGlobalTTVEmotes()
 end sub
 
 sub getChannelTTVFrankerEmotes(channel_id)
-    ? "[EmoteJob] - getChannelTTVFrankerEmotes"
+    ' ? "[EmoteJob] - getChannelTTVFrankerEmotes"
     emoteCache = m.global.emoteCache
     try
         temp = invokerest("https://api.betterttv.net/3/cached/frankerfacez/users/twitch/" + channel_id)
@@ -202,7 +202,7 @@ end sub
 sub getChannelTTVEmotes(channel_id)
     emoteCache = m.global.emoteCache
     try
-        ? "[EmoteJob] - getChannelTTVEmotes"
+        ' ? "[EmoteJob] - getChannelTTVEmotes"
         temp = invokerest("https://api.betterttv.net/3/cached/users/twitch/" + channel_id)
         if temp.sharedEmotes <> invalid
             for each emote in temp.sharedEmotes
@@ -217,7 +217,7 @@ sub getChannelTTVEmotes(channel_id)
 end sub
 
 sub main()
-    ? "[EmoteJob] - getAllEmotes"
+    ' ? "[EmoteJob] - getAllEmotes"
     m.global.setField("emoteCache", {})
     channel_id = m.top.channel_id
     getChannelTwitchEmotes(channel_id)

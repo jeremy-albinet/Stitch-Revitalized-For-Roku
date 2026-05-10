@@ -256,10 +256,18 @@ sub playContent()
         if isLiveContent
             contentNodeToPlay.ignoreStreamErrors = false ' Important for HLS error reporting
             contentNodeToPlay.switchingStrategy = "full-adaptation"
-            ' Seek to live edge. Roku clips this to the current availability window
-            ' and starts at the latest segment rather than buffering the full window.
-            ' Use max int32 — same as rokudev/transport-control official live sample.
-            ' https://developer.roku.com/en-ca/docs/specs/media/streaming-specifications.md
+            ' Hint to start at the live edge. Roku clips this to the current
+            ' availability window. Empirically lands the stream ~30-40s behind
+            ' live on first frame; StitchVideo's startup seek (~3s after
+            ' state=playing) brings the steady-state latency down to ~23s.
+            '
+            ' We tried negative PlayStart values per the OS 8.0 docs claim
+            ' ("supports negative PlayStart values... start playbacks distanced
+            ' from the edge of the live stream") with PlayStart=-2; on Twitch
+            ' HLS we measured no difference vs the int32-max approach. See
+            ' the PlayStart investigation handover for follow-up work.
+            '
+            ' https://developer.roku.com/dev/docs/specs/media (live edge spec)
             contentNodeToPlay.PlayStart = 2147483647
         else if isClipContent
             contentNodeToPlay.ignoreStreamErrors = true
@@ -511,7 +519,7 @@ sub onVideoStateChange()
         exitPlayer()
     else if m.video.state = "error"
         ' Log the raw error immediately for debugging visibility
-        ? "[VideoPlayer] video.state=error — code="; m.video.errorCode; " msg="; m.video.errorStr
+        ? getLogTimestamp(); " [VideoPlayer] video.state=error — code="; m.video.errorCode; " msg="; m.video.errorStr
 
         ' Grace period: within the first 5 seconds of a fresh playback attempt,
         ' Roku's engine often fires a transient error on the initial segment fetch
@@ -543,7 +551,7 @@ sub onVideoStateChange()
         if isFatalError or elapsedMs > 5000
             handleStreamError(errorMsg)
         else
-            ? "[VideoPlayer] Transient error within grace period ("; elapsedMs; "ms) — letting Roku self-recover"
+            ? getLogTimestamp(); " [VideoPlayer] Transient error within grace period ("; elapsedMs; "ms) — letting Roku self-recover"
         end if
     end if
 end sub
@@ -573,7 +581,7 @@ sub handleStreamError(errorStr = invalid as dynamic)
 
     if recovery.shouldRetry
         if recovery.action = "retry"
-            ? "[VideoPlayer] Retry action with delay: "; recovery.delay; " errorCode="; errorCode; " errorMsg="; errorMessage
+            ? getLogTimestamp(); " [VideoPlayer] Retry action with delay: "; recovery.delay; " errorCode="; errorCode; " errorMsg="; errorMessage
             showTemporaryMessage("Reconnecting...")
 
             ' Cancel any in-flight retry timer before creating a new one
@@ -690,6 +698,18 @@ sub onWatchdogFire()
         return
     end if
 
+    ' Cooldown after an app-initiated seek to live edge. StitchVideo issues
+    ' seek=999999 to anchor at the live edge; the player freezes position
+    ' for ~5-8s while re-buffering near the new live position. Without this
+    ' guard the watchdog mistakes that freeze for a real stall and triggers
+    ' a full reconnect, which actively undoes the live-edge correction.
+    if m.video.recentSeekTimestamp <> invalid and m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 10
+        ' Reset position tracking so the moment cooldown ends we start fresh.
+        m.lastGoodPosition = invalid
+        m.stallSeconds = 0
+        return
+    end if
+
     ' If position advanced, reset stall tracking
     if m.lastGoodPosition = invalid
         m.lastGoodPosition = m.video.position
@@ -708,7 +728,7 @@ sub onWatchdogFire()
 
     ' Common post-ad freeze: state remains "playing" but position is stuck
     if m.stallSeconds >= 8
-        ? "[VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
+        ? getLogTimestamp(); " [VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
         beginLiveReconnect("stall")
     end if
 end sub
@@ -734,7 +754,7 @@ sub beginLiveReconnect(reason as string)
     end for
     if delaySec > 16 then delaySec = 16
 
-    ? "[VideoPlayer] beginLiveReconnect reason="; reason; " attempt="; m.reconnectAttempts; "/"; m.maxReconnectAttempts
+    ? getLogTimestamp(); " [VideoPlayer] beginLiveReconnect reason="; reason; " attempt="; m.reconnectAttempts; "/"; m.maxReconnectAttempts
     showTemporaryMessage("Reconnecting... (" + m.reconnectAttempts.toStr() + "/" + m.maxReconnectAttempts.toStr() + ")")
 
     if m.watchdogTimer <> invalid
@@ -819,7 +839,7 @@ sub onLiveReconnectResponse()
 end sub
 
 sub retryPlayback()
-    ? "[VideoPlayer] retryPlayback() — restarting playback"
+    ? getLogTimestamp(); " [VideoPlayer] retryPlayback() — restarting playback"
     m.retryTimer = invalid
     m.allowBreak = false
     exitPlayer()
@@ -932,7 +952,7 @@ end sub
 sub showTemporaryMessage(message as string)
     ' For now, we'll skip temporary messages since we can't call external functions on Video nodes
     ' The error handling still works with the showErrorDialog function
-    ? "[VideoPlayer] Status: "; message
+    ? getLogTimestamp(); " [VideoPlayer] Status: "; message
 end sub
 
 sub dismissTemporaryMessage()
