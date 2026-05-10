@@ -115,16 +115,20 @@ sub sendException(err as object)
     ' Build a synthetic single-frame stacktrace from the location string.
     ' BrightScript does not expose structured frames, so we construct one from
     ' the "Component/function" convention used at every call site.
+    ' Use the component token as filename rather than constructing a path —
+    ' component files live under nested directories (e.g. Tasks/GetTwitchContent/)
+    ' so any path we derive would be wrong. The component name is accurate as a
+    ' display identifier and PostHog renders it cleanly.
     frame = {
         "function": err.location,
-        "filename": "pkg:/components/" + err.location,
+        "filename": err.location,
         "in_app": true,
         "platform": "other"
     }
-    ' Split "Component/function" into filename + function name when possible.
+    ' Split "Component/function" into component name + function name when possible.
     locationParts = err.location.split("/")
     if locationParts.count() >= 2
-        frame["filename"] = "pkg:/components/" + locationParts[0] + ".brs"
+        frame["filename"] = locationParts[0]
         frame["function"] = locationParts[1]
     end if
 

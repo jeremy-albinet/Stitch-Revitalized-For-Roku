@@ -886,8 +886,8 @@ end sub
 sub showTransmuxWarning()
     m.transmuxButtonIndex = -1
     dialog = createObject("roSGNode", "StandardMessageDialog")
-    dialog.title = "Stream Not Supported"
-    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a new format that is not yet compatible with Roku.", "", "We're working with Twitch and Roku to fix this."]
+    dialog.title = "Enhanced Broadcasting Not Supported"
+    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't decode.", "", "Roku has confirmed they won't add support, and Twitch won't change the format. The only workaround is a self-hosted demux proxy.", "", "Setup instructions: bit.ly/roku-twitch"]
     dialog.buttons = ["Go Back", "Try Anyway"]
     dialog.observeField("buttonSelected", "onTransmuxDialogButton")
     dialog.observeField("wasClosed", "onTransmuxDialogClosed")
