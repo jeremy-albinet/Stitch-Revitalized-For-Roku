@@ -40,8 +40,6 @@ sub main()
         ? "[ChatJob] - JOIN - "; m.top.channel
         tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
         queue = createObject("roArray", 300, true)
-        waitingComment = ""
-        waitingCommentAge = 0
         sendWaitingMessage = true
         while true
             ' Check if there is an outgoing message to send via PRIVMSG

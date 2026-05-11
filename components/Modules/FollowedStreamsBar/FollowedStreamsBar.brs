@@ -9,8 +9,6 @@ sub init()
     m.currentIndex = 0
     m.min = 0
     m.max = 11
-    deviceInfo = CreateObject("roDeviceInfo")
-    uiResolutionWidth = deviceInfo.GetUIResolution().width
     refreshFollowBar()
     m.refreshTimer = createObject("roSGNode", "Timer")
     m.refreshTimer.observeField("fire", "refreshFollowBar")

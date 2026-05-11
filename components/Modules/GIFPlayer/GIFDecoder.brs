@@ -144,7 +144,6 @@ sub runDecoder()
             ' )
             ' Go to the next block of data in the next interation
             increment = imageDataByteEndIndex - byteIndex + 1
-            lastFrameGifBytes = gifBytes
         else if hexVal = "3b" ' Trailer (should be the last byte in a gif file)
             exit while
         end if

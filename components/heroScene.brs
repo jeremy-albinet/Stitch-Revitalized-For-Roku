@@ -18,6 +18,11 @@ sub init()
     ]
     m.menu.observeField("buttonSelected", "onMenuSelection")
     m.menu.setFocus(true)
+    m.deepLinkInputTask = m.top.findNode("deepLinkInputTask")
+    if m.deepLinkInputTask <> invalid
+        m.deepLinkInputTask.observeField("inputData", "onInputDeepLink")
+        m.deepLinkInputTask.control = "run"
+    end if
     if get_setting("active_user") = invalid
         set_setting("active_user", "$default$")
     end if
@@ -31,6 +36,7 @@ sub init()
         m.getDeviceCodeTask.control = "run"
     else
         onMenuSelection()
+        tryConsumeLaunchDeepLink()
     end if
     m.footprints = []
 
@@ -91,6 +97,66 @@ sub refreshFollowBar()
     m.followedStreamBar.refreshFollowBar = true
 end sub
 
+sub tryConsumeLaunchDeepLink()
+    if not m.global.hasField("launchContentId") then return
+    launchId = m.global.launchContentId
+    if launchId = invalid or launchId = "" then return
+    m.global.launchContentId = invalid
+    link = {
+        id: launchId,
+        type: "live"
+    }
+    m.pendingDeepLink = link
+    m.deepLinkNavTimer = createObject("roSGNode", "Timer")
+    m.deepLinkNavTimer.duration = 0.15
+    m.deepLinkNavTimer.repeat = false
+    m.deepLinkNavTimer.observeField("fire", "onDeepLinkNavTimerFire")
+    m.deepLinkNavTimer.control = "start"
+end sub
+
+sub onDeepLinkNavTimerFire()
+    if m.pendingDeepLink <> invalid
+        navigateToDeepLink(m.pendingDeepLink)
+        m.pendingDeepLink = invalid
+    end if
+end sub
+
+sub navigateToDeepLink(link)
+    if link = invalid or link.id = invalid or link.id = "" then return
+    idStr = box(link.id).toStr().trim()
+    if idStr = "" then return
+    media = ""
+    if link.type <> invalid
+        media = LCase(box(link.type).toStr())
+    end if
+    content = createObject("roSGNode", "TwitchContentNode")
+    targetScene = "ChannelPage"
+    if media = "game" or media = "games"
+        content.contentType = "GAME"
+        content.gameName = idStr
+        targetScene = "GamePage"
+    else
+        content.contentType = "LIVE"
+        content.streamerLogin = LCase(idStr)
+        targetScene = "ChannelPage"
+    end if
+    if m.activeNode <> invalid
+        m.footprints.push(m.activeNode)
+        m.top.removeChild(m.activeNode)
+        m.activeNode = invalid
+    end if
+    m.activeNode = buildNode(targetScene)
+    m.activeNode.contentRequested = content
+    m.activeNode.setfocus(true)
+end sub
+
+sub onInputDeepLink()
+    if m.deepLinkInputTask = invalid then return
+    link = m.deepLinkInputTask.inputData
+    if link = invalid then return
+    navigateToDeepLink(link)
+end sub
+
 sub handleDeviceCode()
     if m.getDeviceCodeTask <> invalid
         response = m.getDeviceCodeTask.response
@@ -98,6 +164,7 @@ sub handleDeviceCode()
         m.followedStreamBar.callFunc("refreshFollowBar")
     end if
     onMenuSelection()
+    tryConsumeLaunchDeepLink()
 end sub
 
 function buildNode(name)
@@ -241,6 +308,13 @@ function onKeyEvent(key, press) as boolean
             ? "----------- Last Focused Child ----------" + chr(34); lastFocusedChild(m.top.focusedChild)
             return true
         end if
+        if m.activeNode = invalid
+            if key = "up" or key = "down" or key = "left" or key = "right"
+                m.menu.setFocus(true)
+                return true
+            end if
+            return false
+        end if
         if key = "up"
             if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
                 m.followedStreamBar.itemHasFocus = false
@@ -268,10 +342,6 @@ function onKeyEvent(key, press) as boolean
             end if
         end if
     end if
-    ' if key = "up"
-    '     m.top.setFocus(true)
-    '     return true
-    ' end if
     if not press then return false
     return false
 end function

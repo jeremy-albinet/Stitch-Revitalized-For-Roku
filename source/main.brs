@@ -27,10 +27,8 @@ sub Main(input as dynamic)
                 'do ad stuff here
             end if
         end if
-        if input.contentID <> invalid
-            m.contentID = input.contentID
-            print "contentID is: " + input.contentID
-            'launch/prep the content mapped to the contentID here
+        if input.contentID <> invalid and input.contentID <> ""
+            print "Launch contentID: "; input.contentID
         end if
     end if
 
@@ -40,6 +38,9 @@ sub Main(input as dynamic)
     ' Set global constants
     m.global = screen.getGlobalNode()
     setConstants() ' Assuming this sets necessary global constants
+    if input <> invalid and input.contentID <> invalid and input.contentID <> ""
+        m.global.addFields({ launchContentId: input.contentID })
+    end if
 
     ' Set the message port for screen
     screen.setMessagePort(m.port)

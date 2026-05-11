@@ -120,28 +120,6 @@ sub updateComponents()
         m.timer.duration = (m.top.width / m.top.maxWidth)
         m.vector.keyValue = [[0, 0], [innerWidth, 0]]
 
-        if m.top.emojiSize > height
-            height = m.top.emojiSize
-        end if
-        ' Set proper translation for horizontal alignment
-        xTranslation = 0
-        yTranslation = 0
-        ' For center, that is in the middle of the node
-        if hAlign = "center"
-            xTranslation = width / 2
-            ' For right, that is the right edge of the node
-        else if hAlign = "right"
-            xTranslation = width
-        end if
-
-        ' Set proper translation for vertical alignment
-        ' For center, use the middle of the node
-        if vAlign = "center"
-            yTranslation = height / 2
-            ' For bottom, use bottom edge of node
-        else if vAlign = "bottom"
-            yTranslation = height
-        end if
         m.top.clippingRect = {
             width: m.top.maxWidth,
             height: (m.top.height * 2),

@@ -43,8 +43,8 @@ function emojiPointName(rawText as string) as string
         removeModsRegex = createObject("roRegex", "\x{FE0F}", "")
         trimmedText = removeModsRegex.replace(rawText, "")
         unicodeSurrogates = []
-        for i = 0 to rawText.len() - 1
-            unicodeSurrogates.push(asc(rawText.mid(i, 1)))
+        for i = 0 to trimmedText.len() - 1
+            unicodeSurrogates.push(asc(trimmedText.mid(i, 1)))
         end for
 
         codePoint = toCodePoint(unicodeSurrogates)
