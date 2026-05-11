@@ -57,9 +57,10 @@ sub init()
     m.fadeAwayTimer.control = "stop"
 
     ' Live-edge latency diagnostic timer.
-    ' Logs streamingSegment.latency every 5s while playing, so we can measure
-    ' real-world distance from the live edge on a TV. See AGENTS.md / DEV.md
-    ' for how to read these logs over the debug console.
+    ' Logs streamingSegment.latency every 5s while the stream is active
+    ' (started on state=playing, stopped on paused/error/finished/stopped;
+    ' continues to fire during buffering so buffer dips are visible in logs).
+    ' See AGENTS.md / DEV.md for how to read these logs over the debug console.
     m.latencyLogTimer = createObject("roSGNode", "Timer")
     m.latencyLogTimer.observeField("fire", "onLatencyLogFire")
     m.latencyLogTimer.repeat = true

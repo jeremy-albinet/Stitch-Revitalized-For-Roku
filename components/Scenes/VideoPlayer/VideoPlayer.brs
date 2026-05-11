@@ -278,6 +278,13 @@ sub playContent()
             contentNodeToPlay.switchingStrategy = "full-adaptation" ' Typically ABR for VODs
         end if
 
+        ' Invariant: m.video is a fresh StitchVideo node here. exitPlayer()
+        ' tears down the previous instance, so this assignment runs on a
+        ' newly created node with init() defaults (startupSeekFired=false,
+        ' recentSeekTimestamp=0). Do NOT optimize this path to reuse an
+        ' existing m.video across reconnects without also explicitly
+        ' resetting those latches — otherwise the startup seek will be
+        ' suppressed on the new stream.
         m.video.content = contentNodeToPlay
 
         if contentNodeToPlay.streamerProfileImageUrl <> invalid
@@ -703,7 +710,7 @@ sub onWatchdogFire()
     ' for ~5-8s while re-buffering near the new live position. Without this
     ' guard the watchdog mistakes that freeze for a real stall and triggers
     ' a full reconnect, which actively undoes the live-edge correction.
-    if m.video.recentSeekTimestamp <> invalid and m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 10
+    if m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 10
         ' Reset position tracking so the moment cooldown ends we start fresh.
         m.lastGoodPosition = invalid
         m.stallSeconds = 0
