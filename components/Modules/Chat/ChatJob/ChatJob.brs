@@ -82,7 +82,7 @@ sub main()
                     if command = "USERNOTICE" or command = "USERSTATE"
                         sleep(5)
                     else if command = "RECONNECT"
-                        ' ? "[ChatJob] Server requested reconnect, reconnecting..."
+                        ? getLogTimestamp(); " [ChatJob] Server requested reconnect, reconnecting..."
                         tcpListen = reconnectToChat(tcpListen, addr)
                         queue.clear()
                     else if command = "CLEARMSG" or command = "CLEARCHAT"

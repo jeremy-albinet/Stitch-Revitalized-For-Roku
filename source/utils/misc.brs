@@ -298,23 +298,13 @@ end function
 function getLogTimestamp() as string
     date = CreateObject("roDateTime")
     date.ToLocalTime()
-    mm = _padInt(date.GetMonth(), 2)
-    dd = _padInt(date.GetDayOfMonth(), 2)
-    hh = _padInt(date.GetHours(), 2)
-    nn = _padInt(date.GetMinutes(), 2)
-    ss = _padInt(date.GetSeconds(), 2)
-    ms = _padInt(date.GetMilliseconds(), 3)
+    mm = leftPad(date.GetMonth().toStr(), "0", 2)
+    dd = leftPad(date.GetDayOfMonth().toStr(), "0", 2)
+    hh = leftPad(date.GetHours().toStr(), "0", 2)
+    nn = leftPad(date.GetMinutes().toStr(), "0", 2)
+    ss = leftPad(date.GetSeconds().toStr(), "0", 2)
+    ms = leftPad(date.GetMilliseconds().toStr(), "0", 3)
     return mm + "-" + dd + " " + hh + ":" + nn + ":" + ss + "." + ms
-end function
-
-' Zero-pads an integer to `width` digits. width must be 2 or 3 (only callers
-' in getLogTimestamp need those sizes).
-function _padInt(n as integer, width as integer) as string
-    s = n.toStr()
-    while Len(s) < width
-        s = "0" + s
-    end while
-    return s
 end function
 
 
