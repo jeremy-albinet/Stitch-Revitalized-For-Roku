@@ -11,6 +11,8 @@ splash_screen_sd=pkg:/images/splash-screen_sd.png
 splash_screen_fhd=pkg:/images/splash-screen_FHD.png
 splash_screen_4k=pkg:/images/splash-screen_4k.png
 
+splash_color=#0e0e10
+
 supports_input_launch=1
 
 ui_resolutions=hd

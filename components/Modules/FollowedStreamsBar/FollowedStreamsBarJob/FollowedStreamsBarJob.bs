@@ -391,8 +391,6 @@ sub updateFollowBar()
         contentCollection = []
         if rsp?.data?.user?.followedLiveUsers <> invalid
             for each stream in rsp.data.user.followedLiveUsers.edges
-                streamnode = stream.node
-                ' type_name = stream.node.__typename
                 try
                     if stream?.node?.stream?.type <> invalid and stream.node.stream.type = "live"
                         rowItem = createObject("RoSGNode", "TwitchContentNode")
