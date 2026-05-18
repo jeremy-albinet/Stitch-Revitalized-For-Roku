@@ -8,7 +8,10 @@
         <field id="jumpToItem" type="int" value="-1" onChange="onJumpToItemChange" />
     </interface>
     <children>
-        <MarkupGrid id="grid" />
+        <Poster id="focusGlow" opacity="0" />
+        <Group id="scaleWrapper">
+            <MarkupGrid id="grid" />
+        </Group>
     </children>
     <script type="text/brightscript" uri="TileGrid.brs" />
 </component>

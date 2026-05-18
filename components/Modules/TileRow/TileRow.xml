@@ -9,7 +9,10 @@
         <field id="jumpToItem" type="int" value="-1" onChange="onJumpToItemChange" />
     </interface>
     <children>
-        <RowList id="rowList" />
+        <Poster id="focusGlow" opacity="0" />
+        <Group id="scaleWrapper">
+            <RowList id="rowList" />
+        </Group>
     </children>
     <script type="text/brightscript" uri="TileRow.brs" />
 </component>
