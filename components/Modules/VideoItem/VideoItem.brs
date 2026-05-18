@@ -5,7 +5,9 @@ sub init()
     ' Tile shadow (gated by low-RAM check)
     m.tileShadow = m.top.findNode("tileShadow")
     if m.tileShadow <> invalid
-        if CreateObject("roDeviceInfo").GetMemoryLimit() >= 30
+        ' GetGeneralMemoryLevel() returns "normal", "low", or "critical".
+        ' Show shadow on anything but "critical" memory pressure.
+        if CreateObject("roDeviceInfo").GetGeneralMemoryLevel() <> "critical"
             c = m.global.constants
             m.tileShadow.width = c.tile.w + 24
             m.tileShadow.height = c.tile.h + 24

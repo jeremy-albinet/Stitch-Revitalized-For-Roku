@@ -28,7 +28,9 @@ sub init()
     m.rowList.observeField("itemSelected", "onRowListItemSelected")
 
     ' Low-RAM gate for visual polish
-    m.lowMem = CreateObject("roDeviceInfo").GetMemoryLimit() < 30
+    ' GetGeneralMemoryLevel() returns "normal", "low", or "critical".
+    ' Skip polish animations only on "critical" — preserves visuals on "low" devices.
+    m.lowMem = CreateObject("roDeviceInfo").GetGeneralMemoryLevel() = "critical"
 
     ' Focus scale animation (gated by low-RAM check)
     if not m.lowMem
