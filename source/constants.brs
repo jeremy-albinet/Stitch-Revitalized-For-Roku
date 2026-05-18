@@ -42,6 +42,10 @@ sub setConstants()
         channel7TVEmotes: {},
         twitchBadges: {},
         constants: {
+            ' Resolution tokens:
+            '   screenWidth / screenHeight — canonical screen dimensions (use these everywhere)
+            '   maskScaleFactor — derived scale for mask math only (CirclePoster, etc.)
+            '   Do NOT use m.top.getScene().currentDesignResolution — not thread-safe
             screenWidth: deviceInfo.GetUIResolution().width,
             screenHeight: deviceInfo.GetUIResolution().height,
             maskScaleFactor: scaleFactor,
@@ -345,6 +349,34 @@ sub setConstants()
                 play: "pkg:/images/icons/play.png",
                 search: "pkg:/images/icons/search.png",
                 time_travel: "pkg:/images/icons/clock-o.png"
+            },
+            spacing: {
+                xs: 6,
+                sm: 12,
+                md: 24,
+                lg: 36,
+                xl: 72
+            },
+            tile: {
+                w: 480,
+                h: 270,
+                gap: 36
+            },
+            row: {
+                h: 360,
+                labelOffset: [0, 16]
+            },
+            focus: {
+                color: "0x9146FFFF",
+                bitmapUri: "pkg:/images/focus_fhd.9.png", ' TODO: asset created by Task 2.3
+                scale: 1.05,
+                duration: 0.15
+            },
+            typography: {
+                h1: { size: 48, font: "pkg:/fonts/Archivo-Bold.otf" },
+                h2: { size: 36, font: "pkg:/fonts/Archivo-Bold.otf" },
+                body: { size: 28, font: "pkg:/fonts/Archivo-Regular.otf" },
+                small: { size: 22, font: "pkg:/fonts/Archivo-Regular.otf" }
             }
         }
     })
