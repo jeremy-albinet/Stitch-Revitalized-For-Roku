@@ -411,13 +411,13 @@ end sub
 '
 ' Contract:
 '
-'   | From                       | Key   | To              | Condition                            |
-'   |----------------------------|-------|-----------------|--------------------------------------|
-'   | Active scene (top row)     | up    | MenuBar         | activeNode not Game/Channel/Video    |
-'   | MenuBar                    | down  | Active scene    | activeNode present                   |
-'   | Active scene (leftmost)    | left  | RecentBar       | activeNode not Game/Channel/Video    |
-'   | RecentBar                  | right | Active scene    | activeNode present                   |
-'   | (any)                      | back  | onBackPressed   | unchanged  per-scene backPressed     |
+'   | From                       | Key   | To              | Condition                                       |
+'   |----------------------------|-------|-----------------|-------------------------------------------------|
+'   | Active scene (top row)     | up    | MenuBar         | activeNode not Game/Channel/Video               |
+'   | MenuBar                    | down  | Active scene    | activeNode present                              |
+'   | Active scene (leftmost)    | left  | RecentBar       | activeNode not Game/Channel/Video AND bar non-empty |
+'   | RecentBar                  | right | Active scene    | activeNode present                              |
+'   | (any)                      | back  | onBackPressed   | unchanged  per-scene backPressed                |
 '
 ' Notes:
 '   - "Back" is NOT handled here. Each scene sets its own backPressed field
@@ -426,6 +426,9 @@ end sub
 '   - Up/Left are restricted on GamePage / ChannelPage / VideoPlayer because
 '     those scenes are full-screen experiences where the menu/recent bars
 '     should not surface.
+'   - Left is also gated on the RecentBar actually having items. When the
+'     history is empty the bar renders only its background + icon, so
+'     handing it focus would strand the user with no visible focus cursor.
 '   - The contract relies on the fact that scenes which legitimately use
 '     up/down/left/right for internal navigation return true from their
 '     own onKeyEvent and therefore never reach this function. Task 4.3
@@ -467,8 +470,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
 
     ' Rule: Active scene (leftmost column) + left  ->  RecentBar
+    ' Gated on bar having items so we never focus an empty sidebar that
+    ' renders only background + icon (no visible focus cursor).
     if key = "left"
-        if not fullScreenScene and m.recentBar <> invalid
+        if not fullScreenScene and recentBarHasItems()
             m.recentBar.setFocus(true)
             m.recentBar.itemHasFocus = true
             return true
@@ -485,6 +490,16 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
 
     return false
+end function
+
+' Returns true when the RecentlyWatchedBar has at least one history item.
+' The bar always has its background rectangle + icon as static children
+' (indices 0 and 1); item nodes are appended only when registry-backed
+' history exists. Without this guard, Left from the active scene could
+' focus an empty bar where no item is highlighted.
+function recentBarHasItems() as boolean
+    if m.recentBar = invalid then return false
+    return m.recentBar.getChildCount() > 2
 end function
 
 ' Observer for m.top.focusedChild  used to track which top-level region
