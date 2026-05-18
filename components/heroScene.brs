@@ -19,6 +19,14 @@ sub init()
     ]
     m.menu.observeField("buttonSelected", "onMenuSelection")
     m.menu.setFocus(true)
+
+    ' Track which top-level region (menu/recentBar/activeScene) currently
+    ' holds focus. Used by the focus contract in onKeyEvent to make
+    ' cross-bar transitions explicit rather than implicit. See the
+    ' contract documentation above onKeyEvent for the full semantics.
+    m.focusedRegion = "menu"
+    m.top.observeField("focusedChild", "onFocusedChildChanged")
+
     if get_setting("active_user") = invalid
         set_setting("active_user", "$default$")
     end if
@@ -385,37 +393,91 @@ sub onBackPressed()
     end if
 end sub
 
-function onKeyEvent(key, press) as boolean
+' ===========================================================================
+' Focus Contract — heroScene Cross-Bar Navigation
+' ===========================================================================
+'
+' heroScene orchestrates three top-level UI regions:
+'   - MenuBar (m.menu)            top horizontal bar
+'   - RecentlyWatchedBar          left sidebar (m.recentBar)
+'   - Active scene (m.activeNode) center / main content area
+'
+' SceneGraph fires onKeyEvent on heroScene ONLY for keys the active child
+' scene did NOT consume (i.e. returned false from its own onKeyEvent).
+' This means individual scenes retain full authority over their internal
+' navigation; heroScene's onKeyEvent handles only the explicit cross-bar
+' transitions documented in the contract below, plus a no-op consume of
+' replay so it does not surprise scenes that do not handle it.
+'
+' Contract:
+'
+'   | From                       | Key   | To              | Condition                            |
+'   |----------------------------|-------|-----------------|--------------------------------------|
+'   | Active scene (top row)     | up    | MenuBar         | activeNode not Game/Channel/Video    |
+'   | MenuBar                    | down  | Active scene    | activeNode present                   |
+'   | Active scene (leftmost)    | left  | RecentBar       | activeNode not Game/Channel/Video    |
+'   | RecentBar                  | right | Active scene    | activeNode present                   |
+'   | (any)                      | back  | onBackPressed   | unchanged  per-scene backPressed     |
+'
+' Notes:
+'   - "Back" is NOT handled here. Each scene sets its own backPressed field
+'     which heroScene observes (see onBackPressed for the SceneManager pop
+'     logic). onKeyEvent must not consume "back".
+'   - Up/Left are restricted on GamePage / ChannelPage / VideoPlayer because
+'     those scenes are full-screen experiences where the menu/recent bars
+'     should not surface.
+'   - The contract relies on the fact that scenes which legitimately use
+'     up/down/left/right for internal navigation return true from their
+'     own onKeyEvent and therefore never reach this function. Task 4.3
+'     fixes any scenes that violate this convention.
+'   - m.focusedRegion is maintained by onFocusedChildChanged for diagnostics
+'     and future routing. The cross-bar transitions below remain valid even
+'     if m.focusedRegion is stale, because they are guarded by the active
+'     scene's id and the RecentBar's itemHasFocus flag.
+' ===========================================================================
+function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     if m.activeNode = invalid then return false
 
+    ' Consume replay everywhere so it does not propagate as a surprise key
+    ' to scenes that do not deliberately handle it.
     if key = "replay"
         return true
     end if
 
+    fullScreenScene = (m.activeNode.id = "GamePage" or m.activeNode.id = "ChannelPage" or m.activeNode.id = "VideoPlayer")
+
+    ' Rule: Active scene (top row) + up  ->  MenuBar
     if key = "up"
-        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
-            m.recentBar.itemHasFocus = false
-            m.menu.setFocus(true)
+        if not fullScreenScene
+            if m.recentBar <> invalid
+                m.recentBar.itemHasFocus = false
+            end if
+            if m.menu <> invalid
+                m.menu.setFocus(true)
+            end if
         end if
         return true
     end if
 
+    ' Rule: MenuBar + down  ->  Active scene
     if key = "down"
         m.activeNode.setFocus(true)
         return true
     end if
 
+    ' Rule: Active scene (leftmost column) + left  ->  RecentBar
     if key = "left"
-        if m.activeNode.id <> "GamePage" and m.activeNode.id <> "ChannelPage" and m.activeNode.id <> "VideoPlayer"
+        if not fullScreenScene and m.recentBar <> invalid
             m.recentBar.setFocus(true)
             m.recentBar.itemHasFocus = true
             return true
         end if
     end if
 
+    ' Rule: RecentBar + right  ->  Active scene
     if key = "right"
-        if m.recentBar.itemHasFocus = true
+        if m.recentBar <> invalid and m.recentBar.itemHasFocus = true
             m.recentBar.itemHasFocus = false
             m.activeNode.setFocus(true)
             return true
@@ -425,7 +487,31 @@ function onKeyEvent(key, press) as boolean
     return false
 end function
 
+' Observer for m.top.focusedChild  used to track which top-level region
+' currently holds focus (menu / recentBar / activeScene). The contract in
+' onKeyEvent does not strictly require this state, but recording it gives
+' future logic (analytics, accessibility, focus restoration) a single
+' source of truth and aids debugging of cross-bar transitions.
+sub onFocusedChildChanged()
+    focused = m.top.focusedChild
+    if focused = invalid
+        m.focusedRegion = "none"
+        return
+    end if
+
+    if m.menu <> invalid and m.menu.isInFocusChain()
+        m.focusedRegion = "menu"
+    else if m.recentBar <> invalid and m.recentBar.isInFocusChain()
+        m.focusedRegion = "recentBar"
+    else if m.activeNode <> invalid and m.activeNode.isInFocusChain()
+        m.focusedRegion = "activeScene"
+    else
+        m.focusedRegion = "other"
+    end if
+end sub
+
 sub onDestroy()
+    m.top.unobserveField("focusedChild")
     if m.changelogDialog <> invalid
         m.changelogDialog.unobserveField("buttonSelected")
         m.changelogDialog.unobserveField("wasClosed")
