@@ -17,23 +17,9 @@
             text="Browse"
             fontSize="48"
             fontUri="pkg:/fonts/Archivo-Bold.otf" />
-        <RowList
+        <TileRow
             id="homeRowList"
-            visible="true"
-            rowLabelOffset="[[0,5]]"
-            rowLabelFont="font:LargeBoldSystemFont"
             translation="[ 150, 180 ]"
-            itemComponentName="VideoItem"
-            numRows="4"
-            rowItemSize="[[480,270]]"
-            rowItemSpacing="[[45,0]]"
-            itemSize="[1920,444]"
-            itemSpacing="[ 0, 60 ]"
-            showRowLabel="[ false ]"
-            rowHeights="[354]"
-            focusBitmapUri="pkg:/images/focusindicator.9.png"
-            vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="fixedFocus"
         />
     </children>
 

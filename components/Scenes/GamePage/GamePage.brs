@@ -1,9 +1,9 @@
 sub init()
     m.top.backgroundColor = m.global.constants.colors.hinted.grey1
     m.top.observeField("focusedChild", "onGetfocus")
-    ' m.top.observeField("itemFocused", "onGetFocus")
-    m.rowlist = m.top.findNode("homeRowList")
-    m.rowlist.ObserveField("itemSelected", "handleItemSelected")
+    m.tileRow = m.top.findNode("homeRowList")
+    m.rowList = m.tileRow.findNode("rowList")
+    m.tileRow.observeField("itemSelected", "handleItemSelected")
 end sub
 
 sub updatePage()
@@ -49,23 +49,7 @@ end function
 
 
 sub updateRowList(contentCollection)
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        config = getRowConfig(row.getchild(0).contentType, hasRowLabel)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-    m.rowList.rowHeights = rowHeights
-    m.rowlist.showRowLabel = showRowLabel
-    m.rowlist.rowItemSize = rowItemSize
-    m.rowlist.content = contentCollection
-    m.rowlist.numRows = contentCollection.getChildCount()
+    m.tileRow.content = contentCollection
 end sub
 
 
@@ -77,24 +61,24 @@ sub handleRecommendedSections()
 end sub
 
 sub handleItemSelected()
-    selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
-    selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
+    selectedRow = m.tileRow.content.getchild(m.rowList.rowItemSelected[0])
+    selectedItem = selectedRow.getChild(m.rowList.rowItemSelected[1])
     m.top.contentSelected = selectedItem
 end sub
 
 sub onGetFocus()
-    if m.rowlist.focusedChild = invalid
-        m.rowlist.setFocus(true)
-    else if m.rowlist.focusedChild.id = "homeRowList"
-        m.rowlist.focusedChild.setFocus(true)
+    if m.tileRow.focusedChild = invalid
+        m.rowList.setFocus(true)
+    else if m.tileRow.focusedChild.id = "rowList"
+        m.tileRow.focusedChild.setFocus(true)
     end if
     updateRowListFocusFeedback()
 end sub
 
 ' Hide the RowList focus rectangle when focus leaves the scene; restore on return.
 sub updateRowListFocusFeedback()
-    if m.rowlist = invalid then return
-    m.rowlist.drawFocusFeedback = m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
+    if m.rowList = invalid then return
+    m.rowList.drawFocusFeedback = m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
