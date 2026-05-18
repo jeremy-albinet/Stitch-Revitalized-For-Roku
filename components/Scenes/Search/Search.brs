@@ -12,6 +12,8 @@ sub init()
     m.kb.textEditBox.voiceEnabled = true
     m.kb.observefield("text", "handleTextInput")
     m.rowlist = m.top.findNode("homeRowList")
+    ' Inner RowList handle for fields not exposed by TileRow (rowItemSelected, drawFocusFeedback)
+    m.rowListInner = m.rowlist.findNode("rowList")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     updateRecents()
 end sub
@@ -180,33 +182,22 @@ sub buildContentNodeFromShelves(shelves)
         setTwitchContentFields(rowItem, Vod)
         fourthRow.appendChild(rowItem)
     end for
-    ' set content and heights
-    rowItemSize = []
-    rowHeights = []
+    ' Append non-empty rows. TileRow handles tile dimensions, row heights, and spacing
+    ' internally via design tokens — per-row size customization is no longer applied here.
     if firstRow.getChildCount() > 0
-        rowItemSize.push([480, 270])
-        rowHeights.push(414)
         AllContent.appendChild(firstRow)
     end if
     if secondRow.getchildCount() > 0
-        rowItemSize.push([225, 225])
-        rowHeights.push(300)
         AllContent.appendChild(secondRow)
     end if
     if thirdRow.getchildCount() > 0
-        rowItemSize.push([282, 375])
-        rowHeights.push(489)
         AllContent.appendChild(thirdRow)
     end if
     if fourthRow.getchildCount() > 0
-        rowItemSize.push([480, 270])
-        rowHeights.push(414)
         AllContent.appendchild(fourthRow)
     end if
     m.rowlist.visible = false
     m.rowlist.content = AllContent
-    m.rowlist.rowHeights = rowHeights
-    m.rowlist.rowItemSize = rowItemSize
     m.rowlist.visible = true
 end sub
 
@@ -215,9 +206,11 @@ sub handleItemSelected()
     if m.kb.text <> ""
         updateRecents(m.kb.text)
     end if
-    selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    ' rowItemSelected is internal to RowList — access via TileRow's inner RowList handle
+    if m.rowListInner = invalid then return
+    selectedRow = m.rowlist.content.getchild(m.rowListInner.rowItemSelected[0])
     if selectedRow = invalid then return
-    selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
+    selectedItem = selectedRow.getChild(m.rowListInner.rowItemSelected[1])
     m.top.contentSelected = selectedItem
 end sub
 
@@ -241,12 +234,13 @@ end sub
 
 ' Hide the RowList focus rectangle when focus leaves the scene; restore on return.
 sub updateRowListFocusFeedback()
-    if m.rowlist = invalid then return
+    if m.rowListInner = invalid then return
     hasFocus = false
     if m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
         hasFocus = true
     end if
-    m.rowlist.drawFocusFeedback = hasFocus
+    ' drawFocusFeedback is internal to RowList — access via TileRow's inner RowList handle
+    m.rowListInner.drawFocusFeedback = hasFocus
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean

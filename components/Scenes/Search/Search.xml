@@ -21,22 +21,7 @@
             id="keyboard"
             buttonheight="45"
             translation="[150,180]" />
-        <RowList
-            id="homeRowList"
-            translation="[750, 180]"
-            rowLabelOffset="[[0,10]]"
-            rowLabelFont="font:LargeBoldSystemFont"
-            itemComponentName="VideoItem"
-            numRows="4"
-            rowItemSize="[[480,270]]"
-            rowItemSpacing="[[45,0]]"
-            itemSize="[1920,444]"
-            itemSpacing="[ 0, 60 ]"
-            showRowLabel="[ true ]"
-            focusBitmapUri="pkg:/images/focusindicator.9.png"
-            vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="fixedFocus"
-        />
+        <TileRow id="homeRowList" translation="[750, 180]" />
     </children>
 
 </component>
