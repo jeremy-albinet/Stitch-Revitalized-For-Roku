@@ -147,7 +147,7 @@ end sub
 ' Hide the RowList focus rectangle when focus leaves the scene; restore on return.
 sub updateRowListFocusFeedback()
     if m.rowlist = invalid then return
-    m.rowlist.drawFocusFeedback = m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
+    m.rowlist.drawFocusFeedback = m.rowlist.isInFocusChain()
 end sub
 
 sub onDestroy()
