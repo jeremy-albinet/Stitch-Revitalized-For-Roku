@@ -30,7 +30,14 @@ sub init()
     ' Low-RAM gate for visual polish
     ' GetGeneralMemoryLevel() returns "normal", "low", or "critical".
     ' Skip polish animations only on "critical" — preserves visuals on "low" devices.
-    m.lowMem = CreateObject("roDeviceInfo").GetGeneralMemoryLevel() = "critical"
+    '
+    ' KNOWN ISSUE (Phase 5 follow-up): the BRS-constructed Animation pattern
+    ' below (`CreateObject("roSGNode", "Animation")` + `AddInterpolator(...)`)
+    ' is wrong on real Roku — `AddInterpolator` is not a method and the
+    ' interpolator must be a child of the Animation in XML with
+    ' `fieldToInterp="<nodeId>.<field>"`. Hard-disable for now so the channel
+    ' boots; rewrite Phase 5 with XML-declared animations in a follow-up.
+    m.lowMem = true
 
     ' Focus scale animation (gated by low-RAM check)
     if not m.lowMem
