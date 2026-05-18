@@ -299,7 +299,9 @@ end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if press
-        if key = "up" or key = "back"
+        ' Note: "up" is intentionally not consumed here — heroScene's focus
+        ' contract routes Up cross-bar. Only "back" exits the scene.
+        if key = "back"
             m.top.backPressed = true
             return true
         end if

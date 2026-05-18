@@ -260,14 +260,17 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 return true
             end if
         end if
-        if key = "up" or key = "back"
+        if key = "up"
+            ' Scene-internal nav only: keyboard → recents.
+            ' Otherwise let "up" bubble to heroScene (it routes Up cross-bar).
             if m.top?.focusedChild?.id <> invalid and m.top.focusedChild.id = "keyboard"
                 if m.recents.buttons.count() > 0
                     m.recents.setfocus(true)
-                    ' m.kb.setfocus(false)
                     return true
                 end if
             end if
+        end if
+        if key = "back"
             m.rowlist.setfocus(false)
             m.kb.setfocus(false)
             m.top.backPressed = true

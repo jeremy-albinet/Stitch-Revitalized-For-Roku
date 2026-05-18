@@ -302,10 +302,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "right" or key = "OK"
         settingSelected()
     end if
-    if key = "up"
-        m.top.backPressed = true
-        return true
-    end if
+    ' Note: "up" is intentionally not consumed here — heroScene's focus
+    ' contract routes Up cross-bar.
     return false
 end function
 
