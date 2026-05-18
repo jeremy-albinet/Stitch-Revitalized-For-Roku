@@ -29,7 +29,7 @@
                 id="detailsCard"
                 translation="[620, 20]"
                 width="600"
-                height="400"
+                height="600"
                 color="0x18181bFF"
                 opacity="0.95"
                 />
@@ -48,14 +48,15 @@
                         <ContentNode title="Enabled" />
                     </ContentNode>
                 </RadioButtonList>
-                <Poster
-                    id="supportQrPoster"
-                    uri="pkg:/images/qr_buymeacoffee.png"
-                    width="240"
-                    height="240"
-                    visible="false"
-                    />
             </LayoutGroup>
+            <Poster
+                id="supportQrPoster"
+                translation="[800, 230]"
+                uri="pkg:/images/qr_buymeacoffee.png"
+                width="240"
+                height="240"
+                visible="false"
+                />
             <RadioButtonList id="radioSetting" translation="[650, 200]" visible="false"
                 inheritParentTransform="false" vertFocusAnimationStyle="floatingFocus" />
 
