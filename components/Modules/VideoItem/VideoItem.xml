@@ -12,6 +12,11 @@
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <children>
         <Poster
+            id="tileShadow"
+            uri="pkg:/images/tile_shadow_fhd.9.png"
+            visible="false"
+            translation="[0, 4]" />
+        <Poster
             id="itemPoster"
             height="180"
             width="320"

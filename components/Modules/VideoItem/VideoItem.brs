@@ -1,6 +1,18 @@
 sub init()
     m.itemlabel = m.top.findNode("itemLabel")
     m.itemmask = m.top.findNode("itemMask")
+
+    ' Tile shadow (gated by low-RAM check)
+    m.tileShadow = m.top.findNode("tileShadow")
+    if m.tileShadow <> invalid
+        if CreateObject("roDeviceInfo").GetMemoryLimit() >= 30
+            c = m.global.constants
+            m.tileShadow.width = c.tile.w + 24
+            m.tileShadow.height = c.tile.h + 24
+            m.tileShadow.translation = [-12, 4]
+            m.tileShadow.visible = true
+        end if
+    end if
 end sub
 
 sub showcontent()
