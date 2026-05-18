@@ -9,6 +9,7 @@
         <field id="jumpToItem" type="int" value="-1" onChange="onJumpToItemChange" />
     </interface>
     <children>
+        <Poster id="focusGlow" opacity="0" />
         <Group id="scaleWrapper">
             <RowList id="rowList" />
         </Group>
