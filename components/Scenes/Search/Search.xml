@@ -7,8 +7,8 @@
     <children>
         <ButtonGroup
             id="recents"
-            translation="[100, 90]"
-            minWidth="300"
+            translation="[150, 135]"
+            minWidth="450"
             textFont="font:SmallestSystemFont"
             focusedTextFont="font:SmallestSystemFont"
             visible="true"
@@ -19,19 +19,19 @@
         />
         <DynamicMiniKeyboard
             id="keyboard"
-            buttonheight="30"
-            translation="[100,120]" />
+            buttonheight="45"
+            translation="[150,180]" />
         <RowList
             id="homeRowList"
-            translation="[500, 120]"
+            translation="[750, 180]"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
             itemComponentName="VideoItem"
             numRows="4"
-            rowItemSize="[[320,180]]"
-            rowItemSpacing="[[30,0]]"
-            itemSize="[1920,295]"
-            itemSpacing="[ 0, 40 ]"
+            rowItemSize="[[480,270]]"
+            rowItemSpacing="[[45,0]]"
+            itemSize="[1920,444]"
+            itemSpacing="[ 0, 60 ]"
             showRowLabel="[ true ]"
             focusBitmapUri="pkg:/images/focusindicator.9.png"
             vertFocusAnimationStyle="fixedFocus"

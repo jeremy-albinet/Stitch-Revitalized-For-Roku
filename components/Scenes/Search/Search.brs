@@ -46,7 +46,7 @@ sub onRecentItemSelected()
 end sub
 
 sub adjustPositionForRecents()
-    yTranslation = 120
+    yTranslation = 180
     if m.recents.buttons.count() > 0
         m.recents.buttonHeight = (m.recents.textFont.size * 3)
         ' bound = m.recents.boundingrect()
@@ -184,23 +184,23 @@ sub buildContentNodeFromShelves(shelves)
     rowItemSize = []
     rowHeights = []
     if firstRow.getChildCount() > 0
-        rowItemSize.push([320, 180])
-        rowHeights.push(275)
+        rowItemSize.push([480, 270])
+        rowHeights.push(414)
         AllContent.appendChild(firstRow)
     end if
     if secondRow.getchildCount() > 0
-        rowItemSize.push([150, 150])
-        rowHeights.push(200)
+        rowItemSize.push([225, 225])
+        rowHeights.push(300)
         AllContent.appendChild(secondRow)
     end if
     if thirdRow.getchildCount() > 0
-        rowItemSize.push([188, 250])
-        rowHeights.push(325)
+        rowItemSize.push([282, 375])
+        rowHeights.push(489)
         AllContent.appendChild(thirdRow)
     end if
     if fourthRow.getchildCount() > 0
-        rowItemSize.push([320, 180])
-        rowHeights.push(275)
+        rowItemSize.push([480, 270])
+        rowHeights.push(414)
         AllContent.appendchild(fourthRow)
     end if
     m.rowlist.visible = false
