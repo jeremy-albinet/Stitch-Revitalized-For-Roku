@@ -33,7 +33,7 @@
             rowHeights="[235]"
             focusBitmapUri="pkg:/images/focusindicator.9.png"
             vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="floatingFocus"
+            rowFocusAnimationStyle="fixedFocus"
         />
     </children>
 

@@ -70,7 +70,6 @@ sub LiveSettings()
     m.itemlabel.text = m.top.itemContent.contentTitle
     m.timestampLabel.visible = false
     m.timestampRect.visible = false
-
 end sub
 
 sub VodSettings()
