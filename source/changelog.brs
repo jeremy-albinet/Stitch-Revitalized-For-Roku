@@ -3,6 +3,12 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.5.0": [
+            "New: Reduced stream latency — streams now start closer to real-time, though zero-delay streaming isn't possible on Roku",
+            "New: Donate via Buy Me a Coffee — find the QR code in Settings",
+            "Fix: Focus highlight now visible on channel pages and all grid views",
+            "Fix: Error tracking now includes more detail to help diagnose crashes faster"
+        ],
         "2.4.0": [
             "New: Following + Browse — simpler 2-tab layout (was 4 tabs)",
             "New: Recently Watched sidebar — quickly rejoin streams you've been to",
