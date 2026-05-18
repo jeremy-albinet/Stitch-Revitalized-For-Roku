@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="TileGrid" extends="Group">
+    <interface>
+        <field id="content" type="node" onChange="onContentChange" />
+        <field id="itemFocused" type="int" value="-1" />
+        <field id="itemSelected" type="int" value="-1" />
+        <field id="itemComponentName" type="string" value="VideoItem" onChange="onItemComponentNameChange" />
+        <field id="jumpToItem" type="int" value="-1" onChange="onJumpToItemChange" />
+    </interface>
+    <children>
+        <MarkupGrid id="grid" />
+    </children>
+    <script type="text/brightscript" uri="TileGrid.brs" />
+</component>
