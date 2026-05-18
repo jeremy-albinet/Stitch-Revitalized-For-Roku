@@ -1,8 +1,11 @@
 sub init()
     m.top.observeField("focusedChild", "onGetFocus")
     m.rowList = m.top.findNode("browseRowList")
+    ' Inner RowList handle for fields not exposed by TileRow
+    ' (rowItemSelected, drawFocusFeedback).
+    m.rowListInner = m.rowList.findNode("rowList")
     m.rowList.observeField("itemSelected", "onItemSelected")
-    m.rowList.observeField("rowItemFocused", "onItemFocused")
+    m.rowList.observeField("itemFocused", "onItemFocused")
 
     m.categoriesCursor = ""
     m.liveCursor = ""
@@ -192,7 +195,11 @@ sub appendMoreLive()
     end if
 end sub
 
-' ─── Append / insert rows into the single RowList ───────────────────────────
+' ─── Append / insert rows into the TileRow's content ──────────────────────────
+'
+' TileRow handles tile dimensions, row heights, spacing, focus bitmap, and
+' animation styles internally via design tokens — per-row size customization
+' is no longer applied here.
 
 ' insertRows inserts contentCollection rows starting at the given index.
 ' Use this when section ordering must be enforced (Featured → Categories → Live).
@@ -201,126 +208,41 @@ sub insertRows(contentCollection as object, insertIndex as integer)
     rowCount = contentCollection.getChildCount()
     if rowCount = 0 then return
 
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(rowCount, 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        firstChild = row.getChild(0)
-        contentType = ""
-        if firstChild <> invalid
-            contentType = firstChild.contentType
-        end if
-        config = getRowConfig(contentType, hasRowLabel)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-
     if m.rowList.content = invalid
-        content = createObject("roSGNode", "ContentNode")
-        m.rowList.content = content
+        m.rowList.content = createObject("roSGNode", "ContentNode")
     end if
 
-    ' RowList fields may be invalid (not yet assigned) — treat as empty arrays
-    existingSizes = m.rowList.rowItemSize
-    existingLabels = m.rowList.showRowLabel
-    existingHeights = m.rowList.rowHeights
-    if existingSizes = invalid then existingSizes = []
-    if existingLabels = invalid then existingLabels = []
-    if existingHeights = invalid then existingHeights = []
-
-    ' Splice arrays at insertIndex
-    newSizes = []
-    newLabels = []
-    newHeights = []
-    existingCount = existingSizes.count()
-    for i = 0 to existingCount - 1
-        if i = insertIndex
-            newSizes.append(rowItemSize)
-            newLabels.append(showRowLabel)
-            newHeights.append(rowHeights)
-        end if
-        newSizes.push(existingSizes[i])
-        newLabels.push(existingLabels[i])
-        newHeights.push(existingHeights[i])
-    end for
-    if insertIndex >= existingCount
-        newSizes.append(rowItemSize)
-        newLabels.append(showRowLabel)
-        newHeights.append(rowHeights)
-    end if
-
-    ' Insert child nodes at insertIndex
+    ' Insert child nodes at insertIndex (preserving order).
     while contentCollection.getChildCount() > 0
         child = contentCollection.getChild(0)
         contentCollection.removeChildIndex(0)
         m.rowList.content.insertChild(child, insertIndex + (rowCount - contentCollection.getChildCount() - 1))
     end while
-
-    m.rowList.rowItemSize = newSizes
-    m.rowList.showRowLabel = newLabels
-    m.rowList.rowHeights = newHeights
-    m.rowList.numRows = m.rowList.content.getChildCount()
-    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
-    m.rowList.visible = true
 end sub
 
 sub appendRows(contentCollection as object)
     if m.rowList = invalid or contentCollection = invalid then return
     if contentCollection.getChildCount() = 0 then return
 
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        firstChild = row.getChild(0)
-        contentType = ""
-        if firstChild <> invalid
-            contentType = firstChild.contentType
-        end if
-        config = getRowConfig(contentType, hasRowLabel)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-
     if m.rowList.content <> invalid
-        existingSizes = m.rowList.rowItemSize
-        existingLabels = m.rowList.showRowLabel
-        existingHeights = m.rowList.rowHeights
-        existingSizes.append(rowItemSize)
-        existingLabels.append(showRowLabel)
-        existingHeights.append(rowHeights)
         while contentCollection.getChildCount() > 0
             m.rowList.content.appendChild(contentCollection.getChild(0))
         end while
-        m.rowList.rowItemSize = existingSizes
-        m.rowList.showRowLabel = existingLabels
-        m.rowList.rowHeights = existingHeights
     else
-        m.rowList.rowItemSize = rowItemSize
-        m.rowList.showRowLabel = showRowLabel
-        m.rowList.rowHeights = rowHeights
         m.rowList.content = contentCollection
     end if
-
-    m.rowList.numRows = m.rowList.content.getChildCount()
-    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
-    m.rowList.visible = true
 end sub
 
 ' ─── Selection ───────────────────────────────────────────────────────────────
 
 sub onItemSelected()
-    row = m.rowList.content.getChild(m.rowList.rowItemSelected[0])
+    ' rowItemSelected is internal to RowList — access via TileRow's inner RowList handle
+    if m.rowListInner = invalid or m.rowList.content = invalid then return
+    rowItemSelected = m.rowListInner.rowItemSelected
+    if rowItemSelected = invalid then return
+    row = m.rowList.content.getChild(rowItemSelected[0])
     if row = invalid then return
-    item = row.getChild(m.rowList.rowItemSelected[1])
+    item = row.getChild(rowItemSelected[1])
     if item = invalid then return
     m.top.contentSelected = item
 end sub
@@ -328,8 +250,9 @@ end sub
 ' ─── Pagination trigger ──────────────────────────────────────────────────────
 
 sub onItemFocused()
-    focusedRowIndex = m.rowList.rowItemFocused[0]
-    if focusedRowIndex = invalid then return
+    focusedRowIndex = m.rowList.itemFocused
+    if focusedRowIndex = invalid or focusedRowIndex < 0 then return
+    if m.rowList.content = invalid then return
 
     ' Paginate Categories only when focus is near the end of the Categories section,
     ' not whenever focus is near the bottom of the whole list.
@@ -365,10 +288,11 @@ sub onGetFocus()
 end sub
 
 ' Hide the RowList focus rectangle when focus leaves the scene; restore on return.
+' drawFocusFeedback is internal to RowList — access via TileRow's inner RowList handle.
 sub updateRowListFocusFeedback()
-    if m.rowList = invalid then return
+    if m.rowListInner = invalid then return
     hasFocus = m.top.focusedChild <> invalid and m.top.focusedChild.id = "browseRowList"
-    m.rowList.drawFocusFeedback = hasFocus
+    m.rowListInner.drawFocusFeedback = hasFocus
 end sub
 
 ' ─── Keys ────────────────────────────────────────────────────────────────────
@@ -389,7 +313,7 @@ sub onDestroy()
     m.top.unobserveField("focusedChild")
     if m.rowList <> invalid
         m.rowList.unobserveField("itemSelected")
-        m.rowList.unobserveField("rowItemFocused")
+        m.rowList.unobserveField("itemFocused")
     end if
     m.featuredTask = destroyTask(m.featuredTask, "response")
     m.categoriesTask = destroyTask(m.categoriesTask, "response")

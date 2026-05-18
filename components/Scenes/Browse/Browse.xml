@@ -2,25 +2,8 @@
 <component name="Browse" extends="SceneManagerGroup" initialFocus="browseRowList">
     <script type="text/brightscript" uri="Browse.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
-    <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
-        <RowList
-            id="browseRowList"
-            visible="false"
-            rowLabelOffset="[[0,15]]"
-            rowLabelFont="font:LargeBoldSystemFont"
-            translation="[195, 180]"
-            itemComponentName="VideoItem"
-            numRows="4"
-            rowItemSize="[[480,270]]"
-            rowItemSpacing="[[45,0]]"
-            itemSize="[1920,444]"
-            itemSpacing="[0,60]"
-            showRowLabel="[true]"
-            focusBitmapUri="pkg:/images/focusindicator.9.png"
-            vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="fixedFocus"
-        />
+        <TileRow id="browseRowList" translation="[195, 180]" />
     </children>
 </component>
