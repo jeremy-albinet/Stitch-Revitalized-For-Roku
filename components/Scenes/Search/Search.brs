@@ -90,7 +90,7 @@ sub buildContentNodeFromShelves(shelves)
         if rowItem.contentType = "LIVE"
             rowItem.contentId = item.stream.Id
             rowItem.createdAt = item.stream.createdAt
-            rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", item.stream.broadcaster.login, "1280", "720")
+            rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", item.stream.broadcaster.login, "1920", "1080")
             rowItem.contentTitle = item.stream.broadcaster.broadcastSettings.title
             rowItem.viewersCount = item.stream.viewersCount
             rowItem.streamerDisplayName = item.stream.broadcaster.displayName
@@ -107,7 +107,7 @@ sub buildContentNodeFromShelves(shelves)
         end if
         if rowItem.contentType = "USER"
             rowItem.contentId = item.Id
-            rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", item.login, "1280", "720")
+            rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", item.login, "1920", "1080")
             rowItem.contentTitle = item.displayName
             rowItem.followerCount = item.followers.totalCount
             rowItem.streamerDisplayName = item.displayName

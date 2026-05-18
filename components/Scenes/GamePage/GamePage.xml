@@ -27,7 +27,7 @@
             numRows="4"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,0]]"
-            itemSize="[1280,295]"
+            itemSize="[1920,295]"
             itemSpacing="[ 0, 40 ]"
             showRowLabel="[ false ]"
             rowHeights="[235]"
