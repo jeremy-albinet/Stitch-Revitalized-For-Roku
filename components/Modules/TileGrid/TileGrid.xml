@@ -8,7 +8,6 @@
         <field id="jumpToItem" type="int" value="-1" onChange="onJumpToItemChange" />
     </interface>
     <children>
-        <Poster id="focusGlow" opacity="0" />
         <Group id="scaleWrapper">
             <MarkupGrid id="grid" />
         </Group>
