@@ -3,6 +3,9 @@ sub init()
     ? "init"; TimeStamp()
     ' m.top.observeField("itemFocused", "onGetFocus")
     m.rowlist = m.top.findNode("homeRowList")
+    ' TileRow wraps an internal RowList; cache it for runtime-only fields
+    ' (rowItemSelected, drawFocusFeedback) that TileRow does not re-expose.
+    m.rowlistInner = m.rowlist.findNode("rowList")
     ' m.allChannels = m.top.findNode("allChannels")
     ' m.allChannels.observeField("itemSelected", "handleItemSelected")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
@@ -132,31 +135,19 @@ end sub
 
 sub updateRowList(contentCollection)
     ? "updateRowList: "; TimeStamp()
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        config = getRowConfig(row.getchild(0).contentType, hasRowLabel, true)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-    m.rowlist.rowHeights = rowHeights
-    m.rowlist.showRowLabel = showRowLabel
-    m.rowlist.rowItemSize = rowItemSize
+    ' TileRow owns rowItemSize, rowHeights, showRowLabel, rowLabelOffset, focus bitmap,
+    ' and animation styles internally from design tokens. Per-scene tuning of those is
+    ' no longer permitted; we only hand TileRow the content tree.
     m.rowlist.content = contentCollection
-    m.rowlist.numRows = m.rowlist.content.getChildCount()
-    m.rowlist.rowlabelcolor = m.global.constants.colors.twitch.purple10
     ? "updateRowList Done: "; TimeStamp()
 end sub
 
 sub handleItemSelected()
+    ' TileRow does not re-expose rowItemSelected, so read the [row, col] tuple from
+    ' the internal RowList cached in init().
     item = invalid
-    if m.rowlist.focusedChild <> invalid
-        item = m.rowlist
+    if m.rowlistInner <> invalid and m.rowlistInner.focusedChild <> invalid
+        item = m.rowlistInner
     else if m.offlinelist <> invalid and m.offlinelist.focusedChild <> invalid
         item = m.offlinelist
     end if
@@ -180,9 +171,10 @@ sub handleItemSelected()
 end sub
 
 sub handleLiveItemSelected()
-    selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
+    if m.rowlistInner = invalid then return
+    selectedRow = m.rowlistInner.content.getchild(m.rowlistInner.rowItemSelected[0])
     if selectedRow = invalid then return
-    selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
+    selectedItem = selectedRow.getChild(m.rowlistInner.rowItemSelected[1])
     if selectedItem = invalid then return
     m.top.playContent = true
     m.top.contentSelected = selectedItem
@@ -199,14 +191,16 @@ end sub
 
 ' Hide the RowList focus rectangle when focus leaves the scene (e.g. user
 ' presses Up to MenuBar). Restore it when focus returns. RowList still
-' remembers the previously focused tile internally.
+' remembers the previously focused tile internally. drawFocusFeedback is a
+' RowList property TileRow does not re-expose, so drive it on the internal
+' RowList directly.
 sub updateRowListFocusFeedback()
-    if m.rowlist = invalid then return
+    if m.rowlistInner = invalid then return
     hasFocus = false
     if m.top.focusedChild <> invalid and m.top.focusedChild.id = "homeRowList"
         hasFocus = true
     end if
-    m.rowlist.drawFocusFeedback = hasFocus
+    m.rowlistInner.drawFocusFeedback = hasFocus
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean

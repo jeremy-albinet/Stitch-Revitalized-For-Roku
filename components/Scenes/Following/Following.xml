@@ -20,22 +20,7 @@
             vertAlign="center">
             <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
         </Label>
-        <RowList
-            id="homeRowList"
-            rowLabelOffset="[[0,15]]"
-            rowLabelFont="font:LargeBoldSystemFont"
-            translation="[141, 165]"
-            itemComponentName="VideoItem"
-            numRows="50"
-            rowItemSize="[[480,270]]"
-            rowItemSpacing="[[45,45]]"
-            itemSize="[1920,444]"
-            itemSpacing="[0,0]"
-            showRowLabel="[ true ]"
-            focusBitmapUri="pkg:/images/focusindicator.9.png"
-            vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="fixedFocus"
-        />
+        <TileRow id="homeRowList" />
     </children>
 
 </component>
