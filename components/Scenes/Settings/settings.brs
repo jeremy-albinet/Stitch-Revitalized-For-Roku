@@ -25,7 +25,7 @@ sub init()
     ' Derive numRows from screen resolution so scrolling works on any Roku
     ' itemSize height=50, itemSpacing=5 → 55px per row
     ' Available: screenHeight - 80 (overhang) - 10 (list y offset)
-    screenHeight = m.top.getScene().currentDesignResolution.height
+    screenHeight = m.global.constants.screenHeight
     m.settingsMenu.numRows = Int((screenHeight - 80 - 10) / 55)
 
     m.categoryList.setFocus(true)
