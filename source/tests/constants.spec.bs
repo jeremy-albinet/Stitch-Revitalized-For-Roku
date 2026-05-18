@@ -1,0 +1,128 @@
+namespace tests
+
+    @suite("Constants")
+    class ConstantsTests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("m.global.constants.spacing")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("spacing is an AA with xs, sm, md, lg, xl keys (all integers)")
+        sub constants_spacing_shape()
+            ' Initialize constants (mimics main.brs behavior)
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants)
+            m.assertNotInvalid(constants.spacing)
+
+            ' Assert all required keys exist
+            m.assertTrue(constants.spacing.doesExist("xs"))
+            m.assertTrue(constants.spacing.doesExist("sm"))
+            m.assertTrue(constants.spacing.doesExist("md"))
+            m.assertTrue(constants.spacing.doesExist("lg"))
+            m.assertTrue(constants.spacing.doesExist("xl"))
+
+            ' Assert all values are integers
+            m.assertTrue(type(constants.spacing.xs) = "roInt")
+            m.assertTrue(type(constants.spacing.sm) = "roInt")
+            m.assertTrue(type(constants.spacing.md) = "roInt")
+            m.assertTrue(type(constants.spacing.lg) = "roInt")
+            m.assertTrue(type(constants.spacing.xl) = "roInt")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("m.global.constants.tile")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("tile.w, tile.h, tile.gap are integers divisible by 3")
+        sub constants_tile_shape()
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants.tile)
+
+            ' Assert keys exist and are integers
+            m.assertTrue(constants.tile.doesExist("w"))
+            m.assertTrue(constants.tile.doesExist("h"))
+            m.assertTrue(constants.tile.doesExist("gap"))
+
+            ' Assert divisibility by 3
+            m.assertTrue(constants.tile.w mod 3 = 0)
+            m.assertTrue(constants.tile.h mod 3 = 0)
+            m.assertTrue(constants.tile.gap mod 3 = 0)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("m.global.constants.row")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("row.h is an integer divisible by 3")
+        sub constants_row_shape()
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants.row)
+            m.assertTrue(constants.row.doesExist("h"))
+
+            ' Assert divisibility by 3
+            m.assertTrue(constants.row.h mod 3 = 0)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("m.global.constants.focus")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("focus.color is a non-empty string starting with 0x")
+        sub constants_focus_color_shape()
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants.focus)
+            m.assertTrue(constants.focus.doesExist("color"))
+
+            color = constants.focus.color
+            m.assertNotEmpty(color)
+            m.assertTrue(type(color) = "roString")
+            m.assertTrue(Left(color, 2) = "0x")
+        end sub
+
+        @it("focus.bitmapUri is a non-empty string starting with pkg:/")
+        sub constants_focus_bitmapUri_shape()
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants.focus)
+            m.assertTrue(constants.focus.doesExist("bitmapUri"))
+
+            uri = constants.focus.bitmapUri
+            m.assertNotEmpty(uri)
+            m.assertTrue(type(uri) = "roString")
+            m.assertTrue(Left(uri, 6) = "pkg:/")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("m.global.constants.typography")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("typography.h1.size and typography.body.size are integers > 0")
+        sub constants_typography_shape()
+            initializeConstants()
+
+            constants = m.global.constants
+            m.assertNotInvalid(constants.typography)
+            m.assertTrue(constants.typography.doesExist("h1"))
+            m.assertTrue(constants.typography.doesExist("body"))
+
+            ' Assert h1.size exists and is > 0
+            m.assertTrue(constants.typography.h1.doesExist("size"))
+            m.assertTrue(constants.typography.h1.size > 0)
+
+            ' Assert body.size exists and is > 0
+            m.assertTrue(constants.typography.body.doesExist("size"))
+            m.assertTrue(constants.typography.body.size > 0)
+        end sub
+
+    end class
+
+end namespace
