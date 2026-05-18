@@ -34,7 +34,7 @@
             showRowLabel="[ true ]"
             focusBitmapUri="pkg:/images/focusindicator.9.png"
             vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="floatingFocus"
+            rowFocusAnimationStyle="fixedFocus"
         />
     </children>
 
