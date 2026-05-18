@@ -3,8 +3,12 @@ sub init()
         m.top.backgroundColor = m.global.constants.colors.hinted.grey1
     end if
     m.top.observeField("focusedChild", "onGetfocus")
-    m.rowlist = m.top.findNode("homeRowList")
-    m.rowlist.observeField("itemSelected", "handleItemSelected")
+    m.tileRow = m.top.findNode("homeRowList")
+    m.tileRow.observeField("itemSelected", "handleItemSelected")
+    ' Access internal RowList for [row, column] indexing and focus feedback.
+    ' TileRow's typed interface only exposes a flat itemSelected int; multi-row
+    ' selection and drawFocusFeedback toggling require the underlying RowList.
+    m.rowlist = m.tileRow.findNode("rowList")
     m.username = m.top.findNode("username")
     m.followers = m.top.findNode("followers")
     m.description = m.top.findNode("description")
@@ -104,23 +108,9 @@ function buildContentNodeFromShelves(rsp)
 end function
 
 sub updateRowList(contentCollection)
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        config = getRowConfig(row?.getchild(0)?.contentType, hasRowLabel)
-        if config <> invalid
-            showRowLabel.push(hasRowLabel)
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-    m.rowList.rowHeights = rowHeights
-    m.rowlist.showRowLabel = showRowLabel
-    m.rowlist.rowItemSize = rowItemSize
-    m.rowlist.content = contentCollection
-    m.rowlist.numRows = rowHeights.count()
+    m.tileRow.content = contentCollection
+    ' TileRow's token-driven config does not auto-size numRows; set it from data.
+    m.rowlist.numRows = contentCollection.getChildCount()
 end sub
 
 sub handleItemSelected()
@@ -132,10 +122,10 @@ sub handleItemSelected()
 end sub
 
 sub FocusRowlist()
-    if m.rowlist.focusedChild = invalid
-        m.rowlist.setFocus(true)
-    else if m.rowlist.focusedChild.id = "homeRowList"
-        m.rowlist.focusedChild.setFocus(true)
+    if m.tileRow.focusedChild = invalid
+        m.tileRow.setFocus(true)
+    else if m.tileRow.focusedChild.id = "homeRowList"
+        m.tileRow.focusedChild.setFocus(true)
     end if
 end sub
 
@@ -152,7 +142,9 @@ end sub
 
 sub onDestroy()
     m.top.unobserveField("focusedChild")
-    m.rowlist.unobserveField("itemSelected")
+    if m.tileRow <> invalid
+        m.tileRow.unobserveField("itemSelected")
+    end if
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
     m.GetShellTask = destroyTask(m.GetShellTask, "response")
 end sub

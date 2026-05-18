@@ -35,22 +35,7 @@
                     width="600"
                     translation="[20,0]" />
             </Group>
-            <RowList
-                id="homeRowList"
-                rowLabelOffset="[[0,5]]"
-                rowLabelFont="font:LargeBoldSystemFont"
-                translation="[ 30,350 ]"
-                itemComponentName="VideoItem"
-                numRows="4"
-                rowItemSize="[[320,180]]"
-                rowItemSpacing="[[30,0]]"
-                itemSize="[1980, 295]"
-                itemSpacing="[ 0, 40 ]"
-                showRowLabel="[ true ]"
-                focusBitmapUri="pkg:/images/focusindicator.9.png"
-                vertFocusAnimationStyle="fixedFocus"
-                rowFocusAnimationStyle="fixedFocus"
-            />
+            <TileRow id="homeRowList" translation="[ 30,350 ]" />
         </Group>
     </children>
 
