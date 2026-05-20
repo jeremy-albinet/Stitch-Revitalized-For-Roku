@@ -83,6 +83,13 @@ sub init()
     m.liveEdgeStartupTimer.duration = 3
     m.liveEdgeStartupTimer.control = "stop"
 
+    ' Suppress the loading overlay during the brief (~200-400ms) re-buffer
+    ' that follows the app-initiated live-edge seek. Set true right before
+    ' the seek, cleared on the next state=playing. Without this, the user
+    ' sees a quick spinner flash right after the stream first starts which
+    ' looks like a stutter, even though the seek is working as intended.
+    m.suppressLoadingOverlayUntilPlaying = false
+
     ' Observers
     m.top.observeField("position", "onPositionChange")
     m.top.observeField("state", "onVideoStateChange")
@@ -172,6 +179,9 @@ sub onVideoStateChange()
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
         hideLoadingOverlay()
+        ' Reaching "playing" ends any post-seek re-buffer; re-enable the
+        ' loading overlay for future, non-seek-related buffering events.
+        m.suppressLoadingOverlayUntilPlaying = false
         hideMessage()
         startLatencyLog()
         ' Fire one immediate sample so we see latency even if the repeating
@@ -194,10 +204,20 @@ sub onVideoStateChange()
         stopLatencyLog()
         stopLiveEdgeStartupTimer()
     else if m.top.state = "buffering"
-        showLoadingOverlay()
+        ' The post-seek re-buffer is ~200-400ms and looks like a stutter
+        ' to the user. issueLiveEdgeSeek sets the suppress flag immediately
+        ' before issuing seek=999999, and the flag is cleared on the next
+        ' state=playing. If the re-buffer ever runs longer than expected,
+        ' VideoPlayer's stall watchdog (20s post-seek cooldown then 16s
+        ' stall threshold) is still the safety net — no risk of silent
+        ' hangs.
+        if m.suppressLoadingOverlayUntilPlaying <> true
+            showLoadingOverlay()
+        end if
         stopLiveEdgeStartupTimer()
     else if m.top.state = "error"
         hideLoadingOverlay()
+        m.suppressLoadingOverlayUntilPlaying = false
         stopLatencyLog()
         stopLiveEdgeStartupTimer()
         if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
@@ -206,6 +226,7 @@ sub onVideoStateChange()
             showErrorMessage("Stream Error", "Having trouble loading the live stream. Retrying...")
         end if
     else if m.top.state = "finished" or m.top.state = "stopped"
+        m.suppressLoadingOverlayUntilPlaying = false
         stopLatencyLog()
         stopLiveEdgeStartupTimer()
     end if
@@ -296,6 +317,10 @@ sub issueLiveEdgeSeek(reason as string)
     ' Tell VideoPlayer's stall watchdog we just seeked so it doesn't treat
     ' the brief re-buffer that follows as a fake stall and force a reconnect.
     m.top.recentSeekTimestamp = CreateObject("roDateTime").AsSeconds()
+    ' Hide the loading overlay during the brief post-seek re-buffer so the
+    ' user doesn't see a spinner flash. Cleared when state returns to
+    ' "playing" (typically ~200-400ms after the seek lands).
+    m.suppressLoadingOverlayUntilPlaying = true
     m.top.seek = 999999
 end sub
 
