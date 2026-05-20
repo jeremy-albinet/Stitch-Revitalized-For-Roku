@@ -140,17 +140,10 @@ sub playContent(isRecovery = false as boolean)
     m.playbackInitTime = CreateObject("roTimeSpan")
     m.playbackInitTime.Mark()
 
-    ' Only track stream_started and reset the timer on user-initiated plays.
-    ' Internal reconnects (m.allowBreak = false) must not fire this event again.
+    ' Only run user-facing side effects on user-initiated plays — internal
+    ' reconnects (m.allowBreak = false) must not re-add the stream to the
+    ' recently-watched history.
     if m.allowBreak and m.top.contentRequested <> invalid
-        trackEvent("stream_started", {
-            content_type: m.top.contentRequested.contentType,
-            streamer_login: m.top.contentRequested.streamerLogin,
-            content_id: m.top.contentRequested.contentId
-        })
-        m.playbackStartTime = CreateObject("roTimeSpan")
-        m.playbackStartTime.Mark()
-
         ' Record to recently watched history (LIVE and VOD; skip clips)
         contentType = m.top.contentRequested.contentType
         if contentType = "LIVE" or contentType = "VOD"
@@ -341,28 +334,6 @@ sub exitPlayer()
         if m.chatWindow <> invalid
             m.chatWindow.callFunc("stopJobs")
         end if
-    end if
-
-    if m.allowBreak and m.top.contentRequested <> invalid
-        exitProps = {
-            content_type: m.top.contentRequested.contentType,
-            streamer_login: m.top.contentRequested.streamerLogin,
-            content_id: m.top.contentRequested.contentId,
-            is_transmux: false,
-            is_proxied: false,
-            selected_bitrate_kbps: 0
-        }
-        if m.top.content <> invalid
-            exitProps.is_transmux = m.top.content.isTransmux
-            exitProps.is_proxied = m.top.content.isProxied
-            if m.top.content.StreamBitrates <> invalid and m.top.content.StreamBitrates.Count() > 0
-                exitProps.selected_bitrate_kbps = m.top.content.StreamBitrates[0]
-            end if
-        end if
-        if m.playbackStartTime <> invalid
-            exitProps.duration_seconds = Int(m.playbackStartTime.TotalMilliseconds() / 1000)
-        end if
-        trackEvent("stream_ended", exitProps)
     end if
 
     ' Stop watchdog/reconnect timers and clean up any in-flight reconnect task

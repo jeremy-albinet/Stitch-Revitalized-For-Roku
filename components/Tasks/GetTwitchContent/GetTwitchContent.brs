@@ -499,19 +499,6 @@ sub main()
             end if
         end if
 
-        selectedBitrateKbps = 0
-        if selectedMetadata <> invalid and selectedMetadata.StreamBitrates <> invalid and selectedMetadata.StreamBitrates.Count() > 0
-            selectedBitrateKbps = selectedMetadata.StreamBitrates[0]
-        end if
-
-        trackEvent("stream_play_attempt", {
-            content_type: m.top.contentRequested.contentType,
-            channel_login: m.top.contentRequested.streamerLogin,
-            is_transmux: isTransmux,
-            is_proxied: content.isProxied,
-            selected_bitrate_kbps: selectedBitrateKbps
-        })
-
         m.top.metadata = metadata
     end if
 
