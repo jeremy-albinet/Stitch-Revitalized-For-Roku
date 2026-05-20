@@ -3,6 +3,11 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.5.1": [
+            "Fix: Streams no longer buffer every 30-40 seconds after the v2.5 latency update",
+            "Fix: Removed the brief spinner flash that appeared right after a stream started",
+            "Improved: Smarter live-edge correction — skipped when the stream already starts near the live edge"
+        ],
         "2.5.0": [
             "New: Reduced stream latency — streams now start closer to real-time, though zero-delay streaming isn't possible on Roku",
             "New: Donate via Buy Me a Coffee — find the QR code in Settings",
