@@ -41,6 +41,7 @@
     <script type="text/brightscript" uri="StitchVideo.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
     <children>
         <!-- your existing children stay the same -->
         <!-- Modern Control Overlay for Live Streams -->
