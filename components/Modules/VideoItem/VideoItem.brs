@@ -14,7 +14,24 @@ sub init()
     m.runtimeLabel = m.top.findNode("runtimeLabel")
 end sub
 
+' Reset all toggleable nodes to their default visible state before each
+' content type configures its own layout. RowList recycles item components,
+' so state from a previous content type would otherwise bleed through.
+sub resetVisibility()
+    if m.itemposter = invalid then return
+    m.itemposter.visible = true
+    if m.circlePoster <> invalid then m.circlePoster.visible = false
+    if m.liveicon <> invalid then m.liveicon.visible = true
+    if m.itemViewers <> invalid then m.itemViewers.visible = true
+    if m.viewsRect <> invalid then m.viewsRect.visible = true
+    if m.runtimeRect <> invalid then m.runtimeRect.visible = true
+    if m.runtimeLabel <> invalid then m.runtimeLabel.visible = true
+    if m.timestampLabel <> invalid then m.timestampLabel.visible = true
+    if m.timestampRect <> invalid then m.timestampRect.visible = true
+end sub
+
 sub showcontent()
+    resetVisibility()
     GlobalSettings()
     if m.top.itemContent.contentType = "GAME"
         GameSettings()
@@ -90,7 +107,6 @@ sub VodSettings()
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
-    m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
     try
         m.viewsRect.height = m.itemViewers.boundingRect().height
         m.viewsRect.width = m.itemViewers.boundingRect().width + 6
@@ -113,7 +129,6 @@ sub ClipSettings()
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
-    m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
     try
         m.viewsRect.height = m.itemViewers.boundingRect().height
         m.viewsRect.width = m.itemViewers.boundingRect().width + 6
