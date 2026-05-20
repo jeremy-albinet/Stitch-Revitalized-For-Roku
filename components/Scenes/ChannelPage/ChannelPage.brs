@@ -124,6 +124,7 @@ sub updateRowList(contentCollection)
 end sub
 
 sub handleItemSelected()
+    if m.rowlist.content = invalid then return
     selectedRow = m.rowlist.content.getChild(m.rowlist.rowItemSelected[0])
     if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
