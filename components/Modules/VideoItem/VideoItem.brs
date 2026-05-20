@@ -1,9 +1,6 @@
 sub init()
     m.itemlabel = m.top.findNode("itemLabel")
     m.itemmask = m.top.findNode("itemMask")
-end sub
-
-sub showcontent()
     m.timestampRect = m.top.findNode("timestampRect")
     m.timestampLabel = m.top.findNode("timestampLabel")
     m.itemposter = m.top.findNode("itemPoster")
@@ -15,6 +12,9 @@ sub showcontent()
     m.viewsRect = m.top.findNode("viewsRect")
     m.runtimeRect = m.top.findNode("runtimeRect")
     m.runtimeLabel = m.top.findNode("runtimeLabel")
+end sub
+
+sub showcontent()
     GlobalSettings()
     if m.top.itemContent.contentType = "GAME"
         GameSettings()
@@ -39,6 +39,10 @@ end sub
 
 sub GameSettings()
     if m.itemposter = invalid then return
+    if m.runtimeRect = invalid or m.runtimeLabel = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.liveicon = invalid or m.itemViewers = invalid or m.viewsRect = invalid then return
+    if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.runtimeRect.visible = false
     m.runtimeLabel.visible = false
     m.itemposter.width = 188
@@ -61,6 +65,9 @@ end sub
 
 sub LiveSettings()
     if m.itemposter = invalid then return
+    if m.itemViewers = invalid or m.viewsRect = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.viewsRect.height = m.itemViewers.boundingRect().height
     m.viewsRect.width = m.itemViewers.boundingRect().width + 6
@@ -74,6 +81,10 @@ end sub
 
 sub VodSettings()
     if m.itemposter = invalid then return
+    if m.liveicon = invalid then return
+    if m.itemViewers = invalid or m.viewsRect = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -90,6 +101,10 @@ end sub
 
 sub ClipSettings()
     if m.itemposter = invalid then return
+    if m.liveicon = invalid then return
+    if m.itemViewers = invalid or m.viewsRect = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -106,6 +121,11 @@ end sub
 
 sub UserSettings()
     if m.itemposter = invalid then return
+    if m.runtimeRect = invalid or m.runtimeLabel = invalid then return
+    if m.circlePoster = invalid then return
+    if m.liveicon = invalid or m.itemViewers = invalid or m.viewsRect = invalid then return
+    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.runtimeRect.visible = false
     m.runtimeLabel.visible = false
     m.itemposter.visible = false
