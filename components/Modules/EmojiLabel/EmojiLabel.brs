@@ -116,9 +116,15 @@ sub updateComponents()
         if m.top.maxWidth = 0
             m.top.maxWidth = m.top.width
         end if
-        m.animation.duration = (m.top.width / m.top.maxWidth)
-        m.timer.duration = (m.top.width / m.top.maxWidth)
-        m.vector.keyValue = [[0, 0], [innerWidth, 0]]
+        if m.animation <> invalid
+            m.animation.duration = (m.top.width / m.top.maxWidth)
+        end if
+        if m.timer <> invalid
+            m.timer.duration = (m.top.width / m.top.maxWidth)
+        end if
+        if m.vector <> invalid
+            m.vector.keyValue = [[0, 0], [innerWidth, 0]]
+        end if
 
         if m.top.emojiSize > height
             height = m.top.emojiSize
