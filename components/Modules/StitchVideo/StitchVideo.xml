@@ -23,9 +23,17 @@
         <field id="selectedQuality" type="string" value="" />
         <!-- Set to roDateTime.AsSeconds() right before issuing an app-initiated
              seek=999999 to live edge. VideoPlayer's stall watchdog reads this
-             and skips stall detection for ~10s after a seek, since the player
-             freezes position briefly while re-buffering near the live edge. -->
+             and skips stall detection for ~20s after a seek, since the player
+             freezes position briefly while re-buffering near the new live edge. -->
         <field id="recentSeekTimestamp" type="Integer" value="0" />
+        <!-- When true, the one-shot startup live-edge seek is skipped for this
+             StitchVideo session. Set by VideoPlayer before assigning content on
+             recovery paths (watchdog reconnect, error-driven retryPlayback) so
+             the player doesn't immediately re-anchor at the live edge after a
+             stall — which would shrink buffer headroom and feed the next stall.
+             User-initiated paths (first open, re-open from home/channel page,
+             quality change) leave this false so they get the low-latency seek. -->
+        <field id="suppressStartupSeek" type="bool" value="false" />
 
     </interface>
     

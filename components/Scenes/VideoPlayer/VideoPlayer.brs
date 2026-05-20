@@ -113,7 +113,13 @@ function FormatSeconds(seconds as integer) as string
     end if
 end function
 
-sub playContent()
+' isRecovery=true is set by internal recovery paths (watchdog reconnect,
+' error-driven retryPlayback). It tells the freshly-created StitchVideo node
+' to skip its startup live-edge seek so we don't immediately re-anchor at the
+' live edge after a stall — which would shrink buffer headroom and feed the
+' next stall. User-initiated entry points (first open, re-open, quality
+' change) leave isRecovery=false so they get the low-latency seek.
+sub playContent(isRecovery = false as boolean)
     ' Reset reconnect/watchdog state on every (re)start so stale values
     ' from a prior playback session don't cause false triggers.
     m.isExiting = false
@@ -285,6 +291,15 @@ sub playContent()
         ' existing m.video across reconnects without also explicitly
         ' resetting those latches — otherwise the startup seek will be
         ' suppressed on the new stream.
+        '
+        ' On recovery paths (watchdog reconnect / error retry) mark the new
+        ' node so it skips the startup live-edge seek. Must be set BEFORE the
+        ' content assignment because state=playing can race through quickly
+        ' after content is applied, and the gate is checked in
+        ' StitchVideo's onVideoStateChange.
+        if isLiveContent and isRecovery
+            m.video.suppressStartupSeek = true
+        end if
         m.video.content = contentNodeToPlay
 
         if contentNodeToPlay.streamerProfileImageUrl <> invalid
@@ -707,10 +722,12 @@ sub onWatchdogFire()
 
     ' Cooldown after an app-initiated seek to live edge. StitchVideo issues
     ' seek=999999 to anchor at the live edge; the player freezes position
-    ' for ~5-8s while re-buffering near the new live position. Without this
-    ' guard the watchdog mistakes that freeze for a real stall and triggers
-    ' a full reconnect, which actively undoes the live-edge correction.
-    if m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 10
+    ' for ~5-15s while re-buffering near the new live position (longer on
+    ' slower networks / 1080p60). Without this guard the watchdog mistakes
+    ' that freeze for a real stall and triggers a full reconnect, which
+    ' actively undoes the live-edge correction. 20s gives Roku enough time
+    ' to fully restabilize even on slow networks before re-engaging.
+    if m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 20
         ' Reset position tracking so the moment cooldown ends we start fresh.
         m.lastGoodPosition = invalid
         m.stallSeconds = 0
@@ -733,8 +750,20 @@ sub onWatchdogFire()
     ' Position didn't advance since last tick
     m.stallSeconds = m.stallSeconds + 2
 
-    ' Common post-ad freeze: state remains "playing" but position is stuck
-    if m.stallSeconds >= 8
+    ' Common post-ad freeze: state remains "playing" but position is stuck.
+    ' 16s threshold derived from worst-case legitimate near-live freezes:
+    '   - late CDN segment: ~4-5s (one EXT-X-TARGETDURATION + jitter)
+    '   - ABR quality switch re-buffer: ~6s
+    '   - ad-stitch transition without state change: up to ~10s
+    ' This gives ~60% headroom over the worst legitimate case while still
+    ' recovering fast enough that the user sees "Reconnecting..." before
+    ' they hit Back. Was 8s in v2.5.0 which was too aggressive near the
+    ' tighter ~20s live edge introduced by the startup seek.
+    '
+    ' Tick granularity is 2s (m.watchdogTimer.duration), so `>= 16` fires
+    ' on the 8th non-advancing tick (m.stallSeconds = 0,2,...,14,16) —
+    ' i.e. exactly 16 wall-clock seconds.
+    if m.stallSeconds >= 16
         ? getLogTimestamp(); " [VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
         beginLiveReconnect("stall")
     end if
@@ -829,11 +858,15 @@ sub onLiveReconnectResponse()
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
 
-    ' Restart playback in-place without exiting the scene
+    ' Restart playback in-place without exiting the scene. isRecovery=true
+    ' so the new StitchVideo skips its startup live-edge seek — re-anchoring
+    ' immediately after a stall would shrink buffer headroom and risk
+    ' feeding the next stall. User can re-open the stream from the home or
+    ' channel page if they want the low-latency seek again.
     m.allowBreak = false
     exitPlayer()
     m.allowBreak = true
-    playContent()
+    playContent(true)
 
     ' Mark successful reconnect (cooldown prevents immediate re-triggers)
     m.lastReconnectSuccessSec = CreateObject("roDateTime").AsSeconds()
@@ -848,10 +881,13 @@ end sub
 sub retryPlayback()
     ? getLogTimestamp(); " [VideoPlayer] retryPlayback() — restarting playback"
     m.retryTimer = invalid
+    ' isRecovery=true: same reasoning as onLiveReconnectResponse — we just
+    ' hit a stream error, conditions are degraded, prioritize stability
+    ' over latency. The user can re-open the stream to get the seek again.
     m.allowBreak = false
     exitPlayer()
     m.allowBreak = true
-    playContent()
+    playContent(true)
 end sub
 
 sub refreshAuthAndRetry()

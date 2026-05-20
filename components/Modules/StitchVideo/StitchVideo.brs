@@ -178,8 +178,16 @@ sub onVideoStateChange()
         ' timer is delayed/blocked for some reason.
         onLatencyLogFire()
         ' Arm the one-shot live-edge re-anchor (latched via m.startupSeekFired
-        ' so it fires exactly once per stream session).
-        startLiveEdgeStartupTimer()
+        ' so it fires exactly once per stream session). VideoPlayer sets
+        ' suppressStartupSeek=true on recovery paths (watchdog reconnect,
+        ' error-driven retryPlayback) so we don't fight the conditions that
+        ' caused the stall by immediately re-anchoring at the live edge.
+        if m.top.suppressStartupSeek
+            ? getLogTimestamp(); " [StitchVideo][seek] action=skip reason=recovery"
+            m.startupSeekFired = true
+        else
+            startLiveEdgeStartupTimer()
+        end if
     else if m.top.state = "paused"
         m.controlButton.uri = "pkg:/images/play.png"
         hideLoadingOverlay()
