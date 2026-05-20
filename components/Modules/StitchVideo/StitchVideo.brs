@@ -41,7 +41,7 @@ sub init()
     ' Quality dialog
     m.qualityDialog = m.top.findNode("QualityDialog")
     ' Set up quality dialog observer once during initialization
-    m.qualityDialog.observeFieldScoped("buttonSelected", "onQualityButtonSelect")
+    m.qualityDialog.observeFieldScopedEx("buttonSelected", "onQualityButtonSelect")
 
     ' State variables
     m.currentFocusedButton = 2 ' 0=back, 1=chat, 2=play/pause, 3=quality
