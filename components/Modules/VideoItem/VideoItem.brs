@@ -69,8 +69,11 @@ sub LiveSettings()
     if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.itemViewers.text = m.top.itemContent.viewersDisplay
-    m.viewsRect.height = m.itemViewers.boundingRect().height
-    m.viewsRect.width = m.itemViewers.boundingRect().width + 6
+    try
+        m.viewsRect.height = m.itemViewers.boundingRect().height
+        m.viewsRect.width = m.itemViewers.boundingRect().width + 6
+    catch e
+    end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -88,11 +91,14 @@ sub VodSettings()
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
-    m.viewsRect.height = m.itemViewers.boundingRect().height
-    m.viewsRect.width = m.itemViewers.boundingRect().width + 6
-    m.timestampLabel.text = m.top.itemContent.relativePublishDate
-    m.timestampRect.height = m.timestampLabel.boundingRect().height
-    m.timestampRect.width = m.timestampLabel.boundingRect().width + 6
+    try
+        m.viewsRect.height = m.itemViewers.boundingRect().height
+        m.viewsRect.width = m.itemViewers.boundingRect().width + 6
+        m.timestampLabel.text = m.top.itemContent.relativePublishDate
+        m.timestampRect.height = m.timestampLabel.boundingRect().height
+        m.timestampRect.width = m.timestampLabel.boundingRect().width + 6
+    catch e
+    end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
@@ -108,11 +114,14 @@ sub ClipSettings()
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
-    m.viewsRect.height = m.itemViewers.boundingRect().height
-    m.viewsRect.width = m.itemViewers.boundingRect().width + 6
-    m.timestampLabel.text = m.top.itemContent.relativePublishDate
-    m.timestampRect.height = m.timestampLabel.boundingRect().height
-    m.timestampRect.width = m.timestampLabel.boundingRect().width + 6
+    try
+        m.viewsRect.height = m.itemViewers.boundingRect().height
+        m.viewsRect.width = m.itemViewers.boundingRect().width + 6
+        m.timestampLabel.text = m.top.itemContent.relativePublishDate
+        m.timestampRect.height = m.timestampLabel.boundingRect().height
+        m.timestampRect.width = m.timestampLabel.boundingRect().width + 6
+    catch e
+    end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
     m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
     m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
