@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: builder -- install dependencies with uv (reproducible from lock)
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Pinned by digest for reproducible builds; Dependabot watches the `:TAG` part.
 # Tag: 0.11.7
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------------------------------------------------------------------------
 # Stage 2: runtime -- minimal image, non-root user
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/tree/main/fmp4-demux-proxy" \
       org.opencontainers.image.description="HLS/fMP4 proxy that demuxes Twitch EB streams for Roku playback"
