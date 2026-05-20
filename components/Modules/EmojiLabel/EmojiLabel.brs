@@ -23,11 +23,14 @@ sub init()
     m.top.observeField("emojiSize", "updateComponents")
     m.top.observeField("maxWidth", "updateComponents")
     m.timer = m.top.findNode("timer")
-    m.timer.observeField("fire", "onTimerFireChange")
+    if m.timer <> invalid
+        m.timer.observeField("fire", "onTimerFireChange")
+    end if
     setText()
 end sub
 
 sub onTimerFireChange() as void
+    if m.animation = invalid or m.timer = invalid then return
     m.animation.repeat = false
     m.animation.control = "stop"
     m.components.translation = [0, 0]
@@ -35,6 +38,7 @@ sub onTimerFireChange() as void
 end sub
 
 sub doScroll()
+    if m.animation = invalid or m.timer = invalid then return
     if m.top.repeatCount <> invalid
         if m.top.repeatCount <> 0
             m.animation.repeat = true
