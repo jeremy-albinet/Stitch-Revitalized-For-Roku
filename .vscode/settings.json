@@ -1,7 +1,13 @@
 {
-    "files.associations": {
-        "translations.ts": "xml"
+    "brightscript.bsdk": "node_modules/brighterscript",
+    "[brightscript]": {
+        "editor.formatOnSave": true
     },
-    "xml.format.maxLineWidth": 0,
-    "editor.formatOnSave": true
+    "[brighterscript]": {
+        "editor.formatOnSave": true
+    },
+    "files.associations": {
+        "*.brs": "brightscript",
+        "*.bs": "brighterscript"
+    }
 }

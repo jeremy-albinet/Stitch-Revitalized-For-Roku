@@ -3,19 +3,14 @@
     "tasks": [
         {
             "label": "build",
+            "type": "shell",
             "command": "npm run build",
-            "type": "shell",
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "group": "build",
+            "problemMatcher": "$bsc",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
             }
-        },
-        {
-            "label": "watch",
-            "command": "npm run watch",
-            "type": "shell",
-            "isBackground": true,
-            "problemMatcher": "$bsc-watch-silent"
         }
     ]
 }

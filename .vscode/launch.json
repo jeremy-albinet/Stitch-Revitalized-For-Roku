@@ -1,24 +1,29 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug on TV",
             "type": "brightscript",
             "request": "launch",
-            "name": "BrightScript Debug: Launch",
-            "rootDir": "${workspaceFolder}/out/.debugStaging",
-            "stopOnEntry": false,
-            "injectRdbOnDeviceComponent": true,
-            "enableDebuggerAutoRecovery": false,
-            "stopDebuggerOnAppExit": false,
-            "enableDebugProtocol": true,
-            "rendezvousTracking": false,
-            //run the BrighterScript build before each launch
+            "host": "192.168.0.157",
+            "password": "oscarjo",
+            "rootDir": "${workspaceFolder}/out/.staging",
+            "sourceDirs": ["${workspaceFolder}"],
             "preLaunchTask": "build",
-            "enableSourceMaps": true,
-            "retainStagingFolder": true
+            "stopOnEntry": false,
+            "enableDebugProtocol": true
+        },
+        {
+            "name": "Debug on Simulator",
+            "type": "brightscript",
+            "request": "launch",
+            "host": "127.0.0.1",
+            "password": "rokudev",
+            "rootDir": "${workspaceFolder}/out/.staging",
+            "sourceDirs": ["${workspaceFolder}"],
+            "preLaunchTask": "build",
+            "stopOnEntry": false,
+            "enableDebugProtocol": true
         }
     ]
 }
