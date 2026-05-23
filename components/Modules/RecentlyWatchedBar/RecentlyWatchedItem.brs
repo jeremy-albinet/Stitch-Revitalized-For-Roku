@@ -1,10 +1,11 @@
-' Offline items are dimmed (~40% opacity) to mimic the twitch.tv web app's
-' offline appearance. Live items remain at full opacity.
+' Live items show a small red dot in the bottom-right of the avatar.
+' Avatars are never dimmed; the dot alone signals live state.
 
 sub init()
     m.selectionIndicator = m.top.findNode("selectionIndicator")
     m.avatar = m.top.findNode("avatar")
     m.root = m.top.findNode("root")
+    m.liveDot = m.top.findNode("liveDot")
 end sub
 
 sub onDataChanged()
@@ -21,12 +22,9 @@ sub onFocusChanged()
     m.selectionIndicator.visible = m.top.focused = true
 end sub
 
-' Live → avatar at full opacity. Offline → dimmed (~40%).
 sub onIsLiveChanged()
-    if m.top.isLive
-        m.avatar.opacity = 1.0
-    else
-        m.avatar.opacity = 0.4
+    if m.liveDot <> invalid
+        m.liveDot.visible = m.top.isLive = true
     end if
 end sub
 
