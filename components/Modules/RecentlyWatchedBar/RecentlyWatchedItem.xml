@@ -5,6 +5,8 @@
         <field id="itemData" type="assocarray" onChange="onDataChanged" />
         <!-- Parent bar drives focus state -->
         <field id="focused" type="bool" value="false" onChange="onFocusChanged" />
+        <!-- Set by RecentlyWatchedBar after live status fetch -->
+        <field id="isLive" type="bool" value="false" onChange="onIsLiveChanged" />
     </interface>
 
     <script type="text/brightscript" uri="RecentlyWatchedItem.brs" />
@@ -12,9 +14,11 @@
 
     <children>
         <Group id="root">
+            <!-- Single thin purple ring shown only when focused, centered around the 50x50 avatar -->
             <Poster
                 id="selectionIndicator"
-                uri="pkg:/images/purple_circle.png"
+                uri="pkg:/images/focus_ring.png"
+                blendColor="0xA970FFFF"
                 visible="false"
                 width="54"
                 height="54"

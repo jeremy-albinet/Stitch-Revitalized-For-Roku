@@ -15,7 +15,7 @@
     <children>
         <Rectangle
             id="backgroundBar"
-            color="0x1f1f23FF"
+            color="0x26262cFF"
             width="78"
             height="1000"
             translation="[0, 0]"

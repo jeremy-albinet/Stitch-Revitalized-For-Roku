@@ -1,6 +1,9 @@
 ' RecentlyWatchedBar — left sidebar showing recently watched streamers.
 '
-' Pure registry-backed: no network calls, no auth requirement.
+' History is registry-backed (no auth required to populate items).
+' Live status dots are fetched via TwitchApiTask after each buildItems() call
+' and refreshed on the same 30-second timer. Requires device_code; gracefully
+' no-ops if the network is unavailable.
 ' Items scroll vertically when history exceeds the visible window.
 
 sub init()
@@ -16,6 +19,8 @@ sub init()
     m.currentIndex = 0
     m.min = 0
     m.max = m.visibleWindow - 1
+
+    m.liveStatusTask = invalid
 
     m.top.focusable = true
 
@@ -54,6 +59,49 @@ sub buildItems()
         m.items.push(item)
         translationY += m.itemSpacing
         index += 1
+    end for
+
+    fetchLiveStatus()
+end sub
+
+' Fire a TwitchApiTask to check live status for all items currently in the bar.
+sub fetchLiveStatus()
+    if m.items.Count() = 0 then return
+
+    logins = []
+    for each item in m.items
+        data = item.itemData
+        if data <> invalid and data.login <> invalid and data.login <> ""
+            logins.push(data.login)
+        end if
+    end for
+    if logins.Count() = 0 then return
+
+    m.liveStatusTask = destroyTask(m.liveStatusTask, "response")
+    m.liveStatusTask = createApiTask("getLiveStatusForLogins", "onLiveStatusResponse", { params: { logins: logins } })
+end sub
+
+' Callback when live status task completes.
+' rsp is an AA: login (lowercase) -> boolean
+' Always resets all dots first so a failed/empty response clears stale state.
+sub onLiveStatusResponse()
+    rsp = m.liveStatusTask.response
+
+    ' Clear all dots unconditionally — empty AA means failure or all-offline.
+    for each item in m.items
+        item.isLive = false
+    end for
+
+    if rsp = invalid or rsp.Count() = 0 then return
+
+    for each item in m.items
+        data = item.itemData
+        if data <> invalid and data.login <> invalid
+            login = LCase(data.login)
+            if rsp.doesExist(login)
+                item.isLive = rsp[login]
+            end if
+        end if
     end for
 end sub
 
@@ -162,5 +210,6 @@ end sub
 
 sub onDestroy()
     m.refreshTimer = destroyTask(m.refreshTimer, "fire")
+    m.liveStatusTask = destroyTask(m.liveStatusTask, "response")
     m.top.unobserveField("itemHasFocus")
 end sub

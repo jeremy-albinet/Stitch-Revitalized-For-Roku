@@ -1,3 +1,45 @@
+' Query live status for a list of logins (up to 12).
+' Returns an AA mapping login (lowercase) -> true if live, false otherwise.
+' Works without auth (device_code only).
+' m.top.request.params.logins must be an array of login strings.
+function getLiveStatusForLogins() as object
+    logins = m.top.request.params.logins
+    if logins = invalid or logins.Count() = 0
+        m.top.response = {}
+        m.top.control = TaskControl.STOP
+        return invalid
+    end if
+
+    ' Build a raw GQL query with one alias per login.
+    ' e.g.  u0: user(login: "somelogin") { stream { id } }
+    fields = ""
+    for i = 0 to logins.Count() - 1
+        login = logins[i]
+        fields = fields + "u" + i.toStr() + ": user(login: """ + login + """) { login stream { id } } "
+    end for
+    gqlQuery = "{ " + fields + "}"
+
+    rsp = TwitchGraphQLRequest({ query: gqlQuery })
+
+    result = {}
+    if rsp <> invalid and rsp.data <> invalid
+        for i = 0 to logins.Count() - 1
+            key = "u" + i.toStr()
+            login = LCase(logins[i])
+            userData = rsp.data[key]
+            if userData <> invalid
+                result[login] = userData.stream <> invalid
+            else
+                result[login] = false
+            end if
+        end for
+    end if
+
+    m.top.response = result
+    m.top.control = TaskControl.STOP
+    return invalid
+end function
+
 sub getTwitchBookmarks()
     if get_setting("active_user", "$default$") <> "$default$"
         rsp = TwitchGraphQLRequest({
