@@ -19,12 +19,12 @@ end sub
 
 ' Focus shows a single purple ring around the avatar. No scaling, no color shift.
 sub onFocusChanged()
-    m.selectionIndicator.visible = m.top.focused = true
+    m.selectionIndicator.visible = m.top.focused
 end sub
 
 sub onIsLiveChanged()
     if m.liveDot <> invalid
-        m.liveDot.visible = m.top.isLive = true
+        m.liveDot.visible = m.top.isLive
     end if
 end sub
 

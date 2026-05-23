@@ -1,5 +1,6 @@
 ' Query live status for a list of logins (up to 12).
 ' Returns an AA mapping login (lowercase) -> true if live, false otherwise.
+' Returns an empty AA on network/GQL failure — callers treat missing keys as offline.
 ' Works without auth (device_code only).
 ' m.top.request.params.logins must be an array of login strings.
 function getLiveStatusForLogins() as object
@@ -12,11 +13,19 @@ function getLiveStatusForLogins() as object
 
     ' Build a raw GQL query with one alias per login.
     ' e.g.  u0: user(login: "somelogin") { stream { id } }
+    ' Logins are validated against Twitch's allowed charset before embedding.
     fields = ""
+    loginPattern = CreateObject("roRegex", "^[A-Za-z0-9_]+$", "")
     for i = 0 to logins.Count() - 1
         login = logins[i]
+        if not loginPattern.IsMatch(login) then continue for
         fields = fields + "u" + i.toStr() + ": user(login: """ + login + """) { login stream { id } } "
     end for
+    if fields = ""
+        m.top.response = {}
+        m.top.control = TaskControl.STOP
+        return invalid
+    end if
     gqlQuery = "{ " + fields + "}"
 
     rsp = TwitchGraphQLRequest({ query: gqlQuery })
