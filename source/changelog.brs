@@ -3,6 +3,13 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.6.0": [
+            "New: Recently Watched sidebar now shows a live indicator — a red dot appears on streamers who are currently live",
+            "Improved: Top bar and left sidebar are now smaller, giving more screen space to content",
+            "Improved: Stream category and streamer name are now on the same line in stream cards",
+            "Improved: Sidebar avatar focus uses a clean ring — no more scaling or color shift on selection",
+            "Improved: Left sidebar background updated to match the app's dark colour scheme"
+        ],
         "2.5.1": [
             "Fix: Streams no longer buffer every 30-40 seconds after the v2.5 latency update",
             "Fix: Removed the brief spinner flash that appeared right after a stream started",
