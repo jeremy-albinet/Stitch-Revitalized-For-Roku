@@ -11,9 +11,9 @@ sub init()
 
     ' Layout constants
     m.itemSpacing = 60 ' px between item origins
-    m.itemStartY = 128 ' px below bar top (clears MenuBar ~78px + icon area)
-    m.itemX = 14 ' px from bar left edge
-    m.visibleWindow = 10 ' number of items visible at once before scrolling
+    m.itemStartY = 30 ' px below the icon (icon height + space 6px)
+    m.itemX = 10 ' px from bar left edge
+    m.visibleWindow = 8 ' number of items visible at once before scrolling
 
     m.items = []
     m.currentIndex = 0

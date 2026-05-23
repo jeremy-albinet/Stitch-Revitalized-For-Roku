@@ -9,24 +9,12 @@
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
-        <Label
-            id="countLabel"
-            text=""
-            translation="[94, 84]"
-            width="1000"
-            height="30"
-            color="0xC8C8D0FF"
-            horizAlign="left"
-            vertAlign="center">
-            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
-        </Label>
         <RowList
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[94, 110]"
+            translation="[94, 80]"
             itemComponentName="VideoItem"
-            numRows="50"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,30]]"
             itemSize="[1280,295]"

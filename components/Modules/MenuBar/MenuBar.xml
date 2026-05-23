@@ -6,24 +6,10 @@
       id="headerRect"
       color="0x26262cFF"
       width="1280"
-      height="80"
+      height="64"
       translation="[0, 0]"
     />
-    <Rectangle
-      visible="true"
-      id="headerRectShadow"
-      color="0x26262cFF"
-      width="1280"
-      height="2"
-      translation="[0, 78]"
-    />
-    <Poster
-      id="logo"
-      translation="[22, 16]"
-      uri="pkg:/images/logo.png"
-      width="48"
-      height="56"
-    />
+
     <ButtonGroupHoriz id="MenuOptions" layoutDirection="horiz" horizAlignment="left" />
     <ButtonGroupHoriz id="IconOptions" layoutDirection="horiz" horizAlignment="left" />
   </children>
@@ -39,14 +25,13 @@
     <field id="menuTextColor" type="color" value="0xEFEFF1FF" />
     <field id="menuFocusColor" type="color" value="0x9146FFCC" />
     <field id="menuOptionsSpacing" type="int" value="0" />
-    <field id="menuOptionsHeight" type="int" value="80" />
     <field
       id="menuOptionsTranslation"
       type="vector2d"
       value="[15,0]"
       alias="MenuOptions.translation"
     />
-    <field id="menuFontSize" type="int" value="20" />
+    <field id="menuFontSize" type="int" value="22" />
     <field id="menuFontUri" type="uri" value="pkg:/fonts/Archivo-Bold.otf" />
     <field id="showSearchIcon" type="bool" value="true" onChange="updateMenuOptions" />
     <field id="showSettingsIcon" type="bool" value="true" onChange="updateMenuOptions" />

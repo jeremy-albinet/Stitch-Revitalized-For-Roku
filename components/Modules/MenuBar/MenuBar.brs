@@ -2,7 +2,6 @@ sub init()
     '*******************'
     '* Get Node List
     '*******************'
-    m.logo = m.top.findNode("logo")
     m.headerRect = m.top.findNode("headerRect")
     m.menuOptions = m.top.findNode("MenuOptions")
     m.iconOptions = m.top.findNode("IconOptions")
@@ -43,11 +42,6 @@ sub init()
 
     m.top.menuTextColor = m.global.constants.colors.muted.ice
     m.top.menuFocusColor = m.global.constants.colors.twitch.purple10
-
-    ' Tracks whether MenuOptions has been shifted right by the logo width.
-    ' updateMenuOptions() can be re-invoked when icon visibility changes,
-    ' but the translation must only be applied once.
-    m.menuOptionsTranslated = false
 end sub
 
 ' Remove all children from a ButtonGroup so updateMenuOptions can be re-run.
@@ -175,7 +169,6 @@ function buildIcon(icon)
     newItem.iconUri = map[icon]
     newItem.focusedIconUri = map[icon]
     newItem.minWidth = 0
-    newItem.height = m.top.menuOptionsHeight
     newItem.focusFootprintBitmapUri = "pkg:/images/focusfootprint.9.png"
     newItem.focusBitmapUri = "pkg:/images/focusfootprint.9.png"
     newItem.showFocusFootprint = false
@@ -206,15 +199,7 @@ sub updateMenuOptions()
     clearGroup(m.menuOptions)
     clearGroup(m.iconOptions)
 
-    '*******************'
-    '* Include Width of Logo in Menu Option Offset (apply once)
-    '*******************'
-    if not m.menuOptionsTranslated
-        xoffset = m.menuOptions.translation[0] + m.logo.width + m.logo.translation[0]
-        yoffset = m.menuOptions.translation[1]
-        m.menuOptions.translation = "[" + xoffset.ToStr() + "," + yoffset.ToStr() + "]"
-        m.menuOptionsTranslated = true
-    end if
+    m.menuOptions.translation = [78, 0]
 
     '*******************'
     '* Build text buttons -> MenuOptions (left-anchored)
@@ -233,7 +218,6 @@ sub updateMenuOptions()
             newItem.focusedTextColor = m.top.menuFocusColor
             newItem.iconUri = ""
             newItem.focusedIconUri = ""
-            newItem.height = m.top.menuOptionsHeight
             newItem.focusFootprintBitmapUri = "pkg:/images/focusfootprint.9.png"
             newItem.focusBitmapUri = "pkg:/images/focusindicator.9.png"
             newItem.showFocusFootprint = false

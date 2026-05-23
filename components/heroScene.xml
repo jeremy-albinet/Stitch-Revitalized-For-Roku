@@ -17,7 +17,7 @@
     <RecentlyWatchedBar
       id="recentlyWatchedBar"
       focusable="true"
-      translation="[0,0]"
+      translation="[0,64]"
     />
   </children>
   <script type="text/brightscript" uri="heroScene.brs" />

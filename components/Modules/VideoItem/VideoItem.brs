@@ -7,7 +7,6 @@ sub init()
     m.circlePoster = m.top.findNode("circlePoster")
     m.liveicon = m.top.findNode("liveIcon")
     m.itemSubtitle = m.top.findNode("itemSubtitle")
-    m.itemThirdTitle = m.top.findNode("itemThirdTitle")
     m.itemViewers = m.top.findNode("itemViewers")
     m.viewsRect = m.top.findNode("viewsRect")
     m.runtimeRect = m.top.findNode("runtimeRect")
@@ -48,16 +47,14 @@ end sub
 
 sub GlobalSettings()
     if m.global = invalid or m.global.constants = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     m.itemSubtitle.color = m.global.constants.colors.hinted.grey9
-    m.itemThirdTitle.color = m.global.constants.colors.hinted.grey9
-
 end sub
 
 sub GameSettings()
     if m.itemposter = invalid then return
     if m.runtimeRect = invalid or m.runtimeLabel = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     if m.liveicon = invalid or m.itemViewers = invalid or m.viewsRect = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.runtimeRect.visible = false
@@ -69,7 +66,6 @@ sub GameSettings()
     m.itemlabel.maxwidth = 188
     m.itemlabel.translation = "[0,270]"
     m.itemSubtitle.translation = "[0, 280]"
-    m.itemThirdTitle.translation = "[0, 290]"
     m.liveicon.visible = false
     m.itemViewers.visible = false
     m.viewsRect.visible = false
@@ -83,7 +79,7 @@ end sub
 sub LiveSettings()
     if m.itemposter = invalid then return
     if m.itemViewers = invalid or m.viewsRect = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     try
@@ -92,8 +88,7 @@ sub LiveSettings()
     catch e
     end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
-    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
-    m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
+    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName + " - " + m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
     m.timestampLabel.visible = false
     m.timestampRect.visible = false
@@ -103,7 +98,7 @@ sub VodSettings()
     if m.itemposter = invalid then return
     if m.liveicon = invalid then return
     if m.itemViewers = invalid or m.viewsRect = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
@@ -116,8 +111,7 @@ sub VodSettings()
     catch e
     end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
-    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
-    m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
+    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName + " - " + m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
 end sub
 
@@ -125,7 +119,7 @@ sub ClipSettings()
     if m.itemposter = invalid then return
     if m.liveicon = invalid then return
     if m.itemViewers = invalid or m.viewsRect = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
@@ -138,8 +132,7 @@ sub ClipSettings()
     catch e
     end try
     m.itemposter.uri = m.top.itemContent.previewImageURL
-    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName
-    m.itemThirdTitle.text = m.top.itemContent.gameDisplayName
+    m.itemSubtitle.text = m.top.itemContent.streamerDisplayName + " - " + m.top.itemContent.gameDisplayName
     m.itemlabel.text = m.top.itemContent.contentTitle
 end sub
 
@@ -148,7 +141,7 @@ sub UserSettings()
     if m.runtimeRect = invalid or m.runtimeLabel = invalid then return
     if m.circlePoster = invalid then return
     if m.liveicon = invalid or m.itemViewers = invalid or m.viewsRect = invalid then return
-    if m.itemSubtitle = invalid or m.itemThirdTitle = invalid then return
+    if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
     m.runtimeRect.visible = false
     m.runtimeLabel.visible = false
@@ -158,7 +151,6 @@ sub UserSettings()
     m.itemlabel.maxwidth = 150
     m.itemlabel.translation = "[0,160]"
     m.itemSubtitle.translation = "[0, 170]"
-    m.itemThirdTitle.translation = "[0, 180]"
     m.liveicon.visible = false
     m.itemViewers.visible = false
     m.viewsRect.visible = false

@@ -36,9 +36,9 @@
             <Poster
                 id="liveDot"
                 uri="pkg:/images/live_dot.png"
-                width="20"
-                height="20"
-                translation="[36, 36]"
+                width="16"
+                height="16"
+                translation="[38, 38]"
                 visible="false"
             />
         </Group>

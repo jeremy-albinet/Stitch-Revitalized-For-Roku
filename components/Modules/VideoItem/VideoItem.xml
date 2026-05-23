@@ -52,15 +52,6 @@
             translation="[0, 210]">
             <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
         </Label>
-        <Label
-            id="itemThirdTitle"
-            height="30"
-            width="320"
-            horizAlign="left"
-            color="0xFFFFFFFF"
-            translation="[0, 230]">
-            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
-        </Label>
         <Poster
             id="viewsRect"
             uri="pkg:/images/live_rectangle.9.png"
