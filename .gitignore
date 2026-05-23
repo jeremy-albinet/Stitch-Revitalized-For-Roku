@@ -20,6 +20,9 @@ bsconfig.local.json
 # Local developer docs (device credentials, personal config)
 DEV.md
 
+# VS Code launch config contains device credentials — keep local only
+.vscode/launch.json
+
 # AI tooling config (local model selection, not project config)
 opencode.json
 
