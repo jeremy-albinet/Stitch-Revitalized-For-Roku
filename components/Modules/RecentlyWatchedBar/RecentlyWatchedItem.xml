@@ -14,7 +14,14 @@
 
     <children>
         <Group id="root">
-            <!-- Single thin purple ring shown only when focused, sized exactly to the avatar -->
+            <CirclePoster
+                id="avatar"
+                width="54"
+                height="54"
+                outlinecolor="0x00000000"
+                backgroundVisible="false"
+            />
+            <!-- Focus ring rendered after avatar so it paints on top -->
             <Poster
                 id="selectionIndicator"
                 uri="pkg:/images/focus_ring.png"
@@ -23,13 +30,6 @@
                 width="54"
                 height="54"
                 translation="[0, 0]"
-            />
-            <CirclePoster
-                id="avatar"
-                width="54"
-                height="54"
-                outlinecolor="0x00000000"
-                backgroundVisible="false"
             />
             <!-- Live indicator dot — sibling of CirclePoster (not nested) because
                  CirclePoster masks its children to a circle, clipping the dot. -->
