@@ -22,7 +22,7 @@
     "ropm": "^0.11.7"
   },
   "dependencies": {
-    "brighterscript": "0.72.2"
+    "brighterscript": "0.72.3"
   },
   "overrides": {
     "form-data": "^4.0.5",
