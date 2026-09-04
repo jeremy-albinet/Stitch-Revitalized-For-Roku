@@ -107,6 +107,15 @@ async def segment_handler(request: web.Request) -> web.Response:
 
     data = await _fetch_dedup(session, upstream, request.app)
 
+    # MPEG-TS segment (0x47 sync byte, 188-byte packets): not fMP4, pass through.
+    if data[:1] == b"\x47" and (len(data) < 189 or data[188] == 0x47):
+        logger.debug("MPEG-TS segment detected for %s; passing through", upstream)
+        return web.Response(
+            body=data,
+            content_type="video/mp2t",
+            headers={"Cache-Control": "no-store"},
+        )
+
     track_maps = request.app[TRACK_MAP_KEY]
     cache_key = _cache_key(upstream)
     keep: fmp4.TrackKind = "video" if track == "video" else "audio"
