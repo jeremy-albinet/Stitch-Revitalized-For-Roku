@@ -233,6 +233,25 @@ class TestSegmentRoute:
         body = await seg_resp.read()
         assert len(body) < len(media_bytes)
 
+    async def test_mpeg_ts_segment_passes_through_despite_cached_map(
+        self, proxy_client: TestClient, upstream: TestServer
+    ) -> None:
+        init_bytes = make_init_segment(traks=[(1, b"soun"), (2, b"vide")])
+        upstream.app["init"] = init_bytes
+        init_url = str(upstream.make_url("/init.mp4"))
+        init_resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
+        assert init_resp.status == 200
+        await init_resp.read()
+
+        ts_bytes = (b"\x47\x40\x00\x13" + b"\x00" * 184) * 3
+        upstream.app["media"] = ts_bytes
+        seg_url = str(upstream.make_url("/seg-1.m4s"))
+        resp = await proxy_client.get(f"/s?u={quote(seg_url, safe='')}&k=media&track=video")
+        assert resp.status == 200
+        assert resp.content_type == "video/mp2t"
+        body = await resp.read()
+        assert body == ts_bytes
+
     async def test_media_without_cached_map_passes_through(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
