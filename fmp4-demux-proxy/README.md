@@ -89,7 +89,7 @@ Leave empty to disable the proxy (regular Twitch streams are unaffected).
 | `PROXY_PUBLIC_URL` | *(auto)* | Public base URL of the proxy as seen by the Roku. Auto-detected from request headers for most setups. Set explicitly when running behind a reverse proxy: `http://192.168.1.50:8080` |
 | `UPSTREAM_CONNECT_TIMEOUT` | `5.0` | Seconds to wait for Twitch CDN TCP connect |
 | `UPSTREAM_READ_TIMEOUT` | `30.0` | Seconds to wait for Twitch CDN response bytes |
-| `UPSTREAM_HOST_ALLOWLIST` | `ttvnw.net,twitch.tv,twitchcdn.net` | Comma-separated suffix allowlist for upstream hosts. The proxy rejects any `u=` URL (including post-redirect) whose host does not match one of these suffixes. Set to a single empty comma (`,`) to disable host restriction (scheme is still enforced). |
+| `UPSTREAM_HOST_ALLOWLIST` | `ttvnw.net,twitch.tv,twitchcdn.net,cloudfront.net` | Comma-separated suffix allowlist for upstream hosts. The proxy rejects any `u=` URL (including post-redirect) whose host does not match one of these suffixes. Set to a single empty comma (`,`) to disable host restriction (scheme is still enforced). |
 
 Copy `.env.example` to `.env` and adjust as needed.
 

@@ -9,6 +9,7 @@ _DEFAULT_UPSTREAM_HOST_ALLOWLIST: tuple[str, ...] = (
     "ttvnw.net",
     "twitch.tv",
     "twitchcdn.net",
+    "cloudfront.net",
 )
 
 
