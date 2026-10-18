@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from collections import OrderedDict
 from typing import Final
 from urllib.parse import urlparse
@@ -37,6 +38,9 @@ SEGMENT_LOCKS_KEY: Final[web.AppKey[dict[str, asyncio.Lock]]] = web.AppKey("segm
 def _cache_key(upstream: str) -> str:
     parsed = urlparse(upstream)
     path = parsed.path.rsplit("/", 1)[0]
+    # Twitch CDN serves some media segments under /s1/v1/segment while init stays on
+    # /v1/segment; strip the /sN prefix so both share one track_map entry.
+    path = re.sub(r"^/s\d+(?=/)", "", path)
     return f"{parsed.scheme}://{parsed.netloc}{path}"
 
 
