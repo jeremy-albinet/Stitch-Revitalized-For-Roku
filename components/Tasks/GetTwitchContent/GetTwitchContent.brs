@@ -466,6 +466,10 @@ sub main()
 
             proxyUrl = get_user_setting("proxy.url", "").trim()
             if proxyUrl.right(1) = "/" then proxyUrl = proxyUrl.left(proxyUrl.len() - 1)
+            demuxServer = m.global.demuxServer
+            if proxyUrl = "" and demuxServer <> invalid and demuxServer.ready = true
+                proxyUrl = "http://127.0.0.1:" + demuxServer.port.toStr()
+            end if
             ? "[fmp4-demux] isTransmux=true, proxyUrl=" proxyUrl
             if proxyUrl <> ""
                 ' Preserve upstream codec/bandwidth/resolution per variant so the
