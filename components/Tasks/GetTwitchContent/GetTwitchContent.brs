@@ -510,21 +510,27 @@ function buildProxyM3u8Url(proxyUrl as string, streamUrl as string, hints as dyn
     if hints = invalid then return url
 
     codecs = hints.codecs
-    if codecs <> invalid and Type(codecs) = "roString" and codecs <> ""
+    if isText(codecs) and codecs <> ""
         url = url + "&codecs=" + codecs.EncodeUriComponent()
     end if
 
     bw = hints.bandwidth
-    if bw <> invalid and Type(bw) = "roString" and bw <> ""
+    if isText(bw) and bw <> ""
         url = url + "&bw=" + bw.EncodeUriComponent()
     end if
 
     res = hints.resolution
-    if res <> invalid and Type(res) = "roString" and res <> ""
+    if isText(res) and res <> ""
         url = url + "&res=" + res.EncodeUriComponent()
     end if
 
     return url
+end function
+
+' Accepts plain String as well as boxed roString.
+function isText(value as dynamic) as boolean
+    t = Type(value)
+    return t = "String" or t = "roString"
 end function
 
 function getClipUrlViaGraphQL(clipSlug as string) as dynamic
