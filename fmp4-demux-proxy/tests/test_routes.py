@@ -340,3 +340,13 @@ class TestUpstreamAllowlist:
         upstream_url = str(upstream.make_url("/master"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
         assert resp.status == 200
+
+
+def test_cache_key_ignores_twitch_s1_prefix() -> None:
+    from fmp4_demux_proxy.routes.segment_route import _cache_key
+
+    host = "https://64ec2c66edb9.j.cloudfront.hls.ttvnw.net"
+    init = _cache_key(f"{host}/v1/segment/abc.mp4?dna=x")
+    assert _cache_key(f"{host}/s1/v1/segment/def.mp4?dna=x") == init
+    assert _cache_key(f"{host}/s12/v1/segment/def.mp4") == init
+    assert _cache_key(f"{host}/seg/v1/segment/def.mp4") != init
