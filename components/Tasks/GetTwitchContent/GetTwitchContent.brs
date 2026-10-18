@@ -496,6 +496,10 @@ sub main()
                 content.ForwardQueryStringParams = false
                 content.isTransmux = false
                 content.isProxied = true
+                ' Proxy the quality-menu options too.
+                for each entry in metadata
+                    proxyQualityEntry(entry, proxyUrl, variantHints)
+                end for
             end if
         end if
 
@@ -503,6 +507,28 @@ sub main()
     end if
 
     m.top.response = content
+end sub
+
+' Proxies one quality option; shared Streams entries are copied, not changed in place.
+sub proxyQualityEntry(entry as object, proxyUrl as string, variantHints as object)
+    if entry.StreamUrls <> invalid
+        urls = []
+        for each streamUrl in entry.StreamUrls
+            urls.push(buildProxyM3u8Url(proxyUrl, streamUrl, variantHints[streamUrl]))
+        end for
+        entry.StreamUrls = urls
+    end if
+    if entry.Streams <> invalid
+        streams = []
+        for each stream in entry.Streams
+            copy = {}
+            copy.Append(stream)
+            copy.url = buildProxyM3u8Url(proxyUrl, stream.url, variantHints[stream.url])
+            streams.push(copy)
+        end for
+        entry.Streams = streams
+    end if
+    entry.ForwardQueryStringParams = false
 end sub
 
 function buildProxyM3u8Url(proxyUrl as string, streamUrl as string, hints as dynamic) as string
