@@ -82,8 +82,11 @@ function hostOf(url as string) as string
     s = url
     p = s.InStr("://")
     if p >= 0 then s = s.Mid(p + 3)
-    slash = s.InStr("/")
-    if slash >= 0 then s = s.Left(slash)
+    ' The host ends at the first path, query, fragment or backslash.
+    for each sep in ["/", "?", "#", chr(92)]
+        i = s.InStr(sep)
+        if i >= 0 then s = s.Left(i)
+    end for
     return s
 end function
 
@@ -100,7 +103,7 @@ end function
 
 ' Short ids for EXT-X-MAP URLs so each segment URL can name its init.
 function newMapRegistry() as object
-    r = { byUrl: {}, byId: {}, next: 0, notes: [], noted: {} }
+    r = { byUrl: {}, byId: {}, order: [], max: 100, next: 0, notes: [], noted: {} }
     r.byUrl.SetModeCaseSensitive()
     r.noted.SetModeCaseSensitive()
     return r
@@ -113,6 +116,12 @@ function registerMap(maps as object, url as string) as string
         id = maps.next.toStr()
         maps.byUrl[url] = id
         maps.byId[id] = url
+        maps.order.Push(url)
+        if maps.order.Count() > maps.max
+            old = maps.order.Shift()
+            maps.byId.Delete(maps.byUrl[old])
+            maps.byUrl.Delete(old)
+        end if
         if maps.next > 1 then noteOnce(maps, "map:" + url, "New starter piece listed, from " + hostOf(url))
     end if
     return id
@@ -203,9 +212,8 @@ end function
 function synthesizeMaster(upstreamUrl as string, base as string, hints as object) as string
     quote = chr(34)
     lf = chr(10)
-    enc = upstreamUrl.EncodeUriComponent()
-    audioUri = base + "/m3u8?u=" + enc + "&track=audio"
-    videoUri = base + "/m3u8?u=" + enc + "&track=video"
+    audioUri = proxyUrl(base, "m3u8", upstreamUrl, "audio")
+    videoUri = proxyUrl(base, "m3u8", upstreamUrl, "video")
 
     codecs = queryValue(hints, "codecs")
     if codecs = "" or not CreateObject("roRegex", "^[A-Za-z0-9.,_\-]+$", "").IsMatch(codecs) then codecs = "avc1.64001f,mp4a.40.2"
