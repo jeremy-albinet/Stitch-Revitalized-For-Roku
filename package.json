@@ -10,12 +10,14 @@
     "fmt:check": "brighterscript-formatter --check 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
     "test": "bsc --project bsconfig.test.json --create-package && node tools/deploy-test.js",
     "prepare": "husky",
-    "sign": "node scripts/sign-package.js"
+    "sign": "node scripts/sign-package.js",
+    "audit": "npm audit || audit-ci --config ./audit-ci.jsonc"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@rokucommunity/bslint": "^0.8.43",
+    "audit-ci": "^7.1.0",
     "brighterscript-formatter": "^1.7.26",
     "husky": "^9.1.7",
     "rooibos-roku": "^5.16.3",
