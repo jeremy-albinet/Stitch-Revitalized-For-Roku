@@ -13,7 +13,8 @@ sub runServer()
     m.segOrder = []
     m.trackMaps = {}
     m.trackMaps.SetModeCaseSensitive()
-    m.lastTrackMap = invalid
+    m.trackMapOrder = []
+    m.MAX_TRACK_MAPS = 100
     m.maps = newMapRegistry()
     m.nextFile = 0
     m.CRLF = chr(13) + chr(10)
@@ -32,6 +33,7 @@ sub runServer()
     m.listen.listen(8)
     if not m.listen.eOK()
         logLine("Could not open port " + m.top.port.toStr() + ", Enhanced streams will need the Proxy URL setting")
+        m.top.control = "STOP"
         return
     end if
     logLine("Built-in splitter listening on 127.0.0.1:" + m.top.port.toStr())
@@ -248,7 +250,14 @@ sub onPlaylistDownloaded(job as object)
     body = CreateObject("roByteArray")
     body.ReadFile(job.file)
     DeleteFile(job.file)
-    out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+    try
+        out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+    catch e
+        m.maps.notes.Clear()
+        logLine("Playlist rewrite failed: " + e.message)
+        sendSimple(c, 502, "Bad Gateway")
+        return
+    end try
     for each note in m.maps.notes
         logLine(note)
     end for
@@ -316,8 +325,7 @@ sub processPiece(key as string, entry as object, file as string)
             entry.ctype = "video/mp2t"
         else if entry.isInit
             tm = extractTrackMap(data)
-            m.trackMaps[key] = tm
-            m.lastTrackMap = tm
+            rememberTrackMap(key, tm)
             writeTrack(entry, splitInit(data, file, tm, "video"), "video")
             writeTrack(entry, splitInit(data, file, tm, "audio"), "audio")
             DeleteFile(file)
@@ -335,9 +343,6 @@ sub processPiece(key as string, entry as object, file as string)
                         return
                     end if
                 end if
-            else
-                tm = m.lastTrackMap
-                if tm <> invalid then logLine("A piece from " + hostOf(key) + " had no starter piece named, used the latest one")
             end if
             if tm = invalid
                 logLine("No starter piece known for a piece from " + hostOf(key) + ", passed through unchanged")
@@ -375,15 +380,27 @@ sub processPiece(key as string, entry as object, file as string)
 end sub
 
 ' Returns the loading init entry, starting its download if needed, or invalid.
+' A ready entry with no track map (fetched as media, or its map was evicted) is
+' fetched again; an init that came back as MPEG-TS is left as is.
 function ensureInitPiece(url as string) as dynamic
     e = m.segs[url]
     if e <> invalid
-        if e.state = "loading" and e.isInit then return e
-        return invalid
+        if e.state = "loading"
+            if e.isInit then return e
+            return invalid
+        end if
+        if e.isInit and e.passFile <> invalid then return invalid
+        dropPiece(url)
     end if
     logLine("Fetching a starter piece the player has not asked for (" + hostOf(url) + ")")
     return startPiece(url, true, invalid)
 end function
+
+sub rememberTrackMap(url as string, tm as object)
+    if m.trackMaps[url] = invalid then m.trackMapOrder.Push(url)
+    m.trackMaps[url] = tm
+    if m.trackMapOrder.Count() > m.MAX_TRACK_MAPS then m.trackMaps.Delete(m.trackMapOrder.Shift())
+end sub
 
 sub writeTrack(entry as object, ba as object, track as string)
     path = newTmpFile("sp")
@@ -420,15 +437,22 @@ sub evictOldSegments()
         key = m.segOrder[0]
         e = m.segs[key]
         if e <> invalid and e.state = "loading" then exit while
-        m.segOrder.Shift()
-        if e <> invalid
-            if e.passFile <> invalid then DeleteFile(e.passFile)
-            for each t in e.files
-                DeleteFile(e.files[t])
-            end for
-            m.segs.Delete(key)
-        end if
+        dropPiece(key)
     end while
+end sub
+
+' Deletes a cached piece and its files, and forgets its place in the order.
+sub dropPiece(key as string)
+    for i = m.segOrder.Count() - 1 to 0 step -1
+        if m.segOrder[i] = key then m.segOrder.Delete(i)
+    end for
+    e = m.segs[key]
+    if e = invalid then return
+    if e.passFile <> invalid then DeleteFile(e.passFile)
+    for each t in e.files
+        DeleteFile(e.files[t])
+    end for
+    m.segs.Delete(key)
 end sub
 
 ' ---------- responses ----------

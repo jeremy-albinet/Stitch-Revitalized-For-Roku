@@ -712,14 +712,9 @@ sub onWatchdogFire()
         return
     end if
 
-    ' Position went backward (quality switch, reconnect, or 2147483647 placeholder): track fresh.
-    if m.video.position < m.lastGoodPosition
-        m.lastGoodPosition = m.video.position
-        m.stallSeconds = 0
-        return
-    end if
-
-    if m.video.position > m.lastGoodPosition
+    ' Position moved either way. Backward means a quality switch, reconnect,
+    ' or the 2147483647 PlayStart placeholder was captured: track fresh.
+    if m.video.position <> m.lastGoodPosition
         m.lastGoodPosition = m.video.position
         m.stallSeconds = 0
         return
