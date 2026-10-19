@@ -25,7 +25,7 @@
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <children>
         <!-- Modern Time Travel Dialog -->
-        <Group id="timeTravelDialog" visible="false" translation="[340,180]">
+        <Group id="timeTravelDialog" visible="false" translation="[660,360]">
             <Rectangle 
                 color="0x1A1A1AE6" 
                 width="600" 
@@ -165,20 +165,20 @@
         </Group>
 
         <!-- Modern Control Overlay -->
-        <Group id="controlOverlay" translation="[0,580]">
+        <Group id="controlOverlay" translation="[0,940]">
             <!-- Background Gradient -->
-            <Rectangle width="1280" height="140" color="0x000000E6" />
-            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1280,60]" translation="[0,0]">
-                <Rectangle width="1280" height="60" color="0x000000AA" />
+            <Rectangle width="1920" height="140" color="0x000000E6" />
+            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1920,60]" translation="[0,0]">
+                <Rectangle width="1920" height="60" color="0x000000AA" />
             </MaskGroup>
             
             <!-- Progress Bar Section -->
             <Group translation="[60,5]">
                 <SimpleLabel id="timeProgress" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[0,45]" />
-                <SimpleLabel id="timeDuration" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[1100,45]" />
+                <SimpleLabel id="timeDuration" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[1740,45]" />
                 
                 <!-- Progress Bar -->
-                <Rectangle id="progressBarBase" color="0x404040FF" width="1160" height="4"  translation="[0,65]" />
+                <Rectangle id="progressBarBase" color="0x404040FF" width="1800" height="4"  translation="[0,65]" />
                 <Rectangle id="progressBarBuffer" color="0x606060FF" width="0" height="4"  translation="[0,65]" />
                 <Rectangle id="progressBarProgress" color="0x9146FFFF" width="0" height="4"  translation="[0,65]" />
                 
@@ -192,42 +192,42 @@
             <!-- Control Buttons -->
             <Group translation="[0,85]">
                 <!-- Back Button (far left) -->
-                <Group id="backGroup" translation="[200,0]" focusable="true">
+                <Group id="backGroup" translation="[520,0]" focusable="true">
                     <Rectangle id="backBg" color="0x404040AA" width="50" height="40"  />
                     <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[18,12]" text="←" color="0xFFFFFFFF" fontSize="18" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Time Travel Button -->
-                <Group id="timeTravelGroup" translation="[485,0]" focusable="true">
+                <Group id="timeTravelGroup" translation="[805,0]" focusable="true">
                     <Rectangle id="timeTravelBg" color="0x404040AA" width="50" height="40"  />
                     <Rectangle id="timeTravelFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <Poster uri="pkg:/images/TimeTravel.png" width="20" height="20" translation="[15,10]" />
                 </Group>
                 
                 <!-- Rewind Button -->
-                <Group id="rewindGroup" translation="[555,0]">
+                <Group id="rewindGroup" translation="[875,0]">
                     <Rectangle id="rewindBg" color="0x404040AA" width="50" height="40"  />
                     <Rectangle id="rewindFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[12,12]" text="−10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Play/Pause Button (centered) -->
-                <Group id="playPauseGroup" translation="[615,0]">
+                <Group id="playPauseGroup" translation="[935,0]">
                     <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40"  />
                     <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40"  visible="false" />
                     <Poster id="controlButton" uri="pkg:/images/pause.png" width="20" height="20" translation="[20,10]" />
                 </Group>
                 
                 <!-- Fast Forward Button -->
-                <Group id="fastForwardGroup" translation="[685,0]">
+                <Group id="fastForwardGroup" translation="[1005,0]">
                     <Rectangle id="fastForwardBg" color="0x404040AA" width="50" height="40"  />
                     <Rectangle id="fastForwardFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <SimpleLabel translation="[12,12]" text="+10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Chat Toggle Button -->
-                <Group id="chatGroup" translation="[745,0]">
+                <Group id="chatGroup" translation="[1065,0]">
                     <Rectangle id="chatBg" color="0x404040AA" width="50" height="40"  />
                     <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
                     <Poster uri="pkg:/images/messages.png" width="20" height="20" translation="[15,10]" />
@@ -244,7 +244,7 @@
             </Group>
             
             <!-- Live Indicator -->
-            <Group id="liveIndicator" translation="[1100,15]" visible="false">
+            <Group id="liveIndicator" translation="[1740,15]" visible="false">
                 <Rectangle color="0xFF0000FF" width="50" height="20"  />
                 <SimpleLabel translation="[12,3]" text="LIVE" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
             </Group>
@@ -252,7 +252,7 @@
         </Group>
 
         <!-- Thumbnail Preview -->
-        <Group id="thumbnailPreview" translation="[0,400]" visible="false">
+        <Group id="thumbnailPreview" translation="[0,760]" visible="false">
             <Rectangle color="0x000000E6" width="200" height="130"  />
             <Group id="thumbnails" clippingRect="[4,4,192,112]" translation="[4,4]">
                 <Poster id="thumbnailImage" />
@@ -261,7 +261,7 @@
         </Group>
         
         <!-- Loading Overlay -->
-        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+        <Group id="loadingOverlay" translation="[960,540]" visible="true">
             <!-- Vertical layout container -->
             <LayoutGroup 
                 layoutDirection="vert"

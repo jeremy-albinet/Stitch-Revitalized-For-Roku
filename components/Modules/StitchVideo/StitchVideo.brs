@@ -119,7 +119,7 @@ sub createMessageOverlay()
         messageBg.width = 600
         messageBg.height = 150
         messageBg.color = "0x000000CC"
-        messageBg.translation = [340, 285]
+        messageBg.translation = [660, 465]
 
         messageTitle = CreateObject("roSGNode", "Label")
         messageTitle.id = "messageTitle"
@@ -129,7 +129,7 @@ sub createMessageOverlay()
         messageTitle.vertAlign = "center"
         messageTitle.width = 600
         messageTitle.height = 50
-        messageTitle.translation = [340, 300]
+        messageTitle.translation = [660, 480]
 
         messageText = CreateObject("roSGNode", "Label")
         messageText.id = "messageText"
@@ -139,7 +139,7 @@ sub createMessageOverlay()
         messageText.vertAlign = "center"
         messageText.width = 600
         messageText.height = 50
-        messageText.translation = [340, 350]
+        messageText.translation = [660, 530]
 
         m.messageOverlay.appendChild(messageBg)
         m.messageOverlay.appendChild(messageTitle)
@@ -352,9 +352,9 @@ end sub
 
 sub onChatVisibilityChange()
     if m.top.chatIsVisible
-        m.progressBarBase.width = 900
+        m.progressBarBase.width = 1480
     else
-        m.progressBarBase.width = 1160
+        m.progressBarBase.width = 1800
     end if
     updateProgressBar()
 end sub
@@ -572,9 +572,9 @@ sub showMessage(title as string, message as string, duration as float)
         if messageNode <> invalid
             messageNode.text = message
             if title = ""
-                messageNode.translation = [340, 335]
+                messageNode.translation = [660, 515]
             else
-                messageNode.translation = [340, 350]
+                messageNode.translation = [660, 530]
             end if
         end if
     end if
