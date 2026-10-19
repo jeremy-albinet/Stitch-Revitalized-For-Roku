@@ -2,8 +2,6 @@
 sub setConstants()
     deviceInfo = CreateObject("roDeviceInfo")
     appInfo = CreateObject("roAppInfo")
-    uiResolutionWidth = deviceInfo.GetUIResolution().width
-    scaleFactor = uiResolutionWidth / 1280
     maxResolution = invalid
     for each res in deviceInfo.GetSupportedGraphicsResolutions()
         if maxResolution <> invalid
@@ -42,9 +40,11 @@ sub setConstants()
         channel7TVEmotes: {},
         twitchBadges: {},
         constants: {
-            screenWidth: deviceInfo.GetUIResolution().width,
-            screenHeight: deviceInfo.GetUIResolution().height,
-            maskScaleFactor: scaleFactor,
+            ' Design space is fixed at 1920x1080. GetUIResolution() returns the physical
+            ' plane (1280 on an HD device) and must never feed layout math.
+            screenWidth: 1920,
+            screenHeight: 1080,
+            maskScaleFactor: 1.0,
             defaultIcons: {
                 search: "pkg:/images/iconSearch.png",
                 settings: "pkg:/images/icons/sliders.png",
