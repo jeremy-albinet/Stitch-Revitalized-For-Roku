@@ -4,11 +4,7 @@ sub init()
     m.global.addFields({ analyticsTask: analyticsTask })
 
     ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
-    if get_user_setting("proxy.builtin", "false") = "true"
-        demuxServer = CreateObject("roSGNode", "DemuxServer")
-        demuxServer.control = "RUN"
-        m.global.addFields({ demuxServer: demuxServer })
-    end if
+    startBuiltinSplitter()
 
     m.validateOauthToken = createApiTask("validateOauthToken", "ValidateUserLogin")
     VersionJobs()
