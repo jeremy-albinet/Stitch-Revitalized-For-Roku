@@ -928,7 +928,7 @@ sub showTransmuxWarning()
     m.transmuxButtonIndex = -1
     dialog = createObject("roSGNode", "StandardMessageDialog")
     dialog.title = "Enhanced Broadcasting Stream"
-    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory while you watch.", "", "This will be on by default in a future version. You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
+    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory and CPU while you watch.", "", "This will be on by default in a future version. You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
     dialog.buttons = ["Turn On and Play", "Go Back", "Try Anyway"]
     dialog.observeField("buttonSelected", "onTransmuxDialogButton")
     dialog.observeField("wasClosed", "onTransmuxDialogClosed")
