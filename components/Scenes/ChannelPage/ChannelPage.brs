@@ -34,7 +34,7 @@ sub setBannerImage()
     else
         poster.uri = "pkg:/images/default_banner.png"
     end if
-    poster.width = 1280
+    poster.width = m.global.constants.screenWidth
     poster.height = 320
     poster.scale = [1.1, 1.1]
     poster.visible = true
