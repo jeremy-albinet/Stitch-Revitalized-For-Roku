@@ -32,6 +32,16 @@ sub analyticsLoop()
     m.top.observeField("identify", m.port)
     m.top.observeField("captureException", m.port)
 
+    ' Fields set before this thread started observing never reach the port
+    ' (heroScene sets app_opened + identify right after control = "RUN"),
+    ' so flush whatever is already there. A set racing with the observe can
+    ' arrive twice; sendCapture's rate limit and sendIdentify's dedupe drop it.
+    if m.enabled
+        if m.top.identify <> invalid then sendIdentify(m.top.identify)
+        if m.top.capture <> invalid then sendCapture(m.top.capture)
+        if m.top.captureException <> invalid then sendException(m.top.captureException)
+    end if
+
     while true
         msg = wait(0, m.port)
         if type(msg) <> "roSGNodeEvent" then continue while
@@ -78,9 +88,15 @@ sub sendCapture(data as object)
 end sub
 
 ' Sends a PostHog $identify event with a $set payload.
+' Skipped when the props match the last ones sent from this device, so it
+' costs one event per version/login/OS change instead of one per launch.
 sub sendIdentify(data as object)
     setProps = data.set
     if setProps = invalid then setProps = {}
+
+    serialized = FormatJson(setProps)
+    if get_setting("analytics.last_identify") = serialized then return
+    set_setting("analytics.last_identify", serialized)
 
     payload = {
         api_key: POSTHOG_API_KEY,
@@ -157,7 +173,8 @@ sub sendException(err as object)
     mergedProps["distinct_id"] = distinctId
     mergedProps["$exception_list"] = [exceptionItem]
     mergedProps["$exception_level"] = "error"
-    mergedProps["$exception_fingerprint"] = ["BrightScriptException", err.message, err.location]
+    ' PostHog rejects a non-string fingerprint ("invalid type: sequence, expected a string").
+    mergedProps["$exception_fingerprint"] = "BrightScriptException:" + err.message + ":" + err.location
     mergedProps["$os"] = "Roku OS"
     mergedProps["$device_model"] = m.deviceInfo.GetModel()
 
