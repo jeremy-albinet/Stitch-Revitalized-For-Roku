@@ -44,7 +44,8 @@ sub setConstants()
             ' plane (1280 on an HD device) and must never feed layout math.
             screenWidth: 1920,
             screenHeight: 1080,
-            maskScaleFactor: 1.0,
+            ' MaskGroup maskSize is in physical pixels, not design units.
+            maskScaleFactor: deviceInfo.GetUIResolution().width / 1920,
             defaultIcons: {
                 search: "pkg:/images/iconSearch.png",
                 settings: "pkg:/images/icons/sliders.png",
