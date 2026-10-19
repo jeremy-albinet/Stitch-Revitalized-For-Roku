@@ -51,7 +51,13 @@ sub sendAppOpenedEvents()
         appOpenProps.prior_exit_reason = priorCrashReason
     end if
 
-    trackEvent("app_opened", appOpenProps)
+    ' Once per device per day (enough for daily actives and device/OS mix),
+    ' plus every launch that follows a crash so crash counts stay complete.
+    today = CreateObject("roDateTime").ToISOString().Left(10)
+    if appOpenProps.prior_exit_reason <> invalid or get_setting("analytics.last_app_opened") <> today
+        set_setting("analytics.last_app_opened", today)
+        trackEvent("app_opened", appOpenProps)
+    end if
 
     isLoggedIn = get_setting("active_user", "$default$") <> "$default$" and get_user_setting("access_token") <> invalid
     analyticsIdentify({

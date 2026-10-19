@@ -90,14 +90,6 @@ sub init()
     ' looks like a stutter, even though the seek is working as intended.
     m.suppressLoadingOverlayUntilPlaying = false
 
-    ' Deferred-analytics state for the live_edge_seek event's "fire"
-    ' branch. issueLiveEdgeSeek sets these right before issuing the seek;
-    ' onLatencyLogFire consumes them on the next valid latency sample
-    ' (~5s later) to emit one PostHog event with the full pre/post
-    ' picture. Both invalid means no outcome is pending.
-    m.pendingSeekReason = invalid
-    m.pendingSeekOutcomePreMs = invalid
-
     ' Observers
     m.top.observeField("position", "onPositionChange")
     m.top.observeField("state", "onVideoStateChange")
@@ -174,15 +166,11 @@ end sub
 ' Setting m.top.content fires this; we use it to reset the latched flag so
 ' the next stream session gets its own startup seek. Also clear the recent
 ' seek timestamp - otherwise the watchdog cooldown could be triggered by a
-' stale value from the previous stream session — and any pending seek
-' outcome event from the prior stream, which would otherwise be emitted
-' against the new stream's latency sample.
+' stale value from the previous stream session.
 sub onContentChange()
     if m.top.content <> invalid
         m.startupSeekFired = false
         m.top.recentSeekTimestamp = 0
-        m.pendingSeekReason = invalid
-        m.pendingSeekOutcomePreMs = invalid
     end if
 end sub
 
@@ -270,15 +258,11 @@ sub onLatencyLogFire()
     latencyMs = "?"
     bitrate = "?"
     segSeq = "?"
-    latencyValueMs = invalid
 
     if seg <> invalid
         segValid = "yes"
         if seg.segType <> invalid then segType = seg.segType.toStr()
-        if seg.latency <> invalid
-            latencyMs = seg.latency.toStr()
-            latencyValueMs = seg.latency
-        end if
+        if seg.latency <> invalid then latencyMs = seg.latency.toStr()
         if seg.segBitrateBps <> invalid then bitrate = seg.segBitrateBps.toStr()
         if seg.segSequence <> invalid then segSeq = seg.segSequence.toStr()
     end if
@@ -286,26 +270,6 @@ sub onLatencyLogFire()
     measured = m.top.measuredBitrate
 
     ? getLogTimestamp(); " [StitchVideo][latency] state="; m.top.state; " pos="; m.top.position; " seg_valid="; segValid; " seg_type="; segType; " live_edge_ms="; latencyMs; " seg_bitrate_bps="; bitrate; " measured_bps="; measured; " seg_seq="; segSeq
-
-    ' If a seek just fired and we have a valid post-seek latency sample,
-    ' emit the unified live_edge_seek event with the full pre/post picture.
-    ' We only consume the pending outcome on a sample that actually has a
-    ' latency value — if seg_valid=no we wait for the next fire (5s later)
-    ' so the post measurement is meaningful.
-    if m.pendingSeekReason <> invalid and latencyValueMs <> invalid
-        preMs = m.pendingSeekOutcomePreMs
-        deltaMs = invalid
-        if preMs <> invalid then deltaMs = preMs - latencyValueMs
-        trackEvent("live_edge_seek", {
-            decision: "fire",
-            reason: m.pendingSeekReason,
-            pre_live_edge_ms: preMs,
-            post_live_edge_ms: latencyValueMs,
-            delta_ms: deltaMs
-        })
-        m.pendingSeekReason = invalid
-        m.pendingSeekOutcomePreMs = invalid
-    end if
 end sub
 
 ' ===== Live-edge re-anchor (strategies B and C) =====
@@ -339,14 +303,7 @@ end sub
 ' seek buys us nothing (and can even slightly increase latency), so we skip
 ' it.
 '
-' Emits exactly one live_edge_seek PostHog event per decision so we can tune
-' the threshold from real-world data:
-'   - skip path: event fires immediately with decision="skip"
-'   - fire path: event fires ~5s later from onLatencyLogFire once the
-'     post-seek latency sample is available, carrying both pre and post
-'     so we have one row per decision with the full picture
-'
-' Bails (no analytics, no log spam) if we're not in steady-state playing —
+' Bails if we're not in steady-state playing —
 ' that's a transient invocation race, not a real decision point.
 sub issueLiveEdgeSeek(reason as string)
     if m.top.state <> "playing"
@@ -373,12 +330,6 @@ sub issueLiveEdgeSeek(reason as string)
     ' help.
     if preLatencyMs <> invalid and preLatencyMs < 30000
         ? getLogTimestamp(); " [StitchVideo][seek] action=skip reason="; reason; " pre_live_edge_ms="; preLatency; " already_near_live=true"
-        trackEvent("live_edge_seek", {
-            decision: "skip",
-            reason: reason,
-            skip_reason: "already_near_live",
-            pre_live_edge_ms: preLatencyMs
-        })
         return
     end if
 
@@ -390,12 +341,6 @@ sub issueLiveEdgeSeek(reason as string)
     ' user doesn't see a spinner flash. Cleared when state returns to
     ' "playing" (typically ~200-400ms after the seek lands).
     m.suppressLoadingOverlayUntilPlaying = true
-    ' Stash pre-seek context for the deferred analytics event. Consumed by
-    ' onLatencyLogFire on the next sample that has a valid latency value
-    ' (~5s after the seek lands). preLatencyMs may be invalid when the
-    ' segment wasn't ready — onLatencyLogFire handles that explicitly.
-    m.pendingSeekReason = reason
-    m.pendingSeekOutcomePreMs = preLatencyMs
     m.top.seek = 999999
 end sub
 
