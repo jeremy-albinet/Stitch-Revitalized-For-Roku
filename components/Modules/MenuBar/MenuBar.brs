@@ -212,6 +212,7 @@ sub updateMenuOptions()
             font.size = m.top.menuFontSize
             font.uri = m.top.menuFontUri
             newItem.minWidth = 245
+            newItem.height = 64
             newItem.textFont = font
             newItem.focusedTextFont = font
             newItem.textColor = m.top.menuTextColor
