@@ -367,6 +367,11 @@ sub exitPlayer()
     end if
 
     m.PlayerTask = destroyTask(m.PlayerTask, "state")
+    if m.splitter <> invalid
+        m.splitter.unobserveField("ready")
+        m.splitter.unobserveField("state")
+        m.splitter = invalid
+    end if
 
     if m.allowBreak
         m.top.state = "done"
@@ -922,9 +927,9 @@ end sub
 sub showTransmuxWarning()
     m.transmuxButtonIndex = -1
     dialog = createObject("roSGNode", "StandardMessageDialog")
-    dialog.title = "Enhanced Broadcasting Not Supported"
-    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't decode.", "", "Roku has confirmed they won't add support, and Twitch won't change the format. The only workaround is a self-hosted demux proxy.", "", "Setup instructions: bit.ly/roku-twitch"]
-    dialog.buttons = ["Go Back", "Try Anyway"]
+    dialog.title = "Enhanced Broadcasting Stream"
+    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory while you watch.", "", "This will be on by default in a future version. You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
+    dialog.buttons = ["Turn On and Play", "Go Back", "Try Anyway"]
     dialog.observeField("buttonSelected", "onTransmuxDialogButton")
     dialog.observeField("wasClosed", "onTransmuxDialogClosed")
     scene = m.top.getScene()
@@ -946,11 +951,43 @@ sub onTransmuxDialogClosed()
     if scene <> invalid
         scene.dialog = invalid
     end if
-    if m.transmuxButtonIndex = 1
+    if m.transmuxButtonIndex = 0
+        enableSplitterAndReload()
+    else if m.transmuxButtonIndex = 2
         playContent()
     else
         exitPlayer()
     end if
+end sub
+
+sub enableSplitterAndReload()
+    set_user_setting("proxy.builtin", "true")
+    startBuiltinSplitter()
+    m.splitter = m.global.demuxServer
+    m.splitter.observeField("ready", "onSplitterChanged")
+    m.splitter.observeField("state", "onSplitterChanged")
+    onSplitterChanged()
+end sub
+
+' Reloads the stream once the splitter is listening, or reports that it failed to start.
+sub onSplitterChanged()
+    if m.splitter = invalid then return
+    ready = m.splitter.ready = true
+    if not ready and m.splitter.state <> "stop" then return
+    m.splitter.unobserveField("ready")
+    m.splitter.unobserveField("state")
+    m.splitter = invalid
+    if not ready
+        showErrorDialog("Enhanced Broadcasting", "The built-in proxy couldn't start. Restart Stitch and try again.")
+        return
+    end if
+    contentRequested = m.PlayVideo.contentRequested
+    m.PlayVideo = destroyTask(m.PlayVideo, "response")
+    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
+    m.PlayVideo.observeField("response", "OnResponse")
+    m.PlayVideo.contentRequested = contentRequested
+    m.PlayVideo.functionName = "main"
+    m.PlayVideo.control = "run"
 end sub
 
 sub onDurationChanged()
