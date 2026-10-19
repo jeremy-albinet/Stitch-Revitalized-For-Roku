@@ -12,7 +12,7 @@
         <field id="clientInfo" type="assocarray" />
         <field id="clientMessage" type="string" value="" />
         <field id="width" type="integer" value="275" alias="chatPanel.width, chatBackground.width" onchange="updatePanelTranslation" />
-        <field id="height" type="integer" value="720" alias="chatPanel.height, chatBackground.height" onChange="updatePanelTranslation" />
+        <field id="height" type="integer" value="1080" alias="chatPanel.height, chatBackground.height" onChange="updatePanelTranslation" />
         <field id="forceLive" type="bool" value="false" />
         <field id="translation" type="vector2d" alias="chatPanel.translation" />
         <field id="fontSize" type="integer" value="14" onChange="updatePanelTranslation" />
@@ -28,15 +28,15 @@
             <Rectangle
                 id="chatBackground"
                 visible="true"
-                width="1280"
-                height="720"
+                width="1920"
+                height="1080"
                 opacity="1"
                 translation="[0,0]" />
             <Rectangle
                 id="chatPanel"
                 visible="true"
-                width="1280"
-                height="720"
+                width="1920"
+                height="1080"
                 opacity="1"
                 translation="[0,0]" />
         </MaskGroup>
