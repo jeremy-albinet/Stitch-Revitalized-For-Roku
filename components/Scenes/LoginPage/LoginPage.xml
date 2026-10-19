@@ -34,7 +34,7 @@
         <ButtonGroup id="buttonGroup" visible="false" translation="[100,172]" />
         <Poster
             id="qrCode"
-            translation="[900,200]"
+            translation="[1540,200]"
             width="280"
             height="280"
             uri="pkg:/images/qr_activate.png"

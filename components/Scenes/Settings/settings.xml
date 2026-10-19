@@ -4,7 +4,7 @@
     </interface>
     <children>
         <Group translation="[10, 80]">
-            <Rectangle width="1280" height="720" color="0x0e0e10FF" />
+            <Rectangle width="1920" height="1080" color="0x0e0e10FF" />
             <!-- Sidebar for categories -->
             <LabelList
                 id="categoryList"
