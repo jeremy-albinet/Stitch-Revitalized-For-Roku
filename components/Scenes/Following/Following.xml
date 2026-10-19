@@ -17,7 +17,7 @@
             itemComponentName="VideoItem"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,30]]"
-            itemSize="[1280,295]"
+            itemSize="[1920,295]"
             itemSpacing="[0,0]"
             showRowLabel="[ true ]"
             focusBitmapUri="pkg:/images/focus_row.9.png"
