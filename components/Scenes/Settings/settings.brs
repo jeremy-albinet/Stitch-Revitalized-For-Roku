@@ -271,6 +271,7 @@ sub boolSettingChanged()
     selectedSetting = m.userLocation.peek().children[m.settingsMenu.itemFocused]
     if m.boolSetting.checkedItem
         set_user_setting(selectedSetting.settingName, "true")
+        if selectedSetting.settingName = "proxy.builtin" then startBuiltinSplitter()
     else
         set_user_setting(selectedSetting.settingName, "false")
     end if

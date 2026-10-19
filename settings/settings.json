@@ -145,7 +145,7 @@
     },
     {
         "title": "Built-in Enhanced Broadcasting Splitter",
-        "description": "Plays Enhanced Broadcasting streams without a proxy server by splitting them inside the app. Uses about 70 MB more memory while playing those streams. Ignored when a Proxy URL is set. Changes take effect on next app start.",
+        "description": "Plays Enhanced Broadcasting streams without a proxy server by splitting them inside the app. Uses about 70 MB more memory while playing those streams. Ignored when a Proxy URL is set.",
         "settingName": "proxy.builtin",
         "type": "bool",
         "default": "false"

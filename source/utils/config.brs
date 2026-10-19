@@ -139,3 +139,11 @@ sub NukeRegistry(section = invalid)
     end if
 
 end sub
+
+' Starts the built-in Enhanced Broadcasting splitter once, if its setting is on.
+sub startBuiltinSplitter()
+    if get_user_setting("proxy.builtin", "false") <> "true" or m.global.demuxServer <> invalid then return
+    demuxServer = CreateObject("roSGNode", "DemuxServer")
+    demuxServer.control = "RUN"
+    m.global.addFields({ demuxServer: demuxServer })
+end sub
