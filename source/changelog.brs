@@ -3,6 +3,13 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.7.0": [
+            "New: Enhanced Broadcasting streams can now play without a proxy server. Pick Turn On and Play when asked, or turn on Settings > Built-in Enhanced Broadcasting Splitter",
+            "New: The built-in splitter was contributed by a community member. Thank you!",
+            "Fix: Streams no longer restart 16 seconds after changing quality",
+            "Fix: Picking a quality from the menu on a proxied stream now stays on the proxy",
+            "Fix: Proxied streams now get the right bitrate and resolution"
+        ],
         "2.6.0": [
             "New: Recently Watched sidebar now shows a live indicator — a red dot appears on streamers who are currently live",
             "Improved: Top bar and left sidebar are now smaller, giving more screen space to content",
