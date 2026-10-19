@@ -9,7 +9,7 @@ sub init()
     '*******************'
     '* Layout Constants
     '*******************'
-    m.screenWidth = 1280
+    m.screenWidth = m.global.constants.screenWidth
     m.iconRightPadding = 24
 
     '*******************'
