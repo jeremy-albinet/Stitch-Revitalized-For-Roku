@@ -53,9 +53,9 @@ sub sendAppOpenedEvents()
 
     ' Once per device per day (enough for daily actives and device/OS mix),
     ' plus every launch that follows a crash so crash counts stay complete.
+    ' AnalyticsTask writes the marker after PostHog accepts the event.
     today = CreateObject("roDateTime").ToISOString().Left(10)
     if appOpenProps.prior_exit_reason <> invalid or get_setting("analytics.last_app_opened") <> today
-        set_setting("analytics.last_app_opened", today)
         trackEvent("app_opened", appOpenProps)
     end if
 

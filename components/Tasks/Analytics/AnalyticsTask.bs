@@ -36,10 +36,15 @@ sub analyticsLoop()
     ' (heroScene sets app_opened + identify right after control = "RUN"),
     ' so flush whatever is already there. A set racing with the observe can
     ' arrive twice; sendCapture's rate limit and sendIdentify's dedupe drop it.
+    ' Snapshot all three first: each send blocks on HTTP, and a field set
+    ' meanwhile would otherwise replace a startup value before it is read.
     if m.enabled
-        if m.top.identify <> invalid then sendIdentify(m.top.identify)
-        if m.top.capture <> invalid then sendCapture(m.top.capture)
-        if m.top.captureException <> invalid then sendException(m.top.captureException)
+        identify = m.top.identify
+        capture = m.top.capture
+        captureException = m.top.captureException
+        if identify <> invalid then sendIdentify(identify)
+        if capture <> invalid then sendCapture(capture)
+        if captureException <> invalid then sendException(captureException)
     end if
 
     while true
@@ -84,7 +89,11 @@ sub sendCapture(data as object)
         properties: mergedProps
     }
 
-    postToPostHog(payload)
+    ' heroScene reads this marker to send app_opened once per day. Saved only
+    ' on delivery so an offline launch retries on the next one.
+    if postToPostHog(payload) and event = "app_opened"
+        set_setting("analytics.last_app_opened", CreateObject("roDateTime").ToISOString().Left(10))
+    end if
 end sub
 
 ' Sends a PostHog $identify event with a $set payload.
@@ -96,7 +105,6 @@ sub sendIdentify(data as object)
 
     serialized = FormatJson(setProps)
     if get_setting("analytics.last_identify") = serialized then return
-    set_setting("analytics.last_identify", serialized)
 
     payload = {
         api_key: POSTHOG_API_KEY,
@@ -108,7 +116,8 @@ sub sendIdentify(data as object)
         }
     }
 
-    postToPostHog(payload)
+    ' Saved only on delivery so a failed send retries on the next launch.
+    if postToPostHog(payload) then set_setting("analytics.last_identify", serialized)
 end sub
 
 ' Sends a PostHog $exception event for a caught BrightScript error.
@@ -210,16 +219,17 @@ end function
 ' Synchronous HTTPS POST to PostHog capture endpoint.
 ' We are already in a background Task thread so blocking is safe.
 ' Synchronous avoids the GC risk of async transfers without a retained port.
-sub postToPostHog(payload as object)
+' Returns true when PostHog accepted the event (HTTP 200).
+function postToPostHog(payload as object) as boolean
     transfer = CreateObject("roUrlTransfer")
-    if transfer = invalid then return
+    if transfer = invalid then return false
     transfer.SetUrl(POSTHOG_CAPTURE_URL)
     transfer.SetRequest("POST")
     transfer.AddHeader("Content-Type", "application/json")
     transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
     transfer.InitClientCertificates()
-    transfer.PostFromString(FormatJson(payload))
-end sub
+    return transfer.PostFromString(FormatJson(payload)) = 200
+end function
 
 ' Returns true if this event name was already sent within the last 10 seconds.
 ' Prevents burst duplicates (e.g. concurrent GraphQL failures all firing api_error).
