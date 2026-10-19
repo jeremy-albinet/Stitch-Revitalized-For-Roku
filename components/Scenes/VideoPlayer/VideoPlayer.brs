@@ -437,19 +437,21 @@ end sub
 
 sub onChatVisibilityChange()
     if m.chatWindow <> invalid and m.video <> invalid
+        screenWidth = m.global.constants.screenWidth
+        screenHeight = m.global.constants.screenHeight
+        chatWidth = 320
         if m.chatWindow.visible
-            ' Example: Chat takes up 320px, video takes remaining width
-            m.chatWindow.translation = [1280 - 320, 0] ' Position chat on the right
-            m.chatWindow.height = 720 ' Full height
-            m.chatWindow.width = 320
+            m.chatWindow.translation = [screenWidth - chatWidth, 0] ' Position chat on the right
+            m.chatWindow.height = screenHeight ' Full height
+            m.chatWindow.width = chatWidth
 
-            m.video.width = 1280 - 320 ' Video width adjusted
-            m.video.height = 720 ' Video full height
+            m.video.width = screenWidth - chatWidth ' Video width adjusted
+            m.video.height = screenHeight ' Video full height
             m.video.translation = [0, 0] ' Video on the left
             m.video.chatIsVisible = true
         else
-            m.video.width = 1280 ' Video full width
-            m.video.height = 720
+            m.video.width = screenWidth ' Video full width
+            m.video.height = screenHeight
             m.video.translation = [0, 0]
             m.video.chatIsVisible = false
         end if

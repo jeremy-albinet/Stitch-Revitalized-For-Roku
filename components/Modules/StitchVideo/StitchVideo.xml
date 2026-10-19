@@ -45,45 +45,45 @@
     <children>
         <!-- your existing children stay the same -->
         <!-- Modern Control Overlay for Live Streams -->
-        <Group id="controlOverlay" translation="[0,580]">
+        <Group id="controlOverlay" translation="[0,940]">
             <!-- Background Gradient -->
-            <Rectangle width="1280" height="140" color="0x000000E6" />
-            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1280,60]" translation="[0,0]">
-                <Rectangle width="1280" height="60" color="0x000000AA" />
+            <Rectangle width="1920" height="140" color="0x000000E6" />
+            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1920,60]" translation="[0,0]">
+                <Rectangle width="1920" height="60" color="0x000000AA" />
             </MaskGroup>
             
             <!-- Progress Bar Section -->
             <Group translation="[60,5]">
                 <!-- Progress Bar (Full Twitch Purple for Live) -->
-                <Rectangle id="progressBarBase" color="0x404040FF" width="1160" height="4" translation="[0,65]" />
-                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="1160" height="4" translation="[0,65]" />
+                <Rectangle id="progressBarBase" color="0x404040FF" width="1800" height="4" translation="[0,65]" />
+                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="1800" height="4" translation="[0,65]" />
             </Group>
             
             <!-- Control Buttons (Live Stream Layout) -->
             <Group translation="[0,85]">
                 <!-- Back Button (far left) -->
-                <Group id="backGroup" translation="[200,0]" focusable="true">
+                <Group id="backGroup" translation="[520,0]" focusable="true">
                     <Rectangle id="backBg" color="0x404040AA" width="50" height="40" />
                     <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
                     <SimpleLabel translation="[18,12]" text="←" color="0xFFFFFFFF" fontSize="18" fontUri="pkg:/fonts/Archivo-Bold.otf" />
                 </Group>
                 
                 <!-- Chat Toggle Button -->
-                <Group id="chatGroup" translation="[540,0]">
+                <Group id="chatGroup" translation="[860,0]">
                     <Rectangle id="chatBg" color="0x404040AA" width="50" height="40" />
                     <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
                     <Poster id="messagesButton" uri="pkg:/images/messages.png" width="20" height="20" translation="[15,10]" />
                 </Group>
                 
                 <!-- Play/Pause Button (center between chat and quality) -->
-                <Group id="playPauseGroup" translation="[610,0]" focusable="true">
+                <Group id="playPauseGroup" translation="[930,0]" focusable="true">
                     <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40" />
                     <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40" visible="false" />
                     <Poster id="controlButton" uri="pkg:/images/pause.png" width="20" height="20" translation="[20,10]" />
                 </Group>
                 
                 <!-- Quality Button -->
-                <Group id="qualityGroup" translation="[690,0]">
+                <Group id="qualityGroup" translation="[1010,0]">
                     <Rectangle id="qualityBg" color="0x404040AA" width="50" height="40" />
                     <Rectangle id="qualityFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
                     <Poster id="qualitySelectButton" uri="pkg:/images/icons/sliders.png" width="20" height="20" translation="[15,10]" />
@@ -112,7 +112,7 @@
         <StandardMessageDialog id="QualityDialog" visible="false" />
         
         <!-- Loading Overlay -->
-        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+        <Group id="loadingOverlay" translation="[960,540]" visible="true">
             <!-- Vertical layout container -->
             <LayoutGroup 
                 layoutDirection="vert"
