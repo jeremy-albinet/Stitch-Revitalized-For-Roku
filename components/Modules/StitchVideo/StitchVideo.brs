@@ -322,6 +322,12 @@ sub issueLiveEdgeSeek(reason as string)
         preLatencyMs = seg.latency
     end if
 
+    ' 1% sample of startup delay behind live (~9K events/month at current
+    ' volume). Same measurement point as the old live_edge_seek pre value.
+    if preLatencyMs <> invalid and Rnd(100) = 1
+        trackEvent("live_latency", { live_edge_ms: preLatencyMs })
+    end if
+
     ' Skip the seek if we're already close enough to live. The seek's
     ' empirically observed steady-state floor is ~20s behind live, so
     ' firing when already at <30s buys us nothing — we've seen latency
