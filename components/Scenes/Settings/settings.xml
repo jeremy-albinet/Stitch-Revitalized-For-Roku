@@ -10,7 +10,7 @@
                 id="categoryList"
                 translation="[40, 0]"
                 itemSize="[200, 50]"
-                focusBitmapUri="pkg:/images/focusindicator.9.png"
+                focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null"
                 vertFocusAnimationStyle="floatingFocus"
                 itemSpacing="[0,5]"
                 focusedColor="0x9147FFFF"
@@ -22,7 +22,7 @@
                 itemSize="[720, 50]"
                 numRows="10"
                
-                focusBitmapUri="pkg:/images/focusindicator.9.png"
+                focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null"
                 vertFocusAnimationStyle="floatingFocus"
                 itemSpacing="[0,5]"
                 focusedColor="0x9147FFFF"
@@ -45,7 +45,7 @@
                 >
                 <ScrollingLabel font="font:LargeSystemFont" id="settingTitle" maxWidth="854" />
                 <Label id="settingDesc" width="854" wrap="true" color="0xC8C8D0FF" />
-                <RadioButtonList id="boolSetting" focusBitmapUri="pkg:/images/focusindicator.9.png" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus">
+                <RadioButtonList id="boolSetting" itemSize="[854, 72]" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus">
                     <ContentNode role="content">
                         <ContentNode title="Disabled" />
                         <ContentNode title="Enabled" />
@@ -60,8 +60,8 @@
                 height="240"
                 visible="false"
                 />
-            <RadioButtonList id="radioSetting" translation="[930, 230]" visible="false"
-                inheritParentTransform="false" focusBitmapUri="pkg:/images/focusindicator.9.png" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus" />
+            <RadioButtonList id="radioSetting" translation="[940, 230]" itemSize="[854, 72]" visible="false"
+                inheritParentTransform="false" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus" />
 
         </Group>
     </children>
