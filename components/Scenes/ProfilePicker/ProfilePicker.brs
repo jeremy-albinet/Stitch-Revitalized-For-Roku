@@ -84,7 +84,7 @@ sub confirmRemove()
     dialog = CreateObject("roSGNode", "StandardMessageDialog")
     dialog.title = tr("Remove profile?")
     dialog.message = [section]
-    dialog.buttons = [tr("Remove"), tr("Cancel")]
+    dialog.buttons = [tr("Cancel"), tr("Remove")]
     dialog.observeField("buttonSelected", "onRemoveDialogButton")
     dialog.observeField("wasClosed", "onRemoveDialogClosed")
     m.removeSection = section
@@ -94,7 +94,7 @@ end sub
 
 sub onRemoveDialogButton()
     if m.removeDialog = invalid then return
-    if m.removeDialog.buttonSelected = 0 then removeAccount(m.removeSection)
+    if m.removeDialog.buttonSelected = 1 then removeAccount(m.removeSection)
     m.removeDialog.close = true
 end sub
 
