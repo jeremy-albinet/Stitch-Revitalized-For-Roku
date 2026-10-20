@@ -23,8 +23,8 @@ sub resetVisibility()
     if m.liveicon <> invalid then m.liveicon.visible = true
     if m.itemViewers <> invalid then m.itemViewers.visible = true
     if m.viewsRect <> invalid then m.viewsRect.visible = true
-    if m.runtimeRect <> invalid then m.runtimeRect.visible = true
-    if m.runtimeLabel <> invalid then m.runtimeLabel.visible = true
+    if m.runtimeRect <> invalid then m.runtimeRect.visible = false
+    if m.runtimeLabel <> invalid then m.runtimeLabel.visible = false
     if m.timestampLabel <> invalid then m.timestampLabel.visible = true
     if m.timestampRect <> invalid then m.timestampRect.visible = true
 end sub
