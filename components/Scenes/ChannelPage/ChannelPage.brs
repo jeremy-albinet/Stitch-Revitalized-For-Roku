@@ -125,9 +125,11 @@ end sub
 
 sub handleItemSelected()
     if m.rowlist.content = invalid then return
-    selectedRow = m.rowlist.content.getChild(m.rowlist.rowItemSelected[0])
+    selected = m.rowlist.rowItemSelected
+    if selected = invalid or selected.count() < 2 then return
+    selectedRow = m.rowlist.content.getChild(selected[0])
     if selectedRow = invalid then return
-    selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
+    selectedItem = selectedRow.getChild(selected[1])
     m.top.playContent = true
     m.top.contentSelected = selectedItem
 end sub
