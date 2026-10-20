@@ -199,5 +199,13 @@
             <source>Remove</source>
             <translation>Remove</translation>
         </message>
+        <message>
+            <source>Add Profile</source>
+            <translation>Add Profile</translation>
+        </message>
+        <message>
+            <source>Log in with a Twitch account.</source>
+            <translation>Log in with a Twitch account.</translation>
+        </message>
     </context>
 </TS>

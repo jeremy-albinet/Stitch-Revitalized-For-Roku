@@ -39,6 +39,7 @@ function build_Settings()
     node.translation = [0, 0]
     node.observeField("finished", "onLogoutFinished")
     node.observeField("switchProfile", "onSwitchProfile")
+    node.observeField("addProfile", "onAddProfile")
     return node
 end function
 
