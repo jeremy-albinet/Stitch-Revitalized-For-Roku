@@ -39,7 +39,7 @@ sub init()
     if get_setting("active_user", "$default$") = "$default$"
         filteredTree = []
         for each item in m.configTree
-            if item.action <> "logout"
+            if item.action <> "logout" and item.action <> "switchProfile"
                 filteredTree.push(item)
             end if
         end for
@@ -155,6 +155,8 @@ sub settingSelected()
         else if selectedItem.type = "action"
             if selectedItem.action = "logout"
                 performLogout()
+            else if selectedItem.action = "switchProfile"
+                m.top.switchProfile = true
             else
                 print "Unknown action: " + selectedItem.action
             end if
@@ -314,6 +316,7 @@ end function
 sub performLogout()
     active_user = get_setting("active_user", "$default$")
     if active_user <> "$default$"
+        removeProfile(active_user)
         NukeRegistry(active_user)
         set_setting("active_user", "$default$")
     else
