@@ -37,15 +37,17 @@ sub init()
     m.radioSetting.observeField("checkedItem", "radioSettingChanged")
 
     m.configTree = GetConfigTree()
-    if get_setting("active_user", "$default$") = "$default$"
-        filteredTree = []
-        for each item in m.configTree
-            if item.action <> "logout" and item.action <> "switchProfile"
-                filteredTree.push(item)
-            end if
-        end for
-        m.configTree = filteredTree
-    end if
+    isAnonymous = get_setting("active_user", "$default$") = "$default$"
+    filteredTree = []
+    for each item in m.configTree
+        if isAnonymous
+            keep = item.action <> "logout" and item.action <> "switchProfile"
+        else
+            keep = item.action <> "addProfile"
+        end if
+        if keep then filteredTree.push(item)
+    end for
+    m.configTree = filteredTree
     LoadMenu({ children: m.configTree })
 end sub
 
@@ -168,6 +170,8 @@ sub settingSelected()
                 performLogout()
             else if selectedItem.action = "switchProfile"
                 m.top.switchProfile = true
+            else if selectedItem.action = "addProfile"
+                m.top.addProfile = true
             else if selectedItem.action = "support_stitch"
                 ' No-op: OK press on the QR item does nothing; focus already shows the QR poster.
             else

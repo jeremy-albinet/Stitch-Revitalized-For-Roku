@@ -158,6 +158,13 @@
         "default": ""
     },
     {
+        "title": "Add Profile",
+        "description": "Log in with a Twitch account.",
+        "settingName": "addProfile",
+        "type": "action",
+        "action": "addProfile"
+    },
+    {
         "title": "Switch Profile",
         "description": "Switch to another Twitch account or add a new one.",
         "settingName": "switchProfile",

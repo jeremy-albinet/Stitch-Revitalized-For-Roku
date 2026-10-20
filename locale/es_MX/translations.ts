@@ -178,5 +178,13 @@
             <source>Cancel</source>
             <translation>Cancelar</translation>
         </message>
+        <message>
+            <source>Add Profile</source>
+            <translation>Agregar perfil</translation>
+        </message>
+        <message>
+            <source>Log in with a Twitch account.</source>
+            <translation>Inicia sesión con una cuenta de Twitch.</translation>
+        </message>
     </context>
 </TS>

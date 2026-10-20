@@ -254,6 +254,7 @@ sub teardownAllScenes()
         m.activeNode.unobserveField("contentSelected")
         m.activeNode.unobserveField("finished")
         m.activeNode.unobserveField("switchProfile")
+        m.activeNode.unobserveField("addProfile")
         m.top.removeChild(m.activeNode)
         m.activeNode = invalid
     end if
@@ -353,6 +354,15 @@ end sub
 
 sub onSwitchProfile()
     showProfilePicker(false)
+end sub
+
+' Same LoginPage the top-bar button opens; Back returns to Settings via footprints.
+sub onAddProfile()
+    if m.activeNode = invalid then return
+    m.footprints.push(m.activeNode)
+    m.activeNode = invalid
+    m.activeNode = buildNode("LoginPage")
+    if m.activeNode <> invalid then m.activeNode.setFocus(true)
 end sub
 
 sub onMenuSelection()
