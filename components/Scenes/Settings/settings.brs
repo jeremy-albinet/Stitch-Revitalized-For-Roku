@@ -15,7 +15,6 @@ sub init()
 
     m.boolSetting = m.top.findNode("boolSetting")
     m.radioSetting = m.top.findNode("radioSetting")
-    m.settingValue = m.top.findNode("settingValue")
     m.supportQrPoster = m.top.findNode("supportQrPoster")
 
     m.keyboardDialog = invalid
@@ -91,7 +90,6 @@ sub settingFocused()
 
     m.boolSetting.visible = false
     m.radioSetting.visible = false
-    m.settingValue.visible = false
     m.supportQrPoster.visible = false
 
     if selectedSetting.type = invalid
@@ -121,12 +119,12 @@ sub settingFocused()
             listItem.id = item.id
             if selectedValue = item.id
                 m.radioSetting.checkedItem = itemIndex
-                m.settingValue.text = listItem.title
-                m.settingValue.visible = true
             end if
             itemIndex++
         end for
         m.radioSetting.content = radioContent
+        placeBelowDescription(m.radioSetting)
+        m.radioSetting.visible = true
     else if selectedSetting.type = "action"
         m.boolSetting.visible = false
         m.radioSetting.visible = false
@@ -141,8 +139,12 @@ end sub
 
 ' Put the QR code under the wrapped description, using its rendered height.
 sub placeQrBelowDescription()
+    placeBelowDescription(m.supportQrPoster, 30)
+end sub
+
+sub placeBelowDescription(node as object, extra = 0 as integer)
     descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
-    m.supportQrPoster.translation = [930, descY + 20 + 30]
+    node.translation = [930, descY + 20 + extra]
 end sub
 
 sub settingSelected()
@@ -152,9 +154,6 @@ sub settingSelected()
         if selectedItem.type = "bool"
             m.boolSetting.setFocus(true)
         else if selectedItem.type = "radio"
-            m.settingDesc.visible = false
-            m.settingValue.visible = false
-            m.radioSetting.visible = true
             m.radioSetting.setFocus(true)
         else if selectedItem.type = "text"
             showTextKeyboard(selectedItem)
@@ -295,7 +294,6 @@ sub radioSettingChanged()
     selectedOption = m.radioSetting.content.getChild(m.radioSetting.checkedItem)
     if selectedOption = invalid then return
     set_user_setting(selectedSetting.settingName, selectedOption.id)
-    m.settingValue.text = selectedOption.title
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
@@ -305,10 +303,6 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     else if (key = "back" or key = "left") and m.settingDetail.focusedChild <> invalid
         m.settingsMenu.setFocus(true)
-        return true
-    else if (key = "back" or key = "left") and m.radioSetting.hasFocus()
-        m.settingsMenu.setFocus(true)
-        settingFocused()
         return true
     else if key = "back"
         m.top.backPressed = true
