@@ -24,9 +24,9 @@ sub init()
 
     ' Derive numRows from screen resolution so scrolling works on any Roku
     ' itemSize height=50, itemSpacing=5 → 55px per row
-    ' Available: screenHeight - 80 (overhang) - 10 (list y offset)
+    ' Available: screenHeight - 96 (scene y offset) - 10 (list y offset) - 48 (bottom margin)
     screenHeight = m.top.getScene().currentDesignResolution.height
-    m.settingsMenu.numRows = Int((screenHeight - 80 - 10) / 55)
+    m.settingsMenu.numRows = Int((screenHeight - 96 - 10 - 48) / 55)
 
     m.categoryList.setFocus(true)
 
@@ -127,11 +127,18 @@ sub settingFocused()
         m.boolSetting.visible = false
         m.radioSetting.visible = false
         if selectedSetting.action = "support_stitch"
+            placeQrBelowDescription()
             m.supportQrPoster.visible = true
         end if
     else
         print "Unknown setting type " + selectedSetting.type
     end if
+end sub
+
+' Put the QR code under the wrapped description, using its rendered height.
+sub placeQrBelowDescription()
+    descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
+    m.supportQrPoster.translation = [650, descY + 20 + 30]
 end sub
 
 sub settingSelected()
