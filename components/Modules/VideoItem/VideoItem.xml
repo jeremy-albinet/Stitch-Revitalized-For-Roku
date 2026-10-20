@@ -18,12 +18,18 @@
             loadWidth="320"
             loadHeight="180"
             loadDisplayMode="scaleToFit">
-            <Poster
-                id="liveIcon"
-                uri="pkg:/images/live-icon.png"
-                height="25"
-                width="50"
-                translation="[5,5]" />
+            <Group id="liveIcon" translation="[8,8]">
+                <Rectangle width="36" height="18" color="0xEB0400FF" />
+                <Label
+                    width="36"
+                    height="18"
+                    horizAlign="center"
+                    vertAlign="center"
+                    color="0xFFFFFFFF"
+                    text="LIVE">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="12" />
+                </Label>
+            </Group>
 
         </Poster>
         <CirclePoster id="circlePoster" height="150" width="150" visible="false" />
