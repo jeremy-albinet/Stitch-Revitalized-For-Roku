@@ -43,7 +43,7 @@ sub Main(input as dynamic)
     m.scene.signalBeacon("AppLaunchComplete")
 
     m.scene.observeField("exitApp", m.port)
-    m.scene.setFocus(true)
+    if not m.scene.isInFocusChain() then m.scene.setFocus(true)
 
     ' Deep links: launch params (cert 5.1) and roInput while running (cert 5.2)
     if input <> invalid and input.contentId <> invalid
