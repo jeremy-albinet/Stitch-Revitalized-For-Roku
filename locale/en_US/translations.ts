@@ -143,5 +143,33 @@
             <source>Proxy not reachable</source>
             <translation>Proxy not reachable</translation>
         </message>
+        <message>
+            <source>Switch Profile</source>
+            <translation>Switch Profile</translation>
+        </message>
+        <message>
+            <source>Switch to another Twitch account or add a new one.</source>
+            <translation>Switch to another Twitch account or add a new one.</translation>
+        </message>
+        <message>
+            <source>Who's watching?</source>
+            <translation>Who's watching?</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Add account</translation>
+        </message>
+        <message>
+            <source>Remove profile?</source>
+            <translation>Remove profile?</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Remove</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Cancel</translation>
+        </message>
     </context>
 </TS>

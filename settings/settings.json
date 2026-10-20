@@ -158,6 +158,13 @@
         "default": ""
     },
     {
+        "title": "Switch Profile",
+        "description": "Switch to another Twitch account or add a new one.",
+        "settingName": "switchProfile",
+        "type": "action",
+        "action": "switchProfile"
+    },
+    {
         "title": "Log Out",
         "description": "Sign out of your Twitch account.",
         "settingName": "logout",

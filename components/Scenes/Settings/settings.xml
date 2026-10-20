@@ -1,6 +1,7 @@
 <component name="Settings" extends="SceneManagerGroup" initialFocus="categoryList">
     <interface>
         <field id="finished" type="bool" />
+        <field id="switchProfile" type="bool" alwaysNotify="true" />
     </interface>
     <children>
         <Group translation="[10, 96]">

@@ -76,6 +76,41 @@ sub unset_user_setting(key)
 end sub
 
 
+' Profile index: JSON array of registry section names (one per saved account),
+' stored in the global section.
+function getProfiles() as object
+    raw = get_setting("profiles")
+    if raw = invalid then return []
+    list = ParseJson(raw)
+    if type(list) <> "roArray" then return []
+    return list
+end function
+
+function profilesWith(list as object, section as string) as object
+    for each item in list
+        if item = section then return list
+    end for
+    list.push(section)
+    return list
+end function
+
+function profilesWithout(list as object, section as string) as object
+    result = []
+    for each item in list
+        if item <> section then result.push(item)
+    end for
+    return result
+end function
+
+sub saveProfile(section as string)
+    if section = "$default$" then return
+    set_setting("profiles", FormatJson(profilesWith(getProfiles(), section)))
+end sub
+
+sub removeProfile(section as string)
+    set_setting("profiles", FormatJson(profilesWithout(getProfiles(), section)))
+end sub
+
 ' Recursivly search the config tree for entry with settingname equal to key
 function findConfigTreeKey(key as string, tree)
     for each item in tree

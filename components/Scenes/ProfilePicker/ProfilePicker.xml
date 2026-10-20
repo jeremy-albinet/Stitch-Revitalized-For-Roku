@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="ProfilePicker" extends="Group">
+    <interface>
+        <field id="profileSelected" type="string" alwaysNotify="true" />
+        <field id="addAccount" type="boolean" alwaysNotify="true" />
+        <field id="backPressed" type="boolean" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="ProfilePicker.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <children>
+        <Rectangle id="background" width="1920" height="1080" color="0x0e0e10ff" />
+        <Label id="title" translation="[0,200]" width="1920" horizAlign="center" text="Who's watching?" />
+        <Poster id="ring" uri="pkg:/images/profile-mask-540-white.png" blendColor="0x9147ffff" width="224" height="224" />
+        <Group id="tiles" />
+    </children>
+</component>

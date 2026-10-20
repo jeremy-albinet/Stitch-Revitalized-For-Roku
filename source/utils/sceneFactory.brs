@@ -29,6 +29,7 @@ function build_Settings()
     node.id = "Settings"
     node.translation = [0, 0]
     node.observeField("finished", "onLogoutFinished")
+    node.observeField("switchProfile", "onSwitchProfile")
     return node
 end function
 
@@ -61,3 +62,10 @@ function build_VideoPlayer()
     return node
 end function
 
+
+function build_ProfilePicker()
+    node = createObject("roSGNode", "ProfilePicker")
+    node.id = "ProfilePicker"
+    node.translation = [0, 0]
+    return node
+end function
