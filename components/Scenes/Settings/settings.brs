@@ -15,6 +15,7 @@ sub init()
 
     m.boolSetting = m.top.findNode("boolSetting")
     m.radioSetting = m.top.findNode("radioSetting")
+    m.settingValue = m.top.findNode("settingValue")
     m.supportQrPoster = m.top.findNode("supportQrPoster")
 
     m.keyboardDialog = invalid
@@ -90,6 +91,7 @@ sub settingFocused()
 
     m.boolSetting.visible = false
     m.radioSetting.visible = false
+    m.settingValue.visible = false
     m.supportQrPoster.visible = false
 
     if selectedSetting.type = invalid
@@ -119,6 +121,8 @@ sub settingFocused()
             listItem.id = item.id
             if selectedValue = item.id
                 m.radioSetting.checkedItem = itemIndex
+                m.settingValue.text = listItem.title
+                m.settingValue.visible = true
             end if
             itemIndex++
         end for
@@ -149,6 +153,7 @@ sub settingSelected()
             m.boolSetting.setFocus(true)
         else if selectedItem.type = "radio"
             m.settingDesc.visible = false
+            m.settingValue.visible = false
             m.radioSetting.visible = true
             m.radioSetting.setFocus(true)
         else if selectedItem.type = "text"
@@ -290,6 +295,7 @@ sub radioSettingChanged()
     selectedOption = m.radioSetting.content.getChild(m.radioSetting.checkedItem)
     if selectedOption = invalid then return
     set_user_setting(selectedSetting.settingName, selectedOption.id)
+    m.settingValue.text = selectedOption.title
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
@@ -302,6 +308,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         return true
     else if (key = "back" or key = "left") and m.radioSetting.hasFocus()
         m.settingsMenu.setFocus(true)
+        settingFocused()
         return true
     else if key = "back"
         m.top.backPressed = true

@@ -45,6 +45,7 @@
                 >
                 <ScrollingLabel font="font:LargeSystemFont" id="settingTitle" maxWidth="854" />
                 <Label id="settingDesc" width="854" wrap="true" color="0xC8C8D0FF" />
+                <Label id="settingValue" width="854" color="0xFFFFFFFF" visible="false" />
                 <RadioButtonList id="boolSetting" checkedIconUri="pkg:/images/checkmark.png" focusedCheckedIconUri="pkg:/images/checkmark.png" itemSize="[854, 72]" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus">
                     <ContentNode role="content">
                         <ContentNode title="Disabled" />
