@@ -138,7 +138,7 @@ end sub
 ' Put the QR code under the wrapped description, using its rendered height.
 sub placeQrBelowDescription()
     descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
-    m.supportQrPoster.translation = [650, descY + 20 + 30]
+    m.supportQrPoster.translation = [930, descY + 20 + 30]
 end sub
 
 sub settingSelected()
