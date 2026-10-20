@@ -12,31 +12,31 @@
     <children>
         <SimpleLabel
             id="topText"
-            translation="[100,172]"
+            translation="[240,420]"
             text="LoginPageTopText"
             color="0xEFEFF1FF"
-            fontSize="18"
+            fontSize="28"
             fontUri="pkg:/fonts/Archivo-Regular.otf" />
         <SimpleLabel
-            translation="[300,302]"
+            translation="[240,490]"
             id="code"
             text=""
             color="0xEFEFF1FF"
-            fontSize="36"
+            fontSize="96"
             fontUri="pkg:/fonts/Archivo-Bold.otf" />
         <SimpleLabel
             id="bottomText"
-            translation="[100,402]"
+            translation="[240,650]"
             text="LoginPageBottomText"
             color="0xEFEFF1FF"
-            fontSize="18"
+            fontSize="24"
             fontUri="pkg:/fonts/Archivo-Regular.otf" />
-        <ButtonGroup id="buttonGroup" visible="false" translation="[100,172]" />
+        <ButtonGroup id="buttonGroup" visible="false" translation="[240,420]" />
         <Poster
             id="qrCode"
-            translation="[1540,200]"
-            width="280"
-            height="280"
+            translation="[1300,370]"
+            width="400"
+            height="400"
             uri="pkg:/images/qr_activate.png"
             loadDisplayMode="scaleToFit"
             visible="false" />
