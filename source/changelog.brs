@@ -3,6 +3,15 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.8.0": [
+            "New: The app now renders in full 1080p - sharper, less zoomed, and more content per row",
+            "New: Video player and chat are laid out for the full screen",
+            "New: Settings redesigned - full width, floating focus, current value shown for choice settings, readable checkmarks",
+            "New: Redesigned login page with a larger code and a sharper QR",
+            "Improved: Thinner focus border and a smaller LIVE badge",
+            "Fix: Search results no longer overlap the keyboard",
+            "Fix: Round avatars are round again"
+        ],
         "2.7.0": [
             "New: Enhanced Broadcasting streams can now play without a proxy server. Pick Turn On and Play when asked, or turn on Settings > Built-in Enhanced Broadcasting Splitter",
             "New: The built-in splitter was contributed by a community member. Thank you!",
