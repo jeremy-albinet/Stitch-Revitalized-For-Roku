@@ -23,14 +23,14 @@
             translation="[100,120]" />
         <RowList
             id="homeRowList"
-            translation="[500, 120]"
+            translation="[720, 120]"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,0]]"
-            itemSize="[1920,295]"
+            itemSize="[1200,295]"
             itemSpacing="[ 0, 40 ]"
             showRowLabel="[ true ]"
             focusBitmapUri="pkg:/images/focus_row.9.png"
