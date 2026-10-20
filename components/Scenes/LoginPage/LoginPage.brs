@@ -66,7 +66,7 @@ sub loadDynamicQr(userCode as string)
     urlTransfer = CreateObject("roUrlTransfer")
     if urlTransfer = invalid then return
     encodedUrl = urlTransfer.Escape("https://twitch.tv/activate?device-code=" + userCode)
-    dynamicUri = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodedUrl
+    dynamicUri = "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=" + encodedUrl
     m.qrCode.observeField("loadStatus", "onQrLoadStatus")
     m.qrCode.uri = dynamicUri
 end sub
