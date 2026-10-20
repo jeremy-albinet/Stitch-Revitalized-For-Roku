@@ -33,7 +33,7 @@
             itemSize="[1280,295]"
             itemSpacing="[ 0, 40 ]"
             showRowLabel="[ true ]"
-            focusBitmapUri="pkg:/images/focusindicator.9.png"
+            focusBitmapUri="pkg:/images/focus_row.9.png"
             drawFocusFeedbackOnTop="true"
             vertFocusAnimationStyle="fixedFocus"
             rowFocusAnimationStyle="floatingFocus"
