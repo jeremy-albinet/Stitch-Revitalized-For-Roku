@@ -171,5 +171,6 @@ sub onGetFocus()
 end sub
 
 sub showrowfocus()
+    if m.itemmask = invalid or m.top.rowFocusPercent = invalid then return
     m.itemmask.opacity = 0.75 - (m.top.rowFocusPercent * 0.75)
 end sub

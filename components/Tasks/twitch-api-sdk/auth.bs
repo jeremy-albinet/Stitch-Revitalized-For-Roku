@@ -56,7 +56,7 @@ sub getRendezvouzToken()
         },
         method: "POST"
     })
-    rsp = ParseJSON(req.send())
+    rsp = ParseJSON(req.send() ?? "")
     if rsp = invalid or rsp?.device_code = invalid or rsp?.user_code = invalid
         m.top.response = invalid
         m.top.control = TaskControl.STOP
@@ -88,7 +88,7 @@ function getOauthToken()
         method: "POST"
     })
     while true
-        rsp = ParseJSON(req.send())
+        rsp = ParseJSON(req.send() ?? "")
         if rsp <> invalid and rsp.DoesExist("access_token")
             exit while
         end if
