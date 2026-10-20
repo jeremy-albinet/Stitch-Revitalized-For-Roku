@@ -169,6 +169,7 @@ function buildIcon(icon)
     newItem.iconUri = map[icon]
     newItem.focusedIconUri = map[icon]
     newItem.minWidth = 0
+    newItem.height = 64
     newItem.focusFootprintBitmapUri = "pkg:/images/focusfootprint.9.png"
     newItem.focusBitmapUri = "pkg:/images/focusfootprint.9.png"
     newItem.showFocusFootprint = false
