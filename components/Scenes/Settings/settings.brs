@@ -7,7 +7,6 @@ sub init()
 
     m.categoryList = m.top.findNode("categoryList")
     m.settingsMenu = m.top.findNode("settingsMenu")
-    m.settingsMenu.focusBitmapBlendColor = m.global.constants.colors.twitch.purple9
     m.settingsMenu.focusedColor = m.global.constants.colors.white
 
     m.settingDetail = m.top.findNode("settingDetail")
@@ -24,9 +23,9 @@ sub init()
 
     ' Derive numRows from screen resolution so scrolling works on any Roku
     ' itemSize height=50, itemSpacing=5 → 55px per row
-    ' Available: screenHeight - 96 (scene y offset) - 10 (list y offset) - 48 (bottom margin)
+    ' Available: screenHeight - 96 (scene y offset) - 20 (list y offset) - 48 (bottom margin)
     screenHeight = m.top.getScene().currentDesignResolution.height
-    m.settingsMenu.numRows = Int((screenHeight - 96 - 10 - 48) / 55)
+    m.settingsMenu.numRows = Int((screenHeight - 96 - 20 - 48) / 55)
 
     m.categoryList.setFocus(true)
 
@@ -71,7 +70,8 @@ sub LoadMenu(configSection)
     result = CreateObject("roSGNode", "ContentNode")
     for each item in configSection.children
         listItem = result.CreateChild("ContentNode")
-        listItem.title = tr(item.title)
+        ' LabelList ignores textHorizOffset; pad the title so text clears the focus border
+        listItem.title = "   " + tr(item.title)
         listItem.Description = tr(item.description)
         listItem.id = item.id
     end for
