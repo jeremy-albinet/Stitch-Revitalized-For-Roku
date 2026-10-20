@@ -139,12 +139,12 @@ end sub
 
 ' Put the QR code under the wrapped description, using its rendered height.
 sub placeQrBelowDescription()
-    placeBelowDescription(m.supportQrPoster, 30)
+    placeBelowDescription(m.supportQrPoster, 10)
 end sub
 
 sub placeBelowDescription(node as object, extra = 0 as integer)
     descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
-    node.translation = [930, descY + 20 + extra]
+    node.translation = [930, descY + 40 + extra]
 end sub
 
 sub settingSelected()
@@ -152,8 +152,10 @@ sub settingSelected()
 
     if selectedItem.type <> invalid
         if selectedItem.type = "bool"
+            m.boolSetting.jumpToItem = m.boolSetting.checkedItem
             m.boolSetting.setFocus(true)
         else if selectedItem.type = "radio"
+            m.radioSetting.jumpToItem = m.radioSetting.checkedItem
             m.radioSetting.setFocus(true)
         else if selectedItem.type = "text"
             showTextKeyboard(selectedItem)
