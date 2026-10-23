@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.4",
     "@rokucommunity/bslint": "^0.8.43",
     "audit-ci": "^7.1.0",
     "brighterscript-formatter": "^1.7.26",
