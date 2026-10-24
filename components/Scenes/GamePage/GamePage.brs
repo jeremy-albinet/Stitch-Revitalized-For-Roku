@@ -14,7 +14,7 @@ sub updatePage()
 end sub
 
 function buildContentNodeFromShelves(streams)
-    itemsPerRow = 3
+    itemsPerRow = getStreamTile().perRow
     contentCollection = createObject("RoSGNode", "ContentNode")
     row = createObject("RoSGNode", "ContentNode")
     for i = 0 to (streams.count() - 1) step 1

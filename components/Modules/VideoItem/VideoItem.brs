@@ -76,11 +76,28 @@ sub GameSettings()
     m.itemlabel.text = m.top.itemContent.contentTitle
 end sub
 
+' Size the poster and place labels from getStreamTile(). Also undoes the
+' GAME/USER sizing when RowList recycles this item for a stream tile.
+sub applyStreamLayout()
+    tile = getStreamTile()
+    m.itemposter.width = tile.width
+    m.itemposter.height = tile.height
+    m.itemposter.loadwidth = tile.width
+    m.itemposter.loadheight = tile.height
+    m.itemlabel.maxwidth = tile.width
+    m.itemlabel.translation = [0, tile.height + 20]
+    m.itemSubtitle.width = tile.width
+    m.itemSubtitle.translation = [0, tile.height + 30]
+    m.viewsRect.translation = [5, tile.height - 23]
+    m.itemViewers.translation = [7, tile.height - 23]
+end sub
+
 sub LiveSettings()
     if m.itemposter = invalid then return
     if m.itemViewers = invalid or m.viewsRect = invalid then return
     if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
+    applyStreamLayout()
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     try
         m.viewsRect.height = m.itemViewers.boundingRect().height
@@ -100,6 +117,7 @@ sub VodSettings()
     if m.itemViewers = invalid or m.viewsRect = invalid then return
     if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
+    applyStreamLayout()
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     try
@@ -121,6 +139,7 @@ sub ClipSettings()
     if m.itemViewers = invalid or m.viewsRect = invalid then return
     if m.itemSubtitle = invalid then return
     if m.timestampLabel = invalid or m.timestampRect = invalid then return
+    applyStreamLayout()
     m.liveicon.visible = false
     m.itemViewers.text = m.top.itemContent.viewersDisplay
     try

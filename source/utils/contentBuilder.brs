@@ -1,3 +1,10 @@
+' Single source of truth for LIVE/VOD/CLIP tiles: poster size and how many
+' tiles a stream grid puts in one row. 4 x 400 + 3 x 30 spacing fits every
+' scene's left offset inside 1920.
+function getStreamTile() as object
+    return { width: 400, height: 225, perRow: 4 }
+end function
+
 ' Returns row item size and height config for a given content type.
 ' contentType: string — the contentType field from a TwitchContentNode child
 ' hasRowLabel: boolean — whether the row has a visible label (affects height)
@@ -8,21 +15,12 @@ function getRowConfig(contentType, hasRowLabel as boolean, tallRows = false as b
     if contentType = invalid then return invalid
 
     if contentType = "LIVE" or contentType = "VOD" or contentType = "CLIP"
-        itemSize = [320, 180]
-        if tallRows
-            if hasRowLabel
-                rowHeight = 295
-            else
-                rowHeight = 255
-            end if
-        else
-            if hasRowLabel
-                rowHeight = 275
-            else
-                rowHeight = 235
-            end if
-        end if
-        return { itemSize: itemSize, rowHeight: rowHeight }
+        tile = getStreamTile()
+        ' Room below the poster for title + subtitle, plus the row label.
+        rowHeight = tile.height + 55
+        if hasRowLabel then rowHeight += 40
+        if tallRows then rowHeight += 20
+        return { itemSize: [tile.width, tile.height], rowHeight: rowHeight }
     end if
 
     if contentType = "GAME"

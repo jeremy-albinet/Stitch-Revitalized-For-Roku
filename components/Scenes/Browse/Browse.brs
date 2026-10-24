@@ -96,7 +96,7 @@ sub onCategoriesResponse()
 end sub
 
 function buildCategoryRows(games as object) as object
-    itemsPerRow = 5
+    itemsPerRow = 8
     contentCollection = createObject("roSGNode", "ContentNode")
     if games = invalid or games.count() = 0
         return contentCollection
@@ -156,7 +156,7 @@ sub onLiveResponse()
 end sub
 
 function buildLiveRows(streams as object) as object
-    itemsPerRow = 3
+    itemsPerRow = getStreamTile().perRow
     contentCollection = createObject("roSGNode", "ContentNode")
     if streams = invalid or streams.count() = 0
         return contentCollection

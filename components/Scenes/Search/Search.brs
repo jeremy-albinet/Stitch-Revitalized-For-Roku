@@ -185,8 +185,9 @@ sub buildContentNodeFromShelves(shelves)
     rowItemSize = []
     rowHeights = []
     if firstRow.getChildCount() > 0
-        rowItemSize.push([320, 180])
-        rowHeights.push(275)
+        streamRow = getRowConfig("LIVE", true)
+        rowItemSize.push(streamRow.itemSize)
+        rowHeights.push(streamRow.rowHeight)
         AllContent.appendChild(firstRow)
     end if
     if secondRow.getchildCount() > 0
@@ -200,8 +201,9 @@ sub buildContentNodeFromShelves(shelves)
         AllContent.appendChild(thirdRow)
     end if
     if fourthRow.getchildCount() > 0
-        rowItemSize.push([320, 180])
-        rowHeights.push(275)
+        streamRow = getRowConfig("LIVE", true)
+        rowItemSize.push(streamRow.itemSize)
+        rowHeights.push(streamRow.rowHeight)
         AllContent.appendchild(fourthRow)
     end if
     m.rowlist.visible = false
