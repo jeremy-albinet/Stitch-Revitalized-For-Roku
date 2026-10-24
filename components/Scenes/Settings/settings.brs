@@ -303,7 +303,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if (key = "back" or key = "left") and m.settingsMenu.focusedChild <> invalid and m.userLocation.Count() > 1
         LoadMenu({})
         return true
-    else if (key = "back" or key = "left") and m.settingDetail.focusedChild <> invalid
+    else if (key = "back" or key = "left") and (m.settingDetail.focusedChild <> invalid or m.radioSetting.focusedChild <> invalid)
         m.settingsMenu.setFocus(true)
         return true
     else if key = "back"
