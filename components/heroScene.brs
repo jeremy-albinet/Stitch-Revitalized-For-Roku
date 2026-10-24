@@ -3,7 +3,7 @@ sub init()
     analyticsTask.control = "RUN"
     m.global.addFields({ analyticsTask: analyticsTask })
 
-    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
+    ' Built-in server: always on for the live-list ad fix; splits Enhanced streams only when that setting is on and no Proxy URL is set.
     startBuiltinSplitter()
 
     m.validateOauthToken = createApiTask("validateOauthToken", "ValidateUserLogin")

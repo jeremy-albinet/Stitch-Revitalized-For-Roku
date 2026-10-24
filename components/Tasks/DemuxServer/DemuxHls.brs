@@ -1,4 +1,4 @@
-' Port of fmp4-demux-proxy's manifest.py; same /m3u8 and /s URLs.
+' Port of fmp4-demux-proxy's manifest.py (same /m3u8 and /s URLs), plus the ad-break count fix for live lists.
 
 function startsWith(s as string, prefix as string) as boolean
     return s.Left(prefix.Len()) = prefix
@@ -206,6 +206,84 @@ function rewriteManifest(body as string, baseUrl as string, base as string, trac
         end if
     end for
     return out.Join(chr(10))
+end function
+
+' A plain live list passes through as is; relative piece addresses are made whole so Roku fetches them from Twitch.
+function absoluteUris(body as string, baseUrl as string) as string
+    lines = body.Split(chr(10))
+    for i = 0 to lines.Count() - 1
+        line = lines[i].Trim()
+        if line <> "" and line.Left(1) <> "#" then lines[i] = resolveUrl(baseUrl, line)
+    end for
+    return lines.Join(chr(10))
+end function
+
+' After an ad, Twitch drops the ad's breaks (#EXT-X-DISCONTINUITY) off the top of a live list without
+' counting them in #EXT-X-DISCONTINUITY-SEQUENCE, so Roku loses its place and freezes. This keeps that count.
+function keepBreakCount(body as string, key as string, store as object) as string
+    if body.InStr("#EXTINF:") < 0 or body.InStr("#EXT-X-DISCONTINUITY-SEQUENCE:") >= 0 then return body
+    lines = body.Split(chr(10))
+    first = -1
+    seqLine = -1
+    seq = 0
+    marks = []
+    pendingBreak = false
+    for i = 0 to lines.Count() - 1
+        line = lines[i].Trim()
+        if startsWith(line, "#EXT-X-MEDIA-SEQUENCE:")
+            seq = line.Mid(22).ToInt()
+            first = seq
+            seqLine = i
+        else if line = "#EXT-X-DISCONTINUITY"
+            pendingBreak = true
+        else if startsWith(line, "#EXTINF:")
+            if pendingBreak then marks.Push(seq)
+            pendingBreak = false
+            seq = seq + 1
+        else if startsWith(line, "#EXT-X-DATERANGE:") and line.InStr("twitch-stitched-ad") >= 0
+            ' Each ad is logged once, so the log shows when ads came in.
+            ad = tagAttr(line, "ID")
+            if not store.ads.DoesExist(ad)
+                if store.ads.Count() > 200 then store.ads.Clear()
+                store.ads[ad] = true
+                store.notes.Push("Ad in a live list (" + ad + ")")
+            end if
+        end if
+    end for
+    if seqLine < 0 then return body
+
+    ' One count per list; a list that jumps far back has started over.
+    st = store.lists[key]
+    if st <> invalid and first < st.first - 30 then st = invalid
+    if st = invalid
+        if not store.lists.DoesExist(key)
+            store.order.Push(key)
+            if store.order.Count() > 8 then store.lists.Delete(store.order.Shift())
+        end if
+        store.lists[key] = { first: first, disc: 0, marks: marks }
+        return body
+    end if
+
+    disc = st.disc
+    if first >= st.first
+        ' Breaks on pieces that fell off the top since last time.
+        for each s in st.marks
+            if s < first then disc = disc + 1
+        end for
+        if disc > st.disc then store.notes.Push("Ad breaks dropped off the top of a live list, break count now " + disc.toStr())
+        st.first = first
+        st.disc = disc
+        st.marks = marks
+    else
+        ' An older copy arrived late: count back from the newer one.
+        for each s in marks
+            if s < st.first then disc = disc - 1
+        end for
+        if disc < 0 then disc = 0
+    end if
+    if disc = 0 then return body
+    lines[seqLine] = lines[seqLine].Trim() + chr(10) + "#EXT-X-DISCONTINUITY-SEQUENCE:" + disc.toStr()
+    return lines.Join(chr(10))
 end function
 
 ' Variant without a track: synthesize a master with separate audio and video renditions.
