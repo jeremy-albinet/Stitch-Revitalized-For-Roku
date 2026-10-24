@@ -2,6 +2,8 @@
 <component name="Following" extends="SceneManagerGroup" initialFocus="homeRowList">
     <interface>
         <field id="doOffline" type="bool" value="false" />
+        <!-- Dev-only: render the logged-out layout even when logged in -->
+        <field id="anonymous" type="bool" value="false" />
     </interface>
     <script type="text/brightscript" uri="Following.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />

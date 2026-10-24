@@ -15,11 +15,9 @@ sub init()
     m.recentBar.observeField("contentSelected", "onRecentSelected")
     m.menu = m.top.findNode("MenuBar")
     m.menu.showSearchIcon = false
-    m.menu.menuOptionsText = [
-        "Following",
-        "Browse",
-        "Search",
-    ]
+    menuOptions = ["Following", "Browse", "Search"]
+    if m.global.appInfo.IsDev then menuOptions.push("Anonymous")
+    m.menu.menuOptionsText = menuOptions
     m.menu.observeField("buttonSelected", "onMenuSelection")
     m.menu.setFocus(true)
     if get_setting("active_user") = invalid
@@ -205,6 +203,8 @@ function buildNode(name)
     ' Dispatch to scene-specific factory
     if name = "Following"
         newNode = build_Following()
+    else if name = "Anonymous"
+        newNode = build_Anonymous()
     else if name = "Browse"
         newNode = build_Browse()
     else if name = "Search"
