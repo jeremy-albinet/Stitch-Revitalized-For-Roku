@@ -43,7 +43,7 @@ sub Main(input as dynamic)
     m.scene.signalBeacon("AppLaunchComplete")
 
     m.scene.observeField("exitApp", m.port)
-    m.scene.setFocus(true)
+    if not m.scene.isInFocusChain() then m.scene.setFocus(true)
 
     while true
         msg = wait(0, m.port)

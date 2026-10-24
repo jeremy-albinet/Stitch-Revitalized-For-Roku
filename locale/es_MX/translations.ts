@@ -150,5 +150,41 @@
             <source>Error: </source>
             <translation>Error: </translation>
         </message>
+        <message>
+            <source>Switch Profile</source>
+            <translation>Cambiar de perfil</translation>
+        </message>
+        <message>
+            <source>Switch to another Twitch account or add a new one.</source>
+            <translation>Cambia a otra cuenta de Twitch o agrega una nueva.</translation>
+        </message>
+        <message>
+            <source>Who's watching?</source>
+            <translation>¿Quién está viendo?</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Agregar cuenta</translation>
+        </message>
+        <message>
+            <source>Remove profile?</source>
+            <translation>¿Eliminar perfil?</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Eliminar</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Cancelar</translation>
+        </message>
+        <message>
+            <source>Add Profile</source>
+            <translation>Agregar perfil</translation>
+        </message>
+        <message>
+            <source>Log in with a Twitch account.</source>
+            <translation>Inicia sesión con una cuenta de Twitch.</translation>
+        </message>
     </context>
 </TS>

@@ -25,12 +25,18 @@ sub init()
     if get_setting("active_user") = invalid
         set_setting("active_user", "$default$")
     end if
-    if get_user_setting("device_code") = invalid
+    m.footprints = []
+    ' Migrate an existing logged-in user into the profile index
+    if get_setting("active_user", "$default$") <> "$default$" and get_user_setting("access_token") <> invalid
+        saveProfile(get_setting("active_user"))
+    end if
+    if getProfiles().Count() >= 2
+        showProfilePicker(true)
+    else if get_user_setting("device_code") = invalid
         m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
     else
         onMenuSelection()
     end if
-    m.footprints = []
 
     sendAppOpenedEvents()
 end sub
@@ -75,6 +81,7 @@ sub cleanUserData()
         unset_user_setting("access_token")
         unset_user_setting("device_code")
         ? "default Registry keys: "; getRegistryKeys("$default$")
+        removeProfile(active_user)
         NukeRegistry(active_user)
         set_setting("active_user", "$default$")
         ? "active User: "; get_setting("active_user", "$default$")
@@ -246,6 +253,8 @@ sub teardownAllScenes()
         m.activeNode.unobserveField("backPressed")
         m.activeNode.unobserveField("contentSelected")
         m.activeNode.unobserveField("finished")
+        m.activeNode.unobserveField("switchProfile")
+        m.activeNode.unobserveField("addProfile")
         m.top.removeChild(m.activeNode)
         m.activeNode = invalid
     end if
@@ -261,6 +270,8 @@ sub teardownAllScenes()
 end sub
 
 sub onLoginFinished()
+    m.addFromUser = invalid
+    saveProfile(get_setting("active_user", "$default$"))
     m.menu.updateUserIcon = true
     if get_user_setting("device_code") = invalid
         m.getDeviceCodeTask = createApiTask("getRendezvouzToken", "handleDeviceCode")
@@ -280,6 +291,78 @@ sub onLogoutFinished()
     if m.activeNode <> invalid
         m.activeNode.setFocus(true)
     end if
+    if getProfiles().Count() > 0 then showProfilePicker(false)
+end sub
+
+sub showProfilePicker(atStartup as boolean)
+    if m.picker <> invalid then return
+    m.pickerAtStartup = atStartup
+    m.pickerUser = get_setting("active_user", "$default$")
+    m.picker = build_ProfilePicker()
+    m.picker.observeField("profileSelected", "onProfileSelected")
+    m.picker.observeField("addAccount", "onAddAccount")
+    m.picker.observeField("backPressed", "onPickerBack")
+    m.top.appendChild(m.picker)
+    m.picker.setFocus(true)
+end sub
+
+sub closeProfilePicker()
+    if m.picker = invalid then return
+    m.picker.unobserveField("profileSelected")
+    m.picker.unobserveField("addAccount")
+    m.picker.unobserveField("backPressed")
+    m.top.removeChild(m.picker)
+    m.picker = invalid
+end sub
+
+sub onProfileSelected()
+    set_setting("active_user", m.picker.profileSelected)
+    closeProfilePicker()
+    onLoginFinished()
+    showChangelogDialog()
+end sub
+
+sub onPickerBack()
+    closeProfilePicker()
+    if m.pickerAtStartup
+        m.top.exitApp = true
+    else if m.activeNode = invalid or m.pickerUser <> get_setting("active_user", "$default$")
+        onLoginFinished()
+    else
+        m.activeNode.setFocus(true)
+    end if
+end sub
+
+' Starts a fresh login without touching saved accounts; Back restores the previous user.
+sub onAddAccount()
+    closeProfilePicker()
+    m.addFromUser = get_setting("active_user", "$default$")
+    deviceCode = get_user_setting("device_code")
+    set_setting("active_user", "$default$")
+    if deviceCode <> invalid then set_user_setting("device_code", deviceCode)
+    teardownAllScenes()
+    m.activeNode = buildNode("LoginPage")
+    if m.activeNode <> invalid then m.activeNode.setFocus(true)
+end sub
+
+sub onCancelAddAccount()
+    set_setting("active_user", m.addFromUser)
+    m.addFromUser = invalid
+    teardownAllScenes()
+    showProfilePicker(m.pickerAtStartup = true)
+end sub
+
+sub onSwitchProfile()
+    showProfilePicker(false)
+end sub
+
+' Same LoginPage the top-bar button opens; Back returns to Settings via footprints.
+sub onAddProfile()
+    if m.activeNode = invalid then return
+    m.footprints.push(m.activeNode)
+    m.activeNode = invalid
+    m.activeNode = buildNode("LoginPage")
+    if m.activeNode <> invalid then m.activeNode.setFocus(true)
 end sub
 
 sub onMenuSelection()
@@ -375,6 +458,10 @@ end sub
 
 sub onBackPressed()
     if m.activeNode.backPressed = invalid or not m.activeNode.backPressed then return
+    if m.addFromUser <> invalid and m.activeNode.id = "LoginPage"
+        onCancelAddAccount()
+        return
+    end if
     if m.footprints.Count() > 0
         if m.activeNode <> invalid
             m.top.removeChild(m.activeNode)
@@ -460,4 +547,5 @@ sub onDestroy()
     end for
     m.validateOauthToken = destroyTask(m.validateOauthToken, "response")
     m.getDeviceCodeTask = destroyTask(m.getDeviceCodeTask, "response")
+    closeProfilePicker()
 end sub
