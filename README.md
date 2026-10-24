@@ -1,5 +1,6 @@
 [![CI](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/actions/workflows/ci.yml)
 [![GitHub release](https://img.shields.io/github/release/jeremy-albinet/Stitch-Revitalized-For-Roku?include_prereleases=&sort=semver&color=blue)](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/releases/)
+[![Discord](https://img.shields.io/discord/1563625177164546261?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/tZFrCAMxnB)
 
 # Stitch Revitalized
 
