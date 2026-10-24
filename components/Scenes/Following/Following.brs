@@ -58,7 +58,7 @@ sub handleRecommendedSections()
             row = createObject("RoSGNode", "ContentNode")
             row.title = tr("followedLiveUsers")
             first = true
-            itemsPerRow = 3
+            itemsPerRow = getStreamTile().perRow
             appended = false
             for i = 0 to (rsp.liveFollows.count() - 1) step 1
                 if first
@@ -88,7 +88,7 @@ sub handleRecommendedSections()
             row = createObject("RoSGNode", "ContentNode")
             row.title = tr("followedOfflineUsers")
             first = true
-            itemsPerRow = 6
+            itemsPerRow = 9
             ? "OfflineSection Start: "; TimeStamp()
             streams = []
             streams.append(rsp.offlineFollows)

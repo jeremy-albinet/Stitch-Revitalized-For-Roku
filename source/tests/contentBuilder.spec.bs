@@ -10,34 +10,34 @@ namespace tests
         @it("returns correct size for LIVE with row label")
         sub liveWithLabel()
             config = getRowConfig("LIVE", true)
-            m.assertEqual(config.itemSize, [320, 180])
-            m.assertEqual(config.rowHeight, 275)
+            m.assertEqual(config.itemSize, [400, 225])
+            m.assertEqual(config.rowHeight, 320)
         end sub
 
         @it("returns correct size for LIVE without row label")
         sub liveNoLabel()
             config = getRowConfig("LIVE", false)
-            m.assertEqual(config.itemSize, [320, 180])
-            m.assertEqual(config.rowHeight, 235)
+            m.assertEqual(config.itemSize, [400, 225])
+            m.assertEqual(config.rowHeight, 280)
         end sub
 
         @it("returns correct size for VOD with row label")
         sub vodWithLabel()
             config = getRowConfig("VOD", true)
-            m.assertEqual(config.itemSize, [320, 180])
-            m.assertEqual(config.rowHeight, 275)
+            m.assertEqual(config.itemSize, [400, 225])
+            m.assertEqual(config.rowHeight, 320)
         end sub
 
         @it("returns tall row height for LIVE with label")
         sub liveTallWithLabel()
             config = getRowConfig("LIVE", true, true)
-            m.assertEqual(config.rowHeight, 295)
+            m.assertEqual(config.rowHeight, 340)
         end sub
 
         @it("returns tall row height for LIVE without label")
         sub liveTallNoLabel()
             config = getRowConfig("LIVE", false, true)
-            m.assertEqual(config.rowHeight, 255)
+            m.assertEqual(config.rowHeight, 300)
         end sub
 
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -83,8 +83,8 @@ namespace tests
         @it("returns LIVE/VOD config for CLIP content type")
         sub clipType()
             config = getRowConfig("CLIP", true)
-            m.assertEqual(config.itemSize, [320, 180])
-            m.assertEqual(config.rowHeight, 275)
+            m.assertEqual(config.itemSize, [400, 225])
+            m.assertEqual(config.rowHeight, 320)
         end sub
 
         @it("returns invalid for unknown content type")
