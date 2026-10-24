@@ -21,7 +21,7 @@
             id="homeRowList"
             visible="true"
             rowLabelOffset="[[0,5]]"
-            rowLabelFont="font:LargeBoldSystemFont"
+            rowLabelFont="font:MediumBoldSystemFont"
             translation="[ 100, 120 ]"
             itemComponentName="VideoItem"
             numRows="4"
