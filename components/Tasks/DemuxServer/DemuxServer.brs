@@ -1,4 +1,4 @@
-' On-device fmp4-demux-proxy at 127.0.0.1: /m3u8 playlists, /s single-track segments, /health.
+' On-device fmp4-demux-proxy at 127.0.0.1: /m3u8 playlists, /s single-track segments, /live plain live lists, /health.
 
 sub init()
     m.top.functionName = "runServer"
@@ -16,6 +16,11 @@ sub runServer()
     m.trackMapOrder = []
     m.MAX_TRACK_MAPS = 100
     m.maps = newMapRegistry()
+    ' Ad-break counts for live lists (see keepBreakCount).
+    m.breaks = { lists: {}, order: [], notes: [], ads: {} }
+    m.breaks.lists.SetModeCaseSensitive()
+    m.breaks.ads.SetModeCaseSensitive()
+    m.liveUa = invalid
     m.nextFile = 0
     m.CRLF = chr(13) + chr(10)
     m.MAX_SEGS = 12
@@ -32,11 +37,11 @@ sub runServer()
     m.listen.notifyReadable(true)
     m.listen.listen(8)
     if not m.listen.eOK()
-        logLine("Could not open port " + m.top.port.toStr() + ", Enhanced streams will need the Proxy URL setting")
+        logLine("Could not open port " + m.top.port.toStr() + ", live lists will skip the ad fix and Enhanced streams will need the Proxy URL setting")
         m.top.control = "STOP"
         return
     end if
-    logLine("Built-in splitter listening on 127.0.0.1:" + m.top.port.toStr())
+    logLine("Built-in server listening on 127.0.0.1:" + m.top.port.toStr())
     m.top.ready = true
 
     while true
@@ -132,9 +137,11 @@ sub handleRequest(c as object)
     method = UCase(first[0])
     path = first[1]
     host = ""
+    ua = ""
     for each ln in lines
         t = ln.Trim()
         if LCase(t.Left(5)) = "host:" then host = t.Mid(5).Trim()
+        if LCase(t.Left(11)) = "user-agent:" then ua = t.Mid(11).Trim()
     end for
     if host = "" then host = "127.0.0.1:" + m.top.port.toStr()
 
@@ -166,7 +173,16 @@ sub handleRequest(c as object)
     if route = "/s"
         handleSegment(c)
     else if route = "/m3u8"
-        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c })
+        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: false })
+            sendSimple(c, 502, "Bad Gateway")
+        end if
+    else if route = "/live"
+        ' Only the player's own name (User-Agent) is passed on to Twitch with the list request.
+        if ua <> m.liveUa
+            m.liveUa = ua
+            logLine("Live lists asked for by: " + ua)
+        end if
+        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: true, ua: ua })
             sendSimple(c, 502, "Bad Gateway")
         end if
     else
@@ -184,7 +200,11 @@ function startDownload(url as string, file as string, job as object) as boolean
     x.InitClientCertificates()
     x.EnableEncodings(true)
     x.RetainBodyOnError(true)
-    x.AddHeader("User-Agent", "Mozilla/5.0")
+    if job.ua = invalid
+        x.AddHeader("User-Agent", "Mozilla/5.0")
+    else if job.ua <> ""
+        x.AddHeader("User-Agent", job.ua)
+    end if
     job.xfer = x
     job.url = url
     job.file = file
@@ -251,9 +271,15 @@ sub onPlaylistDownloaded(job as object)
     body.ReadFile(job.file)
     DeleteFile(job.file)
     try
-        out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+        if job.live
+            out = absoluteUris(body.ToAsciiString(), c.upstream)
+        else
+            out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+        end if
+        out = keepBreakCount(out, c.upstream, m.breaks)
     catch e
         m.maps.notes.Clear()
+        m.breaks.notes.Clear()
         logLine("Playlist rewrite failed: " + e.message)
         sendSimple(c, 502, "Bad Gateway")
         return
@@ -262,6 +288,10 @@ sub onPlaylistDownloaded(job as object)
         logLine(note)
     end for
     m.maps.notes.Clear()
+    for each note in m.breaks.notes
+        logLine(note)
+    end for
+    m.breaks.notes.Clear()
     body = CreateObject("roByteArray")
     body.FromAsciiString(out)
     sendResponse(c, 200, "OK", "application/vnd.apple.mpegurl", body)

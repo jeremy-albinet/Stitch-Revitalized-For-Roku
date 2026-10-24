@@ -3,9 +3,8 @@ sub init()
     analyticsTask.control = "RUN"
     m.global.addFields({ analyticsTask: analyticsTask })
 
-    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
-    ' Started now so a stream opened right after launch can use it; a remote "off"
-    ' that arrives later is honoured when each stream is routed (isBuiltinSplitterEnabled).
+    ' Built-in server: always on for the live-list ad fix; splits Enhanced streams only when the splitter
+    ' is enabled. A remote "off" that arrives later is honoured when each stream is routed.
     startBuiltinSplitter()
     ' Remote kill switch: fetched in the background, the app never waits on it.
     m.global.addFields({ remoteConfig: {} })
