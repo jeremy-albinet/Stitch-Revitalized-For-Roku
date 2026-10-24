@@ -12,7 +12,7 @@ end sub
 
 sub decideRoute()
     ? "DecideRoute"; TimeStamp()
-    if get_setting("active_user") <> invalid and get_setting("active_user") <> "$default$"
+    if not m.top.anonymous and get_setting("active_user") <> invalid and get_setting("active_user") <> "$default$"
         ? "Route -> handleRecommendedSections"
         handleRecommendedSections()
     else

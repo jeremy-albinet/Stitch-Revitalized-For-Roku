@@ -10,6 +10,15 @@ function build_Following()
     return node
 end function
 
+' Dev-only tab: Following as a logged-out user sees it.
+function build_Anonymous()
+    node = createObject("roSGNode", "Following")
+    node.id = "Anonymous"
+    node.anonymous = true
+    node.translation = [0, 0]
+    return node
+end function
+
 function build_Browse()
     node = createObject("roSGNode", "Browse")
     node.id = "Browse"
