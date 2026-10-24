@@ -21,7 +21,6 @@
                 translation="[100, 20]"
                 itemSize="[720, 50]"
                 numRows="10"
-               
                 focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="pkg:/images/focusfootprint_dim.9.png"
                 vertFocusAnimationStyle="floatingFocus"
                 itemSpacing="[0,5]"
