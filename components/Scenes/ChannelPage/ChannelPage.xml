@@ -38,7 +38,7 @@
             <RowList
                 id="homeRowList"
                 rowLabelOffset="[[0,5]]"
-                rowLabelFont="font:LargeBoldSystemFont"
+                rowLabelFont="font:MediumBoldSystemFont"
                 translation="[ 30,350 ]"
                 itemComponentName="VideoItem"
                 numRows="4"

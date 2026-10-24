@@ -9,7 +9,7 @@
             id="browseRowList"
             visible="false"
             rowLabelOffset="[[0,10]]"
-            rowLabelFont="font:LargeBoldSystemFont"
+            rowLabelFont="font:MediumBoldSystemFont"
             translation="[94, 80]"
             itemComponentName="VideoItem"
             numRows="4"
