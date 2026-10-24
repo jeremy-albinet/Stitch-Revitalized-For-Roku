@@ -10,7 +10,7 @@
             visible="false"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[130, 120]"
+            translation="[94, 80]"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"

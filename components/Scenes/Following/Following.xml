@@ -15,7 +15,7 @@
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
             rowLabelFont="font:LargeBoldSystemFont"
-            translation="[130, 120]"
+            translation="[94, 80]"
             itemComponentName="VideoItem"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,30]]"
