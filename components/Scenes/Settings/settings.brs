@@ -143,7 +143,11 @@ sub placeQrBelowDescription()
 end sub
 
 sub placeBelowDescription(node as object, extra = 0 as integer)
-    descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
+    descY = m.settingDetail.translation[1] + 150
+    try
+        descY = m.settingDetail.translation[1] + m.settingTitle.boundingRect().height + m.settingDesc.boundingRect().height
+    catch e
+    end try
     node.translation = [930, descY + 40 + extra]
 end sub
 
