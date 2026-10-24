@@ -3,6 +3,10 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "2.9.0": [
+            "Improved: Bigger stream tiles, 4 per row, so titles are easier to read from the couch",
+            "Fix: Following, Browse and game pages now fill the full width of the screen"
+        ],
         "2.8.0": [
             "New: The app now renders in full 1080p - sharper, less zoomed, and more content per row",
             "New: Redesigned login page with a larger code and a sharper QR",
