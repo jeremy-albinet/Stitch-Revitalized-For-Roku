@@ -140,9 +140,10 @@ sub NukeRegistry(section = invalid)
 
 end sub
 
-' Starts the built-in Enhanced Broadcasting splitter once, if its setting is on.
+' Starts the built-in server once. It always runs: live lists pass through it for the ad-freeze fix;
+' Enhanced streams are split by it only when the splitter setting is on.
 sub startBuiltinSplitter()
-    if get_user_setting("proxy.builtin", "false") <> "true" or m.global.demuxServer <> invalid then return
+    if m.global.demuxServer <> invalid then return
     demuxServer = CreateObject("roSGNode", "DemuxServer")
     demuxServer.control = "RUN"
     m.global.addFields({ demuxServer: demuxServer })
