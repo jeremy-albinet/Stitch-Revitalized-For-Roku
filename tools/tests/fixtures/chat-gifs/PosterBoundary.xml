@@ -1,0 +1,12 @@
+<!-- Scripted native texture readiness only; never a motion or timing proof. -->
+<component name="PosterBoundary" extends="Group">
+    <interface>
+        <field id="uri" type="string" />
+        <field id="width" type="float" />
+        <field id="height" type="float" />
+        <field id="loadDisplayMode" type="string" />
+        <field id="loadStatus" type="string" alwaysNotify="true" />
+        <field id="bitmapWidth" type="float" />
+        <field id="bitmapHeight" type="float" />
+    </interface>
+</component>

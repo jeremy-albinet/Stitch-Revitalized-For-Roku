@@ -1,0 +1,12 @@
+namespace tests
+    @suite("Package identity")
+    class PackageIdentityTests extends rooibos.BaseTestSuite
+        @describe("Deployment")
+        @it("identifies the freshly deployed test package")
+        sub packageIdentity()
+            identity = ReadAsciiFile("pkg:/test-run-id")
+            print "STITCH_TEST_START: " + identity
+            m.assertTrue(Len(identity) > 0)
+        end sub
+    end class
+end namespace

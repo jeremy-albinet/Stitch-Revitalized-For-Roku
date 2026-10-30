@@ -1,0 +1,7 @@
+{
+  "synthetic": true,
+  "runtimePythonRequired": false,
+  "actualDecoderApproval": false,
+  "corpusSha256": "64b6e5fd1f0d246f68cfe3d668e23e8c1f3ccda4673af80b3fbebf2a54486cc2",
+  "independentReference": "Existing tracked epoch-Core generator/reference split goldens, existing epoch-Server ISO-BMFF corpus for profile refusal"
+}

@@ -1,0 +1,15 @@
+<!-- Inert worker boundary. Production VideoPlayer owns and observes this node. -->
+<component name="TwitchEngagementTask" extends="Group">
+    <interface>
+        <field id="owner" type="string" />
+        <field id="channel" type="string" />
+        <field id="channelId" type="string" />
+        <field id="watchEnabled" type="boolean" value="false" />
+        <field id="hypeEnabled" type="boolean" value="false" />
+        <field id="pinsEnabled" type="boolean" value="false" />
+        <field id="sample" type="assocarray" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <field id="response" type="assocarray" alwaysNotify="true" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+</component>

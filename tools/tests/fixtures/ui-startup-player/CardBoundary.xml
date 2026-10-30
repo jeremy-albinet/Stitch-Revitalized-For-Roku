@@ -1,0 +1,8 @@
+<!-- RowList item boundary: generated Twitch image URLs never fetch. -->
+<component name="CardBoundary" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" />
+        <field id="rowFocusPercent" type="float" />
+        <field id="itemHasFocus" type="boolean" />
+    </interface>
+</component>

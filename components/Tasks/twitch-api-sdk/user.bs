@@ -50,7 +50,9 @@ function getLiveStatusForLogins() as object
 end function
 
 sub getTwitchBookmarks()
-    if get_setting("active_user", "$default$") <> "$default$"
+    result = invalid
+    requestedUser = get_setting("active_user", "$default$")
+    if requestedUser <> "$default$"
         rsp = TwitchGraphQLRequest({
             "operationName": "queryUserViewedVideo",
             "variables": {},
@@ -61,21 +63,26 @@ sub getTwitchBookmarks()
                 }
             }
         })
-        if rsp?.data?.currentUser?.viewedVideos?.edges <> invalid
+        if type(rsp?.data?.currentUser?.viewedVideos?.edges) = "roArray" and requestedUser = get_setting("active_user", "$default$")
             videoBookmarks = {}
             for each edge in rsp.data.currentUser.viewedVideos.edges
-                if edge.node = invalid then continue for
-                videoId = edge.node.id
-                positionSecs = edge.history.position
-                videoBookmarks[videoId] = Int(positionSecs).toStr()
+                if edge?.node?.id = invalid or edge?.history?.position = invalid then continue for
+                try
+                    videoBookmarks[edge.node.id] = Int(edge.history.position).toStr()
+                catch e
+                end try
             end for
             try
-                set_user_setting("VideoBookmarks", FormatJson(videoBookmarks, 256))
+                if requestedUser = get_setting("active_user", "$default$")
+                    set_user_setting("VideoBookmarks", FormatJson(videoBookmarks, 256))
+                    result = { bookmarks: videoBookmarks }
+                end if
             catch e
                 ?"Error Saving Bookmarks "; e
             end try
         end if
     end if
+    m.top.response = result
     m.top.control = TaskControl.STOP
 end sub
 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RokuVodDemuxServer" extends="Task">
+    <interface>
+        <field id="sessionId" type="string" />
+        <field id="inputDescriptor" type="assocarray" />
+        <field id="experimentalMode" type="boolean" value="false" />
+        <field id="cacheBudgetBytes" type="integer" value="25165824" />
+        <field id="listenPort" type="integer" value="0" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <field id="ready" type="assocarray" alwaysNotify="true" />
+        <field id="result" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxCommon.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/deviceCapabilities.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/playbackHls.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxBulk.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxInitMetadata.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxInitGate.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxProtocol.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxServerPolicy.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodIndex.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodChunks.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodProtocol.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodCache.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodFetch.brs" />
+    <script type="text/brightscript" uri="RokuVodDemuxServer.brs" />
+</component>

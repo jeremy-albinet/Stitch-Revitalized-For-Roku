@@ -1,48 +1,27 @@
 function validateOauthToken() as object
-    access_token = invalid
-    device_code = invalid
-    ' doubled up here in stead of defaulting to "" because access_token is dependent on device_code
-    if get_user_setting("device_code") <> invalid
-        device_code = get_user_setting("device_code")
-        if get_user_setting("access_token") <> invalid
-            access_token = "OAuth " + get_user_setting("access_token")
-        end if
-    else
-        return false
-    end if
-    reqHeaders = {
-        "Accept": "*/*",
-        "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
-        "Device-ID": device_code,
-        "Origin": "https://android.tv.twitch.tv",
-        "Referer": "https://android.tv.twitch.tv/",
-        "Accept-Language": getDeviceLocale()
-    }
-    if access_token <> invalid
-        reqHeaders["Authorization"] = access_token
-    end if
-    req = HttpRequest({
-        url: "https://id.twitch.tv/oauth2/validate",
-        headers: reqHeaders,
-        method: "GET"
-    })
-    sendResult = req.send()
-    if sendResult = invalid
-        m.top.response = { "tokenValid": false }
+    access_token = get_user_setting("access_token", "")
+    if access_token = ""
+        m.top.response = { tokenValid: false, validationState: "anonymous" }
         m.top.control = TaskControl.STOP
         return invalid
     end if
-    rsp = ParseJSON(sendResult)
-    if rsp?.status <> invalid
-        if rsp.status = 401
-            m.top.response = { "tokenValid": false }
-        end if
-    end if
-    if rsp?.expires_in <> invalid
-        m.top.response = { "tokenValid": true }
-    end if
+    reqHeaders = {
+        "Accept": "application/json",
+        "Authorization": "OAuth " + access_token
+    }
+    req = HttpRequest({
+        url: "https://id.twitch.tv/oauth2/validate",
+        headers: reqHeaders,
+        method: "GET",
+        timeout: 10000
+    })
+    sendResult = req.send()
+    status = 0
+    if sendResult <> invalid then status = sendResult.getResponseCode()
+    rsp = decodeJsonResponse(sendResult, true)
+    state = getOAuthValidationState(status, rsp)
+    m.top.response = { tokenValid: state = "valid", validationState: state }
     m.top.control = TaskControl.STOP
-    ? "pause"
     return invalid
 end function
 
@@ -56,7 +35,7 @@ sub getRendezvouzToken()
         },
         method: "POST"
     })
-    rsp = ParseJSON(req.send() ?? "")
+    rsp = decodeJsonResponse(req.send())
     if rsp = invalid or rsp?.device_code = invalid or rsp?.user_code = invalid
         m.top.response = invalid
         m.top.control = TaskControl.STOP
@@ -65,38 +44,70 @@ sub getRendezvouzToken()
     m.top.response = {
         device_code: rsp.device_code,
         user_code: rsp.user_code,
-        interval: rsp?.interval ?? 5
+        interval: boundedHttpOption(rsp?.interval, 5, 1, 60),
+        expires_in: boundedHttpOption(rsp?.expires_in, 1800, 1, 3600),
+        verification_uri: rsp?.verification_uri ?? "https://twitch.tv/activate"
     }
     m.top.control = TaskControl.STOP
 end sub
 
 
 function getOauthToken()
-    if m.top.request.params.device_code = invalid
+    params = m.top.request?.params
+    if params?.device_code = invalid
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid
     end if
-    req = HttpRequest({
-        url: "https://id.twitch.tv/oauth2/token" + "?client_id=ue6666qo983tsx6so1t0vnawi233wa&device_code=" + m.top.request.params.device_code + "&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code",
-        headers: {
-            "content-type": "application/x-www-form-urlencoded",
-            "origin": "https://android.tv.twitch.tv",
-            "referer": "https://android.tv.twitch.tv/",
-            "accept": "application/json"
-        },
-        method: "POST"
-    })
-    while true
-        rsp = ParseJSON(req.send() ?? "")
-        if rsp <> invalid and rsp.DoesExist("access_token")
+    encoder = CreateObject("roUrlTransfer")
+    if encoder = invalid
+        m.top.response = invalid
+        m.top.control = TaskControl.STOP
+        return invalid
+    end if
+    requestData = "client_id=ue6666qo983tsx6so1t0vnawi233wa&device_code=" + encoder.Escape(params.device_code) + "&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code"
+    interval = boundedHttpOption(params?.interval, 5, 1, 60)
+    lifetime = boundedHttpOption(params?.expires_in, 1800, 1, 3600)
+    deadline = CreateObject("roTimeSpan")
+    deadline.Mark()
+    rsp = invalid
+    while deadline.TotalSeconds() < lifetime
+        remainingMs = Int((lifetime - deadline.TotalSeconds()) * 1000)
+        if remainingMs < 50 then exit while
+        req = HttpRequest({
+            url: "https://id.twitch.tv/oauth2/token",
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+                "origin": "https://android.tv.twitch.tv",
+                "referer": "https://android.tv.twitch.tv/",
+                "accept": "application/json"
+            },
+            method: "POST",
+            data: requestData,
+            timeout: boundedHttpOption(remainingMs, 10000, 50, 10000)
+        })
+        event = req.send()
+        status = 0
+        if event <> invalid then status = event.getResponseCode()
+        rsp = decodeJsonResponse(event, true)
+        state = getOAuthPollState(status, rsp)
+        if state = "success" then exit while
+        if state = "denied" or state = "expired" or state = "error"
+            rsp = invalid
             exit while
         end if
-        sleep(5000)
+        if state = "slow_down" or state = "network" then interval = boundedHttpOption(interval + 5, 5, 1, 60)
+        remainingMs = Int((lifetime - deadline.TotalSeconds()) * 1000)
+        if remainingMs <= 0 then exit while
+        pauseMs = Int(interval * 1000)
+        if pauseMs > remainingMs then pauseMs = remainingMs
+        sleep(pauseMs)
     end while
     if rsp <> invalid and rsp?.access_token <> invalid
         m.top.response = {
-            access_token: rsp.access_token
+            access_token: rsp.access_token,
+            refresh_token: rsp?.refresh_token,
+            expires_in: rsp?.expires_in
         }
     else
         m.top.response = invalid

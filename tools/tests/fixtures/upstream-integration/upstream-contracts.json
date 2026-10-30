@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "de32aca95bf736f7b8117b99dcd4826002265423",
+  "changelog": {
+    "2.9.0": [
+      "Improved: Bigger stream tiles, 4 per row, so titles are easier to read from the couch",
+      "Fix: Following, Browse and game pages now fill the full width of the screen"
+    ],
+    "2.8.0": [
+      "New: The app now renders in full 1080p - sharper, less zoomed, and more content per row",
+      "New: Redesigned login page with a larger code and a sharper QR",
+      "Improved: Thinner focus border and a cleaner, smaller LIVE badge",
+      "Fix: Round avatars are round again"
+    ],
+    "2.7.0": [
+      "New: Enhanced Broadcasting streams can now play without a proxy server. Pick Turn On and Play when asked, or turn on Settings > Built-in Enhanced Broadcasting Splitter",
+      "New: The built-in splitter was contributed by a community member. Thank you!",
+      "Fix: Streams no longer restart 16 seconds after changing quality",
+      "Fix: Picking a quality from the menu on a proxied stream now stays on the proxy",
+      "Fix: Proxied streams now get the right bitrate and resolution"
+    ],
+    "2.6.0": [
+      "New: Recently Watched sidebar now shows a live indicator — a red dot appears on streamers who are currently live",
+      "Improved: Top bar and left sidebar are now smaller, giving more screen space to content",
+      "Improved: Stream category and streamer name are now on the same line in stream cards"
+    ],
+    "2.5.1": [
+      "Fix: Streams no longer buffer every 30-40 seconds after the v2.5 latency update",
+      "Fix: Removed the brief spinner flash that appeared right after a stream started",
+      "Improved: Smarter live-edge correction — skipped when the stream already starts near the live edge"
+    ],
+    "2.5.0": [
+      "New: Reduced stream latency — streams now start closer to real-time, though zero-delay streaming isn't possible on Roku",
+      "New: Donate via Buy Me a Coffee — find the QR code in Settings",
+      "Fix: Focus highlight now visible on channel pages and all grid views",
+      "Fix: Error tracking now includes more detail to help diagnose crashes faster"
+    ],
+    "2.4.0": [
+      "New: Following + Browse — simpler 2-tab layout (was 4 tabs)",
+      "New: Recently Watched sidebar — quickly rejoin streams you've been to",
+      "New: Sign in with a QR code — scan with your phone instead of typing the device code",
+      "New: Search tab in the top menu — dedicated destination for finding channels and games",
+      "New: Streams now auto-reconnect after ad breaks instead of freezing",
+      "New: Settings → Log Out",
+      "New: Optional anonymous analytics to help catch bugs (opt-out in Settings)",
+      "Fix: Chat connection now closes properly when leaving a stream",
+      "Fix: Several crashes on scene transitions and network failures"
+    ]
+  },
+  "supportSetting": {
+    "title": "Support Stitch",
+    "description": "Stitch is a free, community-built Twitch client. If it's useful to you, scan the QR code to support development on Buy Me a Coffee. Thank you!",
+    "settingName": "support",
+    "type": "action",
+    "action": "support_stitch"
+  },
+  "donationQrSha256": "47d5e707d141852d31766a8ec0a78d55ec4e38d38f7d3e83aa7c2775ca165c65",
+  "funding": "buy_me_a_coffee: jeremyalbinet\n"
+}

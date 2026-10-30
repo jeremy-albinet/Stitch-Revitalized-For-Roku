@@ -1,0 +1,177 @@
+' Player-only boundary. The older followChannel/unfollowChannel retain their raw
+' contract. Never publish those raw responses to the Player's typed observer.
+' On 2026-10-25 gql.twitch.tv/gql accepted the status selection below in a
+' public, anonymous read: currentUser and user.self were null; user.id/login
+' were populated. No authenticated write was used to validate this feature.
+' APQ inputs/hashes match follow.bs; Twitch may reject them (e.g. integrity or
+' authorization errors), which stays a whole-invalid result, never success.
+function getPlayerFollowState() as object
+    auth = playerFollowAuth()
+    m.top.response = readPlayerFollowState(auth, m.top.request?.params)
+    m.top.control = TaskControl.STOP
+    return invalid
+end function
+
+function setPlayerFollowState() as object
+    auth = playerFollowAuth()
+    params = m.top.request?.params
+    result = invalid
+    state = readPlayerFollowState(auth, params)
+    if state <> invalid and type(params.following) = "Boolean"
+        ' Recheck both identities and the displayed state before a write. A stale
+        ' Follow button must never become a toggle of a newer relationship.
+        if not state.isSelf and state.id = params.id and state.viewerId = params.viewerId and state.following <> params.following
+            mutation = unfollowChannelMutation(state.id)
+            if params.following then mutation = followChannelMutation(state.id)
+            rsp = playerFollowRequest(mutation, auth)
+            ' Persisted payload selections can change. Do not infer success from
+            ' HTTP 200, or guess fields inside followUser/unfollowUser. Confirm
+            ' every acknowledgement using the authenticated subjective edge.
+            if type(rsp?.data) = "roAssociativeArray" and not playerFollowErrors(rsp)
+                verified = readPlayerFollowState(auth, params)
+                if verified <> invalid
+                    if verified.id = state.id and verified.viewerId = state.viewerId and verified.following = params.following
+                        result = verified
+                    end if
+                end if
+            end if
+        end if
+    end if
+    m.top.response = result
+    m.top.control = TaskControl.STOP
+    return invalid
+end function
+
+function playerFollowAuth() as dynamic
+    account = get_setting("active_user", "$default$")
+    token = get_user_setting("access_token", "")
+    device = get_user_setting("device_code", "")
+    if not playerFollowLogin(account) or not playerFollowString(token) or not playerFollowString(device) then return invalid
+    if m.top.request?.params?.account <> account then return invalid
+    return { account: account, token: token, device: device }
+end function
+
+function playerFollowAuthCurrent(auth as dynamic) as boolean
+    if m.top.followStopRequested = true then return false
+    if auth = invalid then return false
+    if get_setting("active_user", "$default$") <> auth.account then return false
+    if get_user_setting("access_token", "") <> auth.token then return false
+    return get_user_setting("device_code", "") = auth.device
+end function
+
+function playerFollowString(value as dynamic) as boolean
+    if GetInterface(value, "ifString") = invalid then return false
+    return value.Trim() <> ""
+end function
+
+function playerFollowLogin(value as dynamic) as boolean
+    if not playerFollowString(value) then return false
+    return CreateObject("roRegex", "^[a-zA-Z0-9_]{1,25}$", "").IsMatch(value)
+end function
+
+function playerFollowId(value as dynamic) as boolean
+    if not playerFollowString(value) then return false
+    return CreateObject("roRegex", "^[1-9][0-9]*$", "").IsMatch(value)
+end function
+
+function playerFollowErrors(rsp as dynamic) as boolean
+    if type(rsp) <> "roAssociativeArray" then return true
+    if rsp.errors = invalid then return false
+    if type(rsp.errors) <> "roArray" then return true
+    return rsp.errors.Count() > 0
+end function
+
+function readPlayerFollowState(auth as dynamic, params as dynamic) as dynamic
+    if not playerFollowAuthCurrent(auth) or type(params) <> "roAssociativeArray" then return invalid
+    if not playerFollowLogin(params.login) then return invalid
+    ' Login lookup is the same broadcaster identity contract as ChannelPage;
+    ' never substitute contentId (a VOD id) or a clip slug for a missing id.
+    if params.id <> "" and not playerFollowId(params.id) then return invalid
+    rsp = playerFollowRequest({
+        query: "query StitchPlayerFollowState($login: String!) { currentUser { id login } user(login: $login) { id login self { follower { followedAt } } } }",
+        variables: { login: params.login }
+    }, auth)
+    if playerFollowErrors(rsp) then return invalid
+    viewer = rsp?.data?.currentUser
+    channel = rsp?.data?.user
+    if not playerFollowId(viewer?.id) or not playerFollowLogin(viewer?.login) then return invalid
+    if LCase(viewer.login) <> LCase(auth.account) then return invalid
+    if not playerFollowId(channel?.id) or not playerFollowLogin(channel?.login) then return invalid
+    if LCase(channel.login) <> LCase(params.login) then return invalid
+    if params.id <> "" and params.id <> channel.id then return invalid
+    isSelf = viewer.id = channel.id
+    following = false
+    if not isSelf
+        if type(channel.self) <> "roAssociativeArray" then return invalid
+        if not channel.self.DoesExist("follower") then return invalid
+        edge = channel.self.follower
+        if edge <> invalid
+            if type(edge) <> "roAssociativeArray" then return invalid
+            if not playerFollowString(edge.followedAt) then return invalid
+            following = true
+        end if
+    end if
+    return { account: auth.account, login: channel.login, id: channel.id, viewerId: viewer.id, following: following, isSelf: isSelf }
+end function
+
+' Capture credentials once; account switches cannot turn an old request into a
+' write with a different user's token. No token is included in task responses.
+function playerFollowRequest(data as object, auth as dynamic) as dynamic
+    if not playerFollowAuthCurrent(auth) then return invalid
+    req = HttpRequest({
+        url: "https://gql.twitch.tv/gql",
+        method: "POST",
+        timeout: 8000,
+        retries: 1,
+        headers: {
+            "Accept": "application/json",
+            "Client-Id": "ue6666qo983tsx6so1t0vnawi233wa",
+            "Device-ID": auth.device,
+            "Authorization": "OAuth " + auth.token,
+            "Origin": "https://android.tv.twitch.tv",
+            "Referer": "https://android.tv.twitch.tv/",
+            "Accept-Language": getDeviceLocale()
+        },
+        data: data
+    })
+    if not playerFollowAuthCurrent(auth) then return invalid
+    rsp = decodeJsonResponse(req.send())
+    if not playerFollowAuthCurrent(auth) then return invalid
+    return rsp
+end function
+
+
+function followChannelMutation(id as string) as object
+    return {
+        "operationName": "FollowButton_FollowUser",
+        variables: {
+            input: {
+                "disableNotifications": false,
+                "targetID": id
+            }
+        },
+        extensions: {
+            "persistedQuery": {
+                version: 1,
+                "sha256Hash": "800e7346bdf7e5278a3c1d3f21b2b56e2639928f86815677a7126b093b2fdd08"
+            }
+        }
+    }
+end function
+
+function unfollowChannelMutation(id as string) as object
+    return {
+        "operationName": "FollowButton_UnfollowUser",
+        variables: {
+            input: {
+                "targetID": id
+            }
+        },
+        extensions: {
+            "persistedQuery": {
+                version: 1,
+                "sha256Hash": "f7dae976ebf41c755ae2d758546bfd176b4eeb856656098bb40e0a672ca0d880"
+            }
+        }
+    }
+end function

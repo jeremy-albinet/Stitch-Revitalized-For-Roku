@@ -1,44 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="Search" extends="SceneManagerGroup" initialFocus="keyboard">
+    <interface>
+        <function name="onDestroy" />
+    </interface>
     <script type="text/brightscript" uri="Search.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
+        <!-- Restarted on each text change; one request starts after typing pauses. -->
+        <Timer id="searchDebounce" duration="0.5" repeat="false" />
+        <Label
+            id="recentsHeading"
+            text="Recent searches"
+            visible="false"
+            color="0xADADB8FF"
+            translation="[100, 80]">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
         <ButtonGroup
             id="recents"
-            translation="[100, 90]"
+            translation="[100, 104]"
             minWidth="300"
-            textFont="font:SmallestSystemFont"
-            focusedTextFont="font:SmallestSystemFont"
             visible="true"
             iconUri="pkg:/images/icons/clock-o.png"
             focusedIconUri="pkg:/images/icons/clock-o.png"
-            focusFootprintBitmapUri="null"
-            focusBitmapUri="null"
-        />
+            focusFootprintBitmapUri="pkg:/images/transparent.9.png"
+            focusBitmapUri="pkg:/images/twitch-redesign/focus-round6.9.png">
+            <Font role="textFont" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+            <Font role="focusedTextFont" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+        </ButtonGroup>
         <DynamicMiniKeyboard
             id="keyboard"
-            buttonheight="30"
             translation="[100,120]" />
+        <Label
+            id="searchStatus"
+            visible="false"
+            width="732"
+            wrap="true"
+            maxLines="3"
+            color="0xADADB8FF"
+            translation="[500, 84]">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+        </Label>
         <RowList
             id="homeRowList"
-            translation="[720, 120]"
+            translation="[500, 120]"
             rowLabelOffset="[[0,10]]"
-            rowLabelFont="font:MediumBoldSystemFont"
+            rowLabelColor="0xEFEFF1FF"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,0]]"
-            itemSize="[1200,295]"
+            itemSize="[1280,295]"
             itemSpacing="[ 0, 40 ]"
             showRowLabel="[ true ]"
-            focusBitmapUri="pkg:/images/focus_row.9.png"
-            drawFocusFeedbackOnTop="true"
+            focusBitmapUri="pkg:/images/transparent.9.png"
             vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="floatingFocus"
-        />
+            rowFocusAnimationStyle="fixedFocus">
+            <Font role="rowLabelFont" uri="pkg:/fonts/Archivo-Bold.otf" size="24" />
+        </RowList>
     </children>
 
 </component>

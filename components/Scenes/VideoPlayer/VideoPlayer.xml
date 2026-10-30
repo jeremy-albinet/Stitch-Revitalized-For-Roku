@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="VideoPlayer" extends="SceneManagerGroup" initialFocus="videoWindow">
     <interface>
+        <function name="onDestroy" />
+        <function name="requestBack" />
+        <field id="channelRequested" type="node" />
+        <field id="channelPinChanged" type="boolean" alwaysNotify="true" />
+        <field id="channelFollowChanged" type="boolean" alwaysNotify="true" />
+        <field id="channelSignInRequested" type="boolean" alwaysNotify="true" />
         <field id="contentRequested" type="Node" onChange="handleContent" />
         <field id="contentStore" type="assocarray" />
         <field id="metadata" type="array" />
@@ -13,21 +19,45 @@
         <field id="control" type="string" alwaysNotify="true" onChange="controlChanged" />
         <field id="streams" type="assocarray" />
         <field id="ChatStarted" type="bool" value="false" />
+        <field id="engagementStatus" type="assocarray" alwaysNotify="true" />
     </interface>
     <script type="text/brightscript" uri="VideoPlayer.brs" />
+    <script type="text/brightscript" uri="ChannelFollow.brs" />
+    <script type="text/brightscript" uri="ContentAdvisory.brs" />
+    <script type="text/brightscript" uri="ChatLayout.brs" />
+    <script type="text/brightscript" uri="RokuPlayback.brs" />
+    <script type="text/brightscript" uri="LowLatencyPlayback.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodIndex.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodRuntime.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/playbackHls.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/deviceCapabilities.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
     <children>
+        <Group id="contentAdvisory" visible="false" translation="[48,40]">
+            <Rectangle id="advisoryPlate" width="600" height="96" color="0x18181BF2" />
+            <Rectangle id="advisoryAccent" width="4" height="96" color="0xA970FFFF" />
+            <Label id="advisoryTitle" width="560" height="30" translation="[20,14]" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="22" />
+            </Label>
+            <Label id="advisoryLabels" width="560" translation="[20,50]" color="0xEFEFF1FF" wrap="true" maxLines="7">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+        </Group>
         <Chat
             id="chat"
             visible="false"
-            translation="[1600,0]"
+            translation="[960,0]"
             forceLive="false" />
         <TwitchApiTask
+            id="bookmarksTask"
             functionName="getTwitchBookmarks"
-            control="run"
         />
     </children>
 

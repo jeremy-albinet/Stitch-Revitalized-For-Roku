@@ -1,0 +1,10 @@
+<component name="FixtureScene" extends="Scene">
+    <interface><field id="exitApp" type="boolean" /><function name="fixtureReady" /><function name="fixtureRead" /><function name="fixtureCleanup" /><function name="fixtureLogout" /></interface>
+    <script uri="scene.brs" />
+    <script uri="HeroActual.brs" />
+    <script uri="pkg:/source/utils/sceneFactory.brs" />
+    <script uri="pkg:/source/utils/lifecycle.brs" />
+    <script uri="pkg:/source/utils/misc.brs" />
+    <script uri="pkg:/source/utils/config.brs" />
+    <script uri="pkg:/source/utils/taskFactory.brs" />
+</component>

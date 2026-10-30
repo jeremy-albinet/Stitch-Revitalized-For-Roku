@@ -1,0 +1,20 @@
+<!-- Offline boundary for the chat transport: the production interface without
+     a socket. Chat rendering is driven by the fixture instead. -->
+<component name="ChatJob" extends="Group">
+    <interface>
+        <field id="channel" type="string" />
+        <field id="loggedInUsername" type="string" value="" />
+        <field id="readyForNextComment" type="bool" value="true" />
+        <field id="nextComment" type="string" />
+        <field id="nextCommentObj" type="AssocArray" />
+        <field id="moderation" type="AssocArray" alwaysNotify="true" />
+        <field id="clientComment" type="string" />
+        <field id="sendMessage" type="string" />
+        <field id="forceLive" type="bool" value="false" />
+        <field id="delaySeconds" type="float" value="0" />
+        <field id="stopRequested" type="bool" value="false" />
+        <field id="connectionState" type="string" value="stopped" />
+        <field id="deliveryState" type="string" value="waiting" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+</component>

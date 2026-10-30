@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="AdMetadataOwner" extends="Group">
+    <interface>
+        <function name="beginContent" />
+        <function name="endContent" />
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <field id="busy" type="boolean" value="false" />
+        <field id="cleanupBlocked" type="boolean" value="false" />
+        <field id="closed" type="boolean" value="false" />
+    </interface>
+    <children><Timer id="cleanupTimer" duration="0.1" repeat="true" /></children>
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdClock.brs" />
+    <script type="text/brightscript" uri="AdMetadataOwner.brs" />
+</component>

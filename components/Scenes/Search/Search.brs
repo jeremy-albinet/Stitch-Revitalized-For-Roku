@@ -1,19 +1,46 @@
 sub init()
+    m.disposed = false
     m.top.observeField("focusedChild", "onGetfocus")
     m.recents = m.top.findnode("recents")
     ' m.recents.buttons = ["Ammo", "paymoneywubby", "three"]
     if m.recents <> invalid
-        m.recents.TextColor = m.global.constants.colors.muted.ice
-        m.recents.FocusedTextColor = m.global.constants.colors.twitch.purple10
+        m.recents.TextColor = m.global.constants.ui.color.text
+        m.recents.FocusedTextColor = m.global.constants.ui.color.onAccent
         m.recents.observeField("buttonSelected", "onRecentItemSelected")
     end if
+    m.recentsHeading = m.top.findNode("recentsHeading")
+    if m.recentsHeading <> invalid then m.recentsHeading.text = tr("Recent searches")
+    m.searchStatus = m.top.findNode("searchStatus")
     m.kb = m.top.findNode("keyboard")
+    applyKeyboardPalette(m.kb)
     m.kb.textEditBox.hintText = tr("Enter Search Query")
     m.kb.textEditBox.voiceEnabled = true
     m.kb.observefield("text", "handleTextInput")
     m.rowlist = m.top.findNode("homeRowList")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
+    ' One request starts after typing pauses; each edit supersedes the last.
+    m.activeQuery = ""
+    m.searchTimer = m.top.findNode("searchDebounce")
+    if m.searchTimer <> invalid then m.searchTimer.observeField("fire", "onSearchDebounce")
     updateRecents()
+end sub
+
+' Twitch colours on the on-screen keyboard: dark keys, purple focus.
+sub applyKeyboardPalette(keyboard as dynamic)
+    if keyboard = invalid or not keyboard.hasField("palette") then return
+    color = m.global?.constants?.ui?.color
+    if color = invalid then return
+    palette = CreateObject("roSGNode", "RSGPalette")
+    if palette = invalid then return
+    palette.colors = {
+        PrimaryTextColor: color.text,
+        SecondaryTextColor: color.textSecondary,
+        InputFieldColor: color.raised,
+        KeyboardColor: color.surface,
+        FocusColor: color.focusFill,
+        FocusItemColor: color.onAccent
+    }
+    keyboard.palette = palette
 end sub
 
 sub updateRecents(appendItem = invalid)
@@ -46,36 +73,78 @@ sub onRecentItemSelected()
 end sub
 
 sub adjustPositionForRecents()
+    ' Heading and recent searches sit above the keyboard when history exists.
+    recentCount = m.recents.buttons.count()
+    if m.recentsHeading <> invalid then m.recentsHeading.visible = recentCount > 0
     yTranslation = 120
-    if m.recents.buttons.count() > 0
-        m.recents.buttonHeight = (m.recents.textFont.size * 3)
-        ' bound = m.recents.boundingrect()
-        ' localbound = m.recents.localboundingrect()
-        ' yTranslation = m.recents.localboundingrect().height
-        for each button in m.recents.buttons
-            yTranslation += (m.recents.textFont.size * 2)
-        end for
-        ' ? "pause"
-
-        m.kb.translation = [m.kb.translation[0], yTranslation]
+    if recentCount > 0
+        m.recents.buttonHeight = 40
+        yTranslation = m.recents.translation[1] + (recentCount * 40) + 16
     end if
+    m.kb.translation = [m.kb.translation[0], yTranslation]
+end sub
+
+function currentSearchQuery() as string
+    if m.kb = invalid or m.kb.text = invalid then return ""
+    return m.kb.text.toStr().trim()
+end function
+
+sub showSearchStatus(text as string)
+    if m.searchStatus = invalid then return
+    m.searchStatus.text = text
+    m.searchStatus.visible = text <> ""
 end sub
 
 sub handleTextInput()
-    if m.kb.text <> invalid and m.kb.text <> ""
-        m.rowlist.visible = false
-        m.rowlist.content = invalid
-        m.GetContentTask = createApiTask("getSearchQuery", "handleRecommendedSections", { query: m.kb.text.toStr() })
+    if m.disposed then return
+    ' Any edit makes an in-flight response stale immediately.
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
+    m.activeQuery = ""
+    if m.searchTimer <> invalid then m.searchTimer.control = "stop"
+    query = currentSearchQuery()
+    m.rowlist.visible = false
+    m.rowlist.content = invalid
+    if query = ""
+        showSearchStatus("")
+        return
+    end if
+    showSearchStatus(Substitute(tr("Searching for ""{0}""…"), query))
+    if m.searchTimer <> invalid
+        m.searchTimer.control = "start"
+    else
+        onSearchDebounce()
     end if
 end sub
 
-sub handleRecommendedSections()
-    rsp = m.GetContentTask.response
-    if rsp = invalid then return
-    buildContentNodeFromShelves(rsp)
+sub onSearchDebounce()
+    if m.disposed then return
+    query = currentSearchQuery()
+    if query = "" then return
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
+    m.activeQuery = query
+    m.GetContentTask = createApiTask("getSearchQuery", "handleRecommendedSections", { query: query })
 end sub
 
-sub buildContentNodeFromShelves(shelves)
+sub handleRecommendedSections()
+    if m.disposed or m.GetContentTask = invalid then return
+    rsp = m.GetContentTask.response
+    query = m.activeQuery
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
+    m.activeQuery = ""
+    ' Ignore a response for text the user has since changed.
+    if query = "" or query <> currentSearchQuery() then return
+    if rsp = invalid
+        showSearchStatus(tr("Search isn't working right now. Check your connection, then edit your search to try again."))
+        return
+    end if
+    if buildContentNodeFromShelves(rsp) = 0
+        showSearchStatus(Substitute(tr("No results for ""{0}"". Check the spelling or try a channel or category name."), query))
+    else
+        showSearchStatus("")
+    end if
+end sub
+
+function buildContentNodeFromShelves(shelves) as integer
     LiveChannels = []
     Users = []
     Games = []
@@ -185,33 +254,36 @@ sub buildContentNodeFromShelves(shelves)
     rowItemSize = []
     rowHeights = []
     if firstRow.getChildCount() > 0
-        streamRow = getRowConfig("LIVE", true)
-        rowItemSize.push(streamRow.itemSize)
-        rowHeights.push(streamRow.rowHeight)
+        config = getRowConfig("LIVE", true, true)
+        rowItemSize.push(config.itemSize)
+        rowHeights.push(config.rowHeight)
         AllContent.appendChild(firstRow)
     end if
     if secondRow.getchildCount() > 0
-        rowItemSize.push([150, 150])
-        rowHeights.push(200)
+        config = getRowConfig("USER", true)
+        rowItemSize.push(config.itemSize)
+        rowHeights.push(config.rowHeight)
         AllContent.appendChild(secondRow)
     end if
     if thirdRow.getchildCount() > 0
-        rowItemSize.push([188, 250])
-        rowHeights.push(325)
+        config = getRowConfig("GAME", true)
+        rowItemSize.push(config.itemSize)
+        rowHeights.push(config.rowHeight)
         AllContent.appendChild(thirdRow)
     end if
     if fourthRow.getchildCount() > 0
-        streamRow = getRowConfig("LIVE", true)
-        rowItemSize.push(streamRow.itemSize)
-        rowHeights.push(streamRow.rowHeight)
+        config = getRowConfig("VOD", true, true)
+        rowItemSize.push(config.itemSize)
+        rowHeights.push(config.rowHeight)
         AllContent.appendchild(fourthRow)
     end if
     m.rowlist.visible = false
     m.rowlist.content = AllContent
     m.rowlist.rowHeights = rowHeights
     m.rowlist.rowItemSize = rowItemSize
-    m.rowlist.visible = true
-end sub
+    m.rowlist.visible = AllContent.getChildCount() > 0
+    return AllContent.getChildCount()
+end function
 
 
 sub handleItemSelected()
@@ -269,14 +341,16 @@ function onKeyEvent(key as string, press as boolean) as boolean
                 return true
             end if
         end if
-        if key = "up" or key = "back"
+        if key = "up"
             if m.top?.focusedChild?.id <> invalid and m.top.focusedChild.id = "keyboard"
                 if m.recents.buttons.count() > 0
                     m.recents.setfocus(true)
-                    ' m.kb.setfocus(false)
                     return true
                 end if
             end if
+        end if
+        ' Back from any Search area returns to the menu.
+        if key = "up" or key = "back"
             m.rowlist.setfocus(false)
             m.kb.setfocus(false)
             m.top.backPressed = true
@@ -293,8 +367,15 @@ function onKeyEvent(key as string, press as boolean) as boolean
 end function
 
 sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    m.top.lastFocus = invalid
     m.top.unobserveField("focusedChild")
-    m.recents.unobserveField("buttonSelected")
+    if m.recents <> invalid then m.recents.unobserveField("buttonSelected")
+    if m.searchTimer <> invalid
+        m.searchTimer.control = "stop"
+        m.searchTimer.unobserveField("fire")
+    end if
     m.kb.unobserveField("text")
     m.rowlist.unobserveField("itemSelected")
     m.GetContentTask = destroyTask(m.GetContentTask, "response")

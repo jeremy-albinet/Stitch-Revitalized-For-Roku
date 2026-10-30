@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "network": false,
+  "runtimePythonRequired": false,
+  "pythonReferenceSha256": "8283ec1a601de9257b05fa16253c2685397f788dad7bdb9ccccf07e967bebc1d",
+  "pythonBuilderSha256": "247d9941bc5de1f39c622be79041aa233e5f12f0a6adc5b51b075ec2c4b9ad78",
+  "corpusSha256": "03ee40f53557ac8d14d7d61f01140cc6a650c4d078983f85b36e0fadb8e1e1bf",
+  "initCount": 570,
+  "mediaCount": 260,
+  "largestCombinedMedia": 192,
+  "aggregateCombinedMedia": 49920,
+  "uniqueCombinedMedia": 260,
+  "fullPythonOutputGoldens": 522,
+  "malformedCases": 9
+}

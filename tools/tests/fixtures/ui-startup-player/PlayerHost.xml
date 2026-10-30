@@ -1,0 +1,2 @@
+<!-- Empty scene that hosts the actual player wrappers created by main. -->
+<component name="PlayerHost" extends="Scene" />

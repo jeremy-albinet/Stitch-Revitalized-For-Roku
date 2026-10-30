@@ -1,0 +1,29 @@
+namespace tests
+    @suite("Chat animation admission")
+    class ChatAnimationTests extends rooibos.BaseTestSuite
+        @describe("WebP budgets and provider metadata")
+        @it("reads a two-frame lossless container without upscaling")
+        sub tinyContainer()
+            ' Container/header fixture; image bitstream validity belongs to the native decoder.
+            bytes = createObject("roByteArray")
+            bytes.fromHexString("524946467000000057454250565038580a00000002000000000000000000414e494d06000000000000000000414e4d461e0000000000000000000000000000003c0000005650384c050000002f0000000000414e4d461e0000000000000000000000000000003c0000005650384c050000002f0000000000")
+            info = chatAdmitWebp(bytes)
+            m.assertNotInvalid(info)
+            if info = invalid then return
+            m.assertEqual(info.frames, 2)
+            m.assertTrue(info.durationMs = 120)
+            m.assertEqual(info.loadWidth, 1)
+            m.assertEqual(info.loadHeight, 1)
+            bytes[4] = &hff
+            m.assertInvalid(chatAdmitWebp(bytes))
+        end sub
+
+        @it("keeps animated BTTV metadata separate from the static image")
+        sub providerDescriptor()
+            emote = { id: "fixture", animated: true }
+            m.assertEqual(ircBttvImage(emote), "https://cdn.betterttv.net/emote/fixture/static/1x.webp")
+            m.assertEqual(ircBttvAnimation(emote).uri, "https://cdn.betterttv.net/emote/fixture/1x.webp")
+            m.assertInvalid(ircBttvAnimation({ id: "still", imageType: "png" }))
+        end sub
+    end class
+end namespace

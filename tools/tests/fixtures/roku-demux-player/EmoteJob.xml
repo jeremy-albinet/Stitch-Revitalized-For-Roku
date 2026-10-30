@@ -1,0 +1,13 @@
+<!-- Offline boundary for emote provider loading: no network. -->
+<component name="EmoteJob" extends="Group">
+    <interface>
+        <field id="channel" type="string" />
+        <field id="channel_id" type="string" />
+        <field id="animatedEmotes" type="assocarray" alwaysNotify="true" />
+        <field id="completed" type="bool" value="false" />
+        <field id="cacheComplete" type="bool" value="false" />
+        <field id="stopRequested" type="bool" value="false" />
+        <field id="state" type="string" value="init" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+</component>

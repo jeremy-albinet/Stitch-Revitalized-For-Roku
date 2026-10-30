@@ -2,6 +2,7 @@
 ' Avatars are never dimmed; the dot alone signals live state.
 
 sub init()
+    m.disposed = false
     m.selectionIndicator = m.top.findNode("selectionIndicator")
     m.avatar = m.top.findNode("avatar")
     m.root = m.top.findNode("root")
@@ -29,6 +30,8 @@ sub onIsLiveChanged()
 end sub
 
 sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
     m.top.unobserveField("itemData")
     m.top.unobserveField("focused")
     m.top.unobserveField("isLive")

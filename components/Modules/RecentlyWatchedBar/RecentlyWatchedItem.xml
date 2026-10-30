@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="RecentlyWatchedItem" extends="Group">
     <interface>
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
         <!-- Set all item data at once via a single AA field -->
         <field id="itemData" type="assocarray" onChange="onDataChanged" />
         <!-- Parent bar drives focus state -->
@@ -18,27 +20,29 @@
                 id="avatar"
                 width="54"
                 height="54"
+                translation="[3, 3]"
                 outlinecolor="0x00000000"
                 backgroundVisible="false"
             />
-            <!-- Focus ring rendered after avatar so it paints on top -->
+            <!-- CirclePoster insets the face by 2px. Its [3,3] origin puts the
+                 face at [5,5], centered inside the full nonnegative focus ring. -->
             <Poster
                 id="selectionIndicator"
-                uri="pkg:/images/focus_ring.png"
+                uri="pkg:/images/twitch-redesign/ring-64.png"
                 blendColor="0xA970FFFF"
                 visible="false"
-                width="54"
-                height="54"
+                width="64"
+                height="64"
                 translation="[0, 0]"
             />
             <!-- Live indicator dot — sibling of CirclePoster (not nested) because
                  CirclePoster masks its children to a circle, clipping the dot. -->
             <Poster
                 id="liveDot"
-                uri="pkg:/images/live_dot.png"
-                width="16"
-                height="16"
-                translation="[38, 38]"
+                uri="pkg:/images/twitch-redesign/live-dot.png"
+                width="18"
+                height="18"
+                translation="[41, 41]"
                 visible="false"
             />
         </Group>

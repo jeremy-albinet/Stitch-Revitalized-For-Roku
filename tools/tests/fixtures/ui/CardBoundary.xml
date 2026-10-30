@@ -1,0 +1,8 @@
+<!-- Prevent generated Twitch thumbnail URLs from fetching remote images. -->
+<component name="CardBoundary" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" />
+        <field id="rowFocusPercent" type="float" />
+        <field id="itemHasFocus" type="boolean" />
+    </interface>
+</component>

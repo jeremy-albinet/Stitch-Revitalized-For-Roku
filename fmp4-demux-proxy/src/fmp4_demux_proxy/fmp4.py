@@ -179,6 +179,8 @@ def extract_track_map(data: bytes) -> dict[int, TrackKind]:
             trak_body = child_raw[child_hdr.header_size :]
             track_id = _extract_track_id_from_tkhd(trak_body)
             if track_id is not None:
+                if track_id == 0 or track_id in result:
+                    raise InvalidBoxError("Init contains an invalid or duplicate track ID")
                 result[track_id] = _classify_trak(trak_body)
     return result
 
@@ -240,7 +242,10 @@ def split_moov(
     keep: TrackKind,
 ) -> bytes:
     """Keep only the trak/trex for *keep* kind; remap its track_id to 1."""
+    if sum(kind == keep for kind in track_map.values()) != 1:
+        raise Fmp4Error("Init must contain exactly one requested track")
     parts: list[bytes] = []
+    kept_count = 0
     for hdr, raw in iter_top_level_boxes(data):
         if hdr.type != b"moov":
             parts.append(raw)
@@ -255,6 +260,7 @@ def split_moov(
                     continue
                 if track_map[track_id] != keep:
                     continue
+                kept_count += 1
                 new_body = _remap_tkhd_track_id(trak_body, 1)
                 children.append(_build_box(b"trak", new_body))
             elif child_hdr.type == b"mvex":
@@ -262,6 +268,8 @@ def split_moov(
             else:
                 children.append(child_raw)
         parts.append(_build_box(b"moov", b"".join(children)))
+    if kept_count != 1:
+        raise Fmp4Error("Init does not contain the requested track")
     return b"".join(parts)
 
 
@@ -285,7 +293,14 @@ def _parse_tfhd_info(tfhd_body: bytes) -> tuple[int, int, int]:
         offset += 4
     default_sample_size = 0
     if flags & 0x000010:  # default_sample_size
+        if len(tfhd_body) < offset + 4:
+            raise TruncatedBoxError("tfhd optional fields are truncated")
         default_sample_size = struct.unpack_from(">I", tfhd_body, offset)[0]
+        offset += 4
+    if flags & 0x000020:  # default_sample_flags
+        offset += 4
+    if len(tfhd_body) < offset:
+        raise TruncatedBoxError("tfhd optional fields are truncated")
     return track_id, flags, default_sample_size
 
 
@@ -304,12 +319,19 @@ def _parse_trun_data(
     off = 8
     data_offset = 0
     if flags & 0x001:
+        if len(trun_body) < off + 4:
+            raise TruncatedBoxError("trun data offset is truncated")
         data_offset = struct.unpack_from(">i", trun_body, off)[0]
         off += 4
     if flags & 0x004:  # first_sample_flags
         off += 4
     total = 0
     has_size = bool(flags & 0x200)
+    stride = sum(4 for flag in (0x100, 0x200, 0x400, 0x800) if flags & flag)
+    if len(trun_body) < off + sample_count * stride:
+        raise TruncatedBoxError("trun sample table is truncated")
+    if not has_size:
+        return data_offset, sample_count * default_sample_size, flags
     for _ in range(sample_count):
         if flags & 0x100:
             off += 4
@@ -320,8 +342,6 @@ def _parse_trun_data(
             off += 4
         if flags & 0x800:
             off += 4
-    if not has_size:
-        total = sample_count * default_sample_size
     return data_offset, total, flags
 
 
@@ -334,18 +354,28 @@ def _traf_data_ranges(
     traf_body = traf_raw[traf_hdr.header_size :]
 
     default_sample_size = 0
+    found_tfhd = False
     for ch, cr in _iter_children(traf_body):
         if ch.type == b"tfhd":
-            _, _, default_sample_size = _parse_tfhd_info(cr[ch.header_size :])
+            _, flags, default_sample_size = _parse_tfhd_info(cr[ch.header_size :])
+            if flags & 0x000001 or not flags & 0x020000:
+                raise Fmp4Error("Only movie-fragment-relative sample addressing is supported")
+            found_tfhd = True
             break
+    if not found_tfhd:
+        raise Fmp4Error("Fragment is missing tfhd")
 
     ranges: list[tuple[int, int]] = []
     for ch, cr in _iter_children(traf_body):
         if ch.type != b"trun":
             continue
-        data_offset, total, _ = _parse_trun_data(cr[ch.header_size :], default_sample_size)
+        data_offset, total, flags = _parse_trun_data(cr[ch.header_size :], default_sample_size)
         if total > 0:
+            if not flags & 0x001:
+                raise Fmp4Error("Sample runs require an explicit data offset")
             ranges.append((moof_offset + data_offset, total))
+    if not ranges:
+        raise Fmp4Error("Requested fragment has no sample data")
     return ranges
 
 
@@ -393,6 +423,7 @@ def split_moof_mdat(
     """Demux a media segment: keep only the *keep* track's traf and mdat data."""
     parts: list[bytes] = []
     pending_moof: tuple[BoxHeader, bytes] | None = None
+    fragment_count = 0
 
     for hdr, raw in iter_top_level_boxes(data):
         if hdr.type == b"emsg":
@@ -401,6 +432,8 @@ def split_moof_mdat(
             continue
 
         if hdr.type == b"moof":
+            if pending_moof is not None:
+                raise Fmp4Error("Fragment has no following mdat")
             pending_moof = (hdr, raw)
             continue
 
@@ -419,10 +452,17 @@ def split_moof_mdat(
                 traf_body = cr[ch.header_size :]
                 tid = _extract_track_id_from_tfhd(traf_body)
                 if tid is not None and tid in track_map and track_map[tid] == keep:
+                    if kept_traf_raw is not None:
+                        raise Fmp4Error("Multiple requested tracks in one fragment are unsupported")
                     kept_traf_raw = cr
                     kept_ranges = _traf_data_ranges(cr, moof_hdr.offset)
 
             if kept_traf_raw is not None:
+                previous_end = hdr.offset + hdr.header_size
+                for start, size in sorted(kept_ranges):
+                    if start < previous_end or start + size > hdr.offset + hdr.total_size:
+                        raise Fmp4Error("Sample data lies outside mdat or overlaps another run")
+                    previous_end = start + size
                 prelim_traf = _rewrite_traf_for_split(kept_traf_raw, 1, 0)
                 prelim_moof_body = b"".join(non_traf_children) + prelim_traf
                 prelim_moof_size = 8 + len(prelim_moof_body)
@@ -434,13 +474,20 @@ def split_moof_mdat(
                 kept_bytes = b"".join(data[s : s + n] for s, n in kept_ranges)
                 parts.append(final_moof)
                 parts.append(_build_box(b"mdat", kept_bytes))
+                fragment_count += 1
             else:
-                parts.append(moof_raw)
-                parts.append(raw)
+                raise Fmp4Error("Fragment does not contain the requested track")
 
             pending_moof = None
             continue
 
+        if hdr.type == b"mdat":
+            raise Fmp4Error("Media contains mdat without moof")
+        if hdr.type in {b"sidx", b"mfra"}:
+            # Their byte offsets refer to the original multiplexed fragment layout.
+            continue
         parts.append(raw)
 
+    if pending_moof is not None or fragment_count == 0:
+        raise Fmp4Error("Media has no complete requested fragment")
     return b"".join(parts)

@@ -3,10 +3,20 @@
 <component name="CustomVideo" extends="Video">
 
     <interface>
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <function name="onDestroy" />
+        <function name="setChannelActionsOpen" />
+        <function name="showMessage" />
+        <function name="hideMessage" />
+        <function name="beginAdCountdown" />
+        <function name="setAdMetadata" />
+        <function name="clearAdCountdown" />
         <field id="thumbnailInfo" type="assocarray" />
         <field id="videoBookmarks" type="assocarray" />
         <field id="back" type="bool" value="false" />
         <field id="toggleChat" type="bool" value="false" />
+        <field id="channelAvailable" type="boolean" value="false" onChange="onChannelAvailableChange" />
+        <field id="channelActionsRequested" type="boolean" value="false" alwaysNotify="true" />
         <field id="chatIsVisible" type="bool" />
         <field id="streamLayoutMode" type="Integer" value="-1" />
         <field id="busySpinner" type="bool" />
@@ -23,264 +33,252 @@
     <script type="text/brightscript" uri="CustomVideo.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdClock.brs" />
     <children>
-        <!-- Modern Time Travel Dialog -->
-        <Group id="timeTravelDialog" visible="false" translation="[660,360]">
-            <Rectangle 
-                color="0x1A1A1AE6" 
-                width="600" 
-                height="360" />
-            <Rectangle 
-                color="0x2D2D2DFF" 
-                width="596" 
-                height="356" 
-                translation="[2,2]" />
-            
-            <!-- Header -->
-            <SimpleLabel
-                translation="[30,30]"
-                text="Jump to Time"
-                color="0xFFFFFFFF"
-                fontSize="24"
-                fontUri="pkg:/fonts/Archivo-Bold.otf" />
-            <SimpleLabel
-                translation="[30,65]"
-                text="Enter the time you want to jump to"
-                color="0xB3B3B3FF"
-                fontSize="16"
-                fontUri="pkg:/fonts/Archivo-Regular.otf" />
-            
-            <!-- Time Input Container -->
-            <Group id="timeInputContainer" translation="[30,120]">
-                <!-- Hours Section -->
-                <Group id="hoursSection" translation="[0,0]">
-                    <SimpleLabel
-                        id="hoursLabel"
-                        translation="[0,0]"
-                        text="Hours"
-                        color="0xB3B3B3FF"
-                        fontSize="14"
-                        fontUri="pkg:/fonts/Archivo-Regular.otf" />
-                    
-                    <!-- Hours Input Group -->
-                    <Group id="hoursInputGroup" translation="[0,30]">
-                        <Group id="hour0Group" translation="[0,0]">
-                            <Rectangle id="hour0Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="hour0" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="hour0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                        
-                        <Group id="hour1Group" translation="[60,0]">
-                            <Rectangle id="hour1Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="hour1" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="hour1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                    </Group>
-                </Group>
-                
-                <!-- Hours-Minutes Separator -->
-                <SimpleLabel id="hourMinuteSeparator" translation="[125,48]" text=":" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                
-                <!-- Minutes Section -->
-                <Group id="minutesSection" translation="[150,0]">
-                    <SimpleLabel
-                        id="minutesLabel"
-                        translation="[0,0]"
-                        text="Minutes"
-                        color="0xB3B3B3FF"
-                        fontSize="14"
-                        fontUri="pkg:/fonts/Archivo-Regular.otf" />
-                    
-                    <!-- Minutes Input Group -->
-                    <Group id="minutesInputGroup" translation="[0,30]">
-                        <Group id="minute0Group" translation="[0,0]">
-                            <Rectangle id="minute0Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="minute0" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="minute0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                        
-                        <Group id="minute1Group" translation="[60,0]">
-                            <Rectangle id="minute1Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="minute1" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="minute1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                    </Group>
-                </Group>
-                
-                <!-- Minutes-Seconds Separator -->
-                <SimpleLabel id="minuteSecondSeparator" translation="[275,48]" text=":" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                
-                <!-- Seconds Section -->
-                <Group id="secondsSection" translation="[300,0]">
-                    <SimpleLabel
-                        id="secondsLabel"
-                        translation="[0,0]"
-                        text="Seconds"
-                        color="0xB3B3B3FF"
-                        fontSize="14"
-                        fontUri="pkg:/fonts/Archivo-Regular.otf" />
-                    
-                    <!-- Seconds Input Group -->
-                    <Group id="secondsInputGroup" translation="[0,30]">
-                        <Group id="second0Group" translation="[0,0]">
-                            <Rectangle id="second0Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="second0" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="second0Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                        
-                        <Group id="second1Group" translation="[60,0]">
-                            <Rectangle id="second1Bg" color="0x404040FF" width="50" height="60"  />
-                            <Rectangle id="second1" color="0x9146FFFF" width="50" height="60"  visible="false" />
-                            <SimpleLabel id="second1Text" translation="[20,18]" text="0" color="0xFFFFFFFF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                        </Group>
-                    </Group>
-                </Group>
-            </Group>
-            
-            <!-- Instructions -->
-            <SimpleLabel
-                id="instructionsLabel"
-                translation="[30,230]"
-                text="Use ← → to navigate between fields, ↑ ↓ to change values"
-                color="0x808080FF"
-                fontSize="14"
-                fontUri="pkg:/fonts/Archivo-Regular.otf" />
-            
-            <!-- Action Buttons Container -->
-            <Group id="actionButtonsContainer" translation="[30,280]">
-                <Group id="cancelButtonGroup" translation="[0,0]">
-                    <Rectangle id="cancelButtonBg" color="0x404040FF" width="120" height="50"  />
-                    <Rectangle id="cancelButton" color="0x404040FF" width="120" height="50"  />
-                    <Rectangle id="cancelButtonFocus" color="0x9146FFFF" width="120" height="50"  visible="false" />
-                    <SimpleLabel id="cancelButtonLabel" translation="[35,18]" text="Cancel" color="0xFFFFFFFF" fontSize="16" fontUri="pkg:/fonts/Archivo-Regular.otf" />
-                </Group>
-                
-                <Group id="acceptButtonGroup" translation="[140,0]">
-                    <Rectangle id="acceptButtonBg" color="0x404040FF" width="120" height="50"  />
-                    <Rectangle id="acceptButton" color="0x404040FF" width="120" height="50"  />
-                    <Rectangle id="acceptButtonFocus" color="0x9146FFFF" width="120" height="50"  visible="false" />
-                    <SimpleLabel id="acceptButtonLabel" translation="[25,18]" text="Jump" color="0xFFFFFFFF" fontSize="16" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                </Group>
-            </Group>
-        </Group>
-
-        <!-- Modern Control Overlay -->
-        <Group id="controlOverlay" translation="[0,940]">
-            <!-- Background Gradient -->
-            <Rectangle width="1920" height="140" color="0x000000E6" />
-            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1920,60]" translation="[0,0]">
-                <Rectangle width="1920" height="60" color="0x000000AA" />
+        <AdCountdown id="adCountdown" />
+        <!-- VOD/clip controls. Widths and x positions follow the video area
+             and are set in layoutOverlay(). -->
+        <Group id="controlOverlay" translation="[0,422]">
+            <MaskGroup id="scrimFade" maskuri="pkg:/images/vertical-mask.png" masksize="[1280,48]">
+                <Rectangle id="scrimFadeFill" width="1280" height="48" color="0x0E0E10D9" />
             </MaskGroup>
-            
-            <!-- Progress Bar Section -->
-            <Group translation="[60,5]">
-                <SimpleLabel id="timeProgress" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[0,45]" />
-                <SimpleLabel id="timeDuration" fontUri="pkg:/fonts/Archivo-Regular.otf" fontSize="12" color="0xFFFFFFFF" translation="[1740,45]" />
-                
-                <!-- Progress Bar -->
-                <Rectangle id="progressBarBase" color="0x404040FF" width="1800" height="4"  translation="[0,65]" />
-                <Rectangle id="progressBarBuffer" color="0x606060FF" width="0" height="4"  translation="[0,65]" />
-                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="0" height="4"  translation="[0,65]" />
-                
-                <!-- Progress Dot -->
-                <Group id="progressDot" translation="[0,59]">
-                    <Rectangle color="0x9146FFFF" width="16" height="16"  />
-                    <Rectangle color="0xFFFFFFFF" width="8" height="8"  translation="[4,4]" />
+            <Rectangle id="scrim" width="1280" height="250" translation="[0,48]" color="0x0E0E10D9" />
+            <Label id="controlsHint" translation="[48,268]" width="1184" height="26" horizAlign="center" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            </Label>
+
+            <Group id="infoRow" translation="[48,66]">
+                <CirclePoster id="avatar" width="48" height="48" translation="[0,0]" />
+                <Group id="liveIndicator" translation="[64,3]" visible="false">
+                    <Poster id="liveBadge" uri="pkg:/images/twitch-redesign/round4.9.png" blendColor="0xEB0400FF" width="56" height="26" />
+                    <Label id="liveLabel" color="0xFFFFFFFF" width="56" height="26" horizAlign="center" vertAlign="center">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="16" />
+                    </Label>
                 </Group>
-            </Group>
-            
-            <!-- Control Buttons -->
-            <Group translation="[0,85]">
-                <!-- Back Button (far left) -->
-                <Group id="backGroup" translation="[520,0]" focusable="true">
-                    <Rectangle id="backBg" color="0x404040AA" width="50" height="40"  />
-                    <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
-                    <SimpleLabel translation="[18,12]" text="←" color="0xFFFFFFFF" fontSize="18" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                </Group>
-                
-                <!-- Time Travel Button -->
-                <Group id="timeTravelGroup" translation="[805,0]" focusable="true">
-                    <Rectangle id="timeTravelBg" color="0x404040AA" width="50" height="40"  />
-                    <Rectangle id="timeTravelFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
-                    <Poster uri="pkg:/images/TimeTravel.png" width="20" height="20" translation="[15,10]" />
-                </Group>
-                
-                <!-- Rewind Button -->
-                <Group id="rewindGroup" translation="[875,0]">
-                    <Rectangle id="rewindBg" color="0x404040AA" width="50" height="40"  />
-                    <Rectangle id="rewindFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
-                    <SimpleLabel translation="[12,12]" text="−10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                </Group>
-                
-                <!-- Play/Pause Button (centered) -->
-                <Group id="playPauseGroup" translation="[935,0]">
-                    <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40"  />
-                    <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40"  visible="false" />
-                    <Poster id="controlButton" uri="pkg:/images/pause.png" width="20" height="20" translation="[20,10]" />
-                </Group>
-                
-                <!-- Fast Forward Button -->
-                <Group id="fastForwardGroup" translation="[1005,0]">
-                    <Rectangle id="fastForwardBg" color="0x404040AA" width="50" height="40"  />
-                    <Rectangle id="fastForwardFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
-                    <SimpleLabel translation="[12,12]" text="+10" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                </Group>
-                
-                <!-- Chat Toggle Button -->
-                <Group id="chatGroup" translation="[1065,0]">
-                    <Rectangle id="chatBg" color="0x404040AA" width="50" height="40"  />
-                    <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40"  visible="false" />
-                    <Poster uri="pkg:/images/messages.png" width="20" height="20" translation="[15,10]" />
-                </Group>
-            </Group>
-            
-            <!-- Video Info -->
-            <Group translation="[60,10]">
-                <CirclePoster id="avatar" width="35" height="35" translation="[0,0]" />
-                <SimpleLabel id="channelUsername" translation="[45,5]" text="Channel Name" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                <EmojiLabel id="videoTitle" height="20" maxWidth="800" horizAlign="left" color="0xB3B3B3FF" translation="[45,25]">
-                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="12" />
+                <SimpleLabel id="channelUsername" translation="[64,0]" text="" color="0xEFEFF1FF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
+                <!-- EmojiLabel is positioned by the vertical center of its line
+                     (vertAlign center), so y=48 keeps the 28 px line at 34-62. -->
+                <EmojiLabel id="videoTitle" height="28" maxWidth="900" horizAlign="left" color="0xADADB8FF" translation="[64,48]">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
                 </EmojiLabel>
             </Group>
-            
-            <!-- Live Indicator -->
-            <Group id="liveIndicator" translation="[1740,15]" visible="false">
-                <Rectangle color="0xFF0000FF" width="50" height="20"  />
-                <SimpleLabel translation="[12,3]" text="LIVE" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
+            <!-- Replaces the info row while a seek preview waits to be applied. -->
+            <Label id="seekHint" visible="false" translation="[48,66]" width="1184" height="56" wrap="true" maxLines="2" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+            </Label>
+
+            <Group id="progressSection" translation="[48,134]">
+                <Label id="timeProgress" width="240" height="24" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                </Label>
+                <Label id="timeDuration" translation="[944,0]" width="240" height="24" horizAlign="right" color="0xADADB8FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                </Label>
+                <Rectangle id="progressBarBase" color="0x323239FF" width="1184" height="6" translation="[0,30]" />
+                <Rectangle id="progressBarBuffer" color="0x53535FFF" width="0" height="6" translation="[0,30]" />
+                <Rectangle id="progressBarProgress" color="0xEFEFF1FF" width="0" height="6" translation="[0,30]" />
+                <Rectangle id="progressDot" color="0xEFEFF1FF" width="14" height="14" translation="[0,26]" />
             </Group>
-            
+
+            <!-- Focus caption: names the focused button above it. -->
+            <Group id="caption" visible="false" translation="[0,178]">
+                <Poster id="captionPlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="160" height="30" />
+                <Label id="captionLabel" width="160" height="30" horizAlign="center" vertAlign="center" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+                </Label>
+            </Group>
+
+            <!-- Back · Jump to time · −10 · Play/Pause · +10 · Chat -->
+            <Group id="controls" translation="[418,214]">
+                <Group id="backGroup" translation="[0,0]">
+                    <Poster id="backBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="backFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Label width="64" height="48" horizAlign="center" vertAlign="center" text="←" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                    </Label>
+                </Group>
+                <Group id="timeTravelGroup" translation="[76,0]">
+                    <Poster id="timeTravelBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="timeTravelFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster uri="pkg:/images/TimeTravel.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="rewindGroup" translation="[152,0]">
+                    <Poster id="rewindBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="rewindFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Label width="64" height="48" horizAlign="center" vertAlign="center" text="−10" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+                    </Label>
+                </Group>
+                <Group id="playPauseGroup" translation="[228,0]">
+                    <Poster id="playPauseBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="playPauseFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster id="controlButton" uri="pkg:/images/pause.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="fastForwardGroup" translation="[304,0]">
+                    <Poster id="fastForwardBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="fastForwardFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Label width="64" height="48" horizAlign="center" vertAlign="center" text="+10" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+                    </Label>
+                </Group>
+                <Group id="chatGroup" translation="[380,0]">
+                    <Poster id="chatBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="chatFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster uri="pkg:/images/messages.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="channelGroup" translation="[456,0]" visible="false">
+                    <Poster uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="channelFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Group translation="[18,10]">
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[0,11]" blendColor="0xFFFFFFFF" />
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[11,11]" blendColor="0xFFFFFFFF" />
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[22,11]" blendColor="0xFFFFFFFF" />
+                    </Group>
+                </Group>
+            </Group>
         </Group>
 
-        <!-- Thumbnail Preview -->
-        <Group id="thumbnailPreview" translation="[0,760]" visible="false">
-            <Rectangle color="0x000000E6" width="200" height="130"  />
-            <Group id="thumbnails" clippingRect="[4,4,192,112]" translation="[4,4]">
+        <!-- Jump to time, drawn after the controls so they never cover it.
+             Text is set from BRS so it is localized. -->
+        <Group id="timeTravelDialog" visible="false" translation="[340,168]">
+            <Poster id="timeTravelPlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="600" height="384" />
+            <Label id="timeTravelTitle" translation="[32,28]" width="536" height="36" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+            </Label>
+            <Label id="timeTravelHint" translation="[32,72]" width="536" height="24" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+            <Label id="timeTravelLength" translation="[32,100]" width="536" height="24" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+
+            <Group id="timeInputContainer" translation="[32,136]">
+                <Group id="hoursSection" translation="[0,0]">
+                    <Label id="hoursLabel" width="110" height="24" color="0xADADB8FF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                    </Label>
+                    <Group id="hoursInputGroup" translation="[0,30]">
+                        <Group id="hour0Group" translation="[0,0]">
+                            <Poster id="hour0Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="hour0" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="hour0Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                        <Group id="hour1Group" translation="[60,0]">
+                            <Poster id="hour1Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="hour1" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="hour1Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                    </Group>
+                </Group>
+
+                <Label id="hourMinuteSeparator" translation="[112,30]" width="38" height="60" horizAlign="center" vertAlign="center" text=":" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                </Label>
+
+                <Group id="minutesSection" translation="[150,0]">
+                    <Label id="minutesLabel" width="110" height="24" color="0xADADB8FF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                    </Label>
+                    <Group id="minutesInputGroup" translation="[0,30]">
+                        <Group id="minute0Group" translation="[0,0]">
+                            <Poster id="minute0Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="minute0" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="minute0Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                        <Group id="minute1Group" translation="[60,0]">
+                            <Poster id="minute1Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="minute1" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="minute1Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                    </Group>
+                </Group>
+
+                <Label id="minuteSecondSeparator" translation="[262,30]" width="38" height="60" horizAlign="center" vertAlign="center" text=":" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                </Label>
+
+                <Group id="secondsSection" translation="[300,0]">
+                    <Label id="secondsLabel" width="110" height="24" color="0xADADB8FF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                    </Label>
+                    <Group id="secondsInputGroup" translation="[0,30]">
+                        <Group id="second0Group" translation="[0,0]">
+                            <Poster id="second0Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="second0" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="second0Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                        <Group id="second1Group" translation="[60,0]">
+                            <Poster id="second1Bg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="50" height="60" />
+                            <Poster id="second1" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="50" height="60" visible="false" />
+                            <Label id="second1Text" width="50" height="60" horizAlign="center" vertAlign="center" text="0" color="0xFFFFFFFF">
+                                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                            </Label>
+                        </Group>
+                    </Group>
+                </Group>
+            </Group>
+
+            <Label id="instructionsLabel" translation="[32,244]" width="536" height="48" wrap="true" maxLines="2" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+
+            <Group id="actionButtonsContainer" translation="[32,308]">
+                <Group id="cancelButtonGroup" translation="[0,0]">
+                    <Poster id="cancelButton" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="140" height="52" />
+                    <Poster id="cancelButtonFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="140" height="52" visible="false" />
+                    <Label id="cancelButtonLabel" width="140" height="52" horizAlign="center" vertAlign="center" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+                    </Label>
+                </Group>
+                <Group id="acceptButtonGroup" translation="[156,0]">
+                    <Poster id="acceptButton" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="140" height="52" />
+                    <Poster id="acceptButtonFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="140" height="52" visible="false" />
+                    <Label id="acceptButtonLabel" width="140" height="52" horizAlign="center" vertAlign="center" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+                    </Label>
+                </Group>
+            </Group>
+        </Group>
+
+        <!-- Seek preview frame, floating above the controls at the knob. -->
+        <Group id="thumbnailPreview" translation="[48,303]" visible="false">
+            <Poster id="thumbnailPlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="248" height="177" />
+            <Group id="thumbnails" translation="[4,4]">
                 <Poster id="thumbnailImage" />
             </Group>
-            <SimpleLabel id="thumbnailTime" translation="[10,115]" text="00:00" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
+            <Label id="thumbnailTime" translation="[0,143]" width="248" height="30" horizAlign="center" vertAlign="center" text="" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+            </Label>
         </Group>
-        
+
         <!-- Loading Overlay -->
-        <Group id="loadingOverlay" translation="[960,540]" visible="true">
-            <!-- Vertical layout container -->
-            <LayoutGroup 
+        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+            <LayoutGroup
                 layoutDirection="vert"
                 horizAlignment="center"
                 vertAlignment="center"
-                itemSpacings="[15]">
-                
-                <!-- Spinner -->
-                <BusySpinner 
+                itemSpacings="[16]">
+                <BusySpinner
                     id="loadingSpinner"
                     uri="pkg:/images/spinner.png"
                     spinInterval="1" />
-                
-                <!-- Text -->
-                <SimpleLabel 
+                <SimpleLabel
                     id="loadingText"
-                    text="Loading video..."
-                    color="0xFFFFFFFF"
-                    fontSize="18"
+                    text=""
+                    color="0xEFEFF1FF"
+                    fontSize="22"
                     fontUri="pkg:/fonts/Archivo-Regular.otf" />
             </LayoutGroup>
         </Group>

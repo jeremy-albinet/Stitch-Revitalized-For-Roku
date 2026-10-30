@@ -1,167 +1,382 @@
 [
     {
+        "title": "Sign out",
+        "description": "Signing out keeps your settings and recent channels on this Roku. You can still watch public streams.",
+        "settingName": "logout",
+        "type": "action",
+        "action": "logout"
+    },
+    {
+        "id": "playback",
+        "title": "Playback",
+        "description": "Choose startup quality, live latency and watch credit.",
+        "children": [
+            {
+                "title": "Video quality",
+                "description": "Choose the startup quality. A preferred resolution falls back to the nearest lower option, or the lowest available if none is lower. You can still change quality while watching.",
+                "settingName": "playback.video.quality",
+                "type": "radio",
+                "default": "auto",
+                "options": [
+                    {
+                        "title": "Automatic",
+                        "id": "auto"
+                    },
+                    {
+                        "title": "Highest available",
+                        "id": "highest"
+                    },
+                    {
+                        "title": "Lowest (uses less data)",
+                        "id": "lowest"
+                    },
+                    {
+                        "title": "2160p",
+                        "id": "2160p"
+                    },
+                    {
+                        "title": "1440p",
+                        "id": "1440p"
+                    },
+                    {
+                        "title": "1080p",
+                        "id": "1080p"
+                    },
+                    {
+                        "title": "720p",
+                        "id": "720p"
+                    },
+                    {
+                        "title": "480p",
+                        "id": "480p"
+                    },
+                    {
+                        "title": "360p",
+                        "id": "360p"
+                    },
+                    {
+                        "title": "160p",
+                        "id": "160p"
+                    }
+                ]
+            },
+            {
+                "title": "Lower live latency",
+                "description": "Try to stay closer to the live broadcast. May cause more buffering on some devices or connections. Takes effect when opening a stream.",
+                "experimental": true,
+                "settingName": "playback.lowLatency",
+                "type": "bool",
+                "default": "false"
+            },
+            {
+                "title": "Twitch watch credit",
+                "description": "Experimental: report live viewing to Twitch while signed in. Rewards, watch streaks and recap credit are not guaranteed. Takes effect when opening a stream.",
+                "experimental": true,
+                "settingName": "playback.watchCredit",
+                "type": "bool",
+                "default": "false"
+            }
+        ]
+    },
+    {
+        "id": "chat",
+        "title": "Chat",
+        "description": "Control chat processing, layout, timing, text size and chat events.",
+        "children": [
+            {
+                "title": "Enable chat",
+                "description": "Turn off to stop chat connections, emotes and chat events. Takes effect when chat opens.",
+                "settingName": "chat.enabled",
+                "type": "bool",
+                "default": "true"
+            },
+            {
+                "title": "Show chat when a stream starts",
+                "description": "Opens live chat using your chosen layout. You can show or hide chat while watching. Chat is available for live streams.",
+                "settingName": "ChatOption",
+                "type": "bool",
+                "default": "false"
+            },
+            {
+                "title": "Chat layout",
+                "description": "Show chat beside the video or over the full-screen video. Takes effect when chat opens.",
+                "settingName": "chat.layout",
+                "type": "radio",
+                "default": "side",
+                "options": [
+                    {
+                        "title": "Beside video",
+                        "id": "side"
+                    },
+                    {
+                        "title": "Over video",
+                        "id": "overlay"
+                    }
+                ]
+            },
+            {
+                "title": "Chat overlay position",
+                "description": "Choose a corner for chat when Over video is selected.",
+                "settingName": "chat.overlayPosition",
+                "type": "radio",
+                "default": "bottom-right",
+                "options": [
+                    {
+                        "title": "Top left",
+                        "id": "top-left"
+                    },
+                    {
+                        "title": "Top right",
+                        "id": "top-right"
+                    },
+                    {
+                        "title": "Bottom left",
+                        "id": "bottom-left"
+                    },
+                    {
+                        "title": "Bottom right",
+                        "id": "bottom-right"
+                    }
+                ]
+            },
+            {
+                "title": "Chat overlay background",
+                "description": "Background opacity over video. Chat text and emotes stay fully visible.",
+                "settingName": "chat.overlayOpacity",
+                "type": "radio",
+                "default": "0.5",
+                "options": [
+                    {
+                        "title": "25%",
+                        "id": "0.25"
+                    },
+                    {
+                        "title": "50%",
+                        "id": "0.5"
+                    },
+                    {
+                        "title": "75%",
+                        "id": "0.75"
+                    },
+                    {
+                        "title": "100%",
+                        "id": "1"
+                    }
+                ]
+            },
+            {
+                "title": "Chat timing",
+                "description": "Match video delays messages to follow the stream. Live shows new messages as they arrive and may reveal reactions before the video. Takes effect when chat opens.",
+                "settingName": "chat.timing",
+                "type": "radio",
+                "default": "sync",
+                "options": [
+                    {
+                        "title": "Match video",
+                        "id": "sync"
+                    },
+                    {
+                        "title": "Live (no added delay)",
+                        "id": "live"
+                    }
+                ]
+            },
+            {
+                "title": "Chat text size",
+                "description": "Size of chat messages. Emotes and badges scale with it.",
+                "settingName": "ChatFontSize",
+                "type": "radio",
+                "default": "16",
+                "options": [
+                    {
+                        "title": "Extra small (10)",
+                        "id": "10"
+                    },
+                    {
+                        "title": "Small (12)",
+                        "id": "12"
+                    },
+                    {
+                        "title": "Medium (14)",
+                        "id": "14"
+                    },
+                    {
+                        "title": "Large (16)",
+                        "id": "16"
+                    },
+                    {
+                        "title": "Extra large (18)",
+                        "id": "18"
+                    },
+                    {
+                        "title": "Largest (20)",
+                        "id": "20"
+                    }
+                ]
+            },
+            {
+                "title": "Hype Trains in chat",
+                "description": "Show the current Hype Train level and progress in live chat. Experimental; updates may be delayed. Takes effect when opening a stream.",
+                "experimental": true,
+                "settingName": "chat.hypeTrain",
+                "type": "bool",
+                "default": "false"
+            },
+            {
+                "title": "Pinned messages in chat",
+                "description": "Show the current pinned message above live chat. Press Down when player controls are hidden to read its full text. Experimental; updates may be delayed. Takes effect when opening a stream.",
+                "experimental": true,
+                "settingName": "chat.pinnedMessages",
+                "type": "bool",
+                "default": "false"
+            }
+        ]
+    },
+    {
+        "id": "emotes",
+        "title": "Emotes",
+        "description": "Choose emote providers and animation for live chat.",
+        "children": [
+            {
+                "title": "Animate chat emotes",
+                "description": "Animate one visible emote at a time on supported Roku devices. Other emotes stay still. Takes effect when chat opens.",
+                "settingName": "chat.animatedEmotes",
+                "type": "bool",
+                "default": "true"
+            },
+            {
+                "title": "BetterTTV emotes",
+                "description": "Show BetterTTV emotes in live chat.",
+                "settingName": "BetterTTVEmote",
+                "type": "bool",
+                "default": "true"
+            },
+            {
+                "title": "7TV emotes",
+                "description": "Show 7TV emotes in live chat.",
+                "settingName": "7tvEmote",
+                "type": "bool",
+                "default": "true"
+            },
+            {
+                "title": "FrankerFaceZ emotes",
+                "description": "Show FrankerFaceZ emotes in live chat.",
+                "settingName": "FFZEmote",
+                "type": "bool",
+                "default": "true"
+            }
+        ]
+    },
+    {
+        "id": "browsing",
+        "title": "Browsing",
+        "description": "Choose stream card size and channel order.",
+        "children": [
+            {
+                "title": "Stream grid",
+                "description": "Choose larger cards or fit more streams on screen. Takes effect when opening a content page.",
+                "settingName": "ui.gridDensity",
+                "type": "radio",
+                "default": "comfortable",
+                "options": [
+                    {
+                        "title": "Comfortable",
+                        "id": "comfortable"
+                    },
+                    {
+                        "title": "Compact",
+                        "id": "compact"
+                    }
+                ]
+            },
+            {
+                "title": "Floating focus",
+                "description": "Move the highlight left and right across channel, video and category rows. Off keeps the highlight in its current fixed position.",
+                "settingName": "ui.floatingFocus",
+                "type": "bool",
+                "default": "false"
+            },
+            {
+                "title": "Browse: live channel order",
+                "description": "How live channels are ordered on the Browse page.",
+                "settingName": "LiveChannelSorting",
+                "type": "radio",
+                "default": "VIEWER_COUNT",
+                "options": [
+                    {
+                        "title": "Recommended",
+                        "id": "RELEVANCE"
+                    },
+                    {
+                        "title": "Viewers (High to Low)",
+                        "id": "VIEWER_COUNT"
+                    },
+                    {
+                        "title": "Viewers (Low to High)",
+                        "id": "VIEWER_COUNT_ASC"
+                    },
+                    {
+                        "title": "Recently Started",
+                        "id": "RECENT"
+                    }
+                ]
+            },
+            {
+                "title": "Following: offline channel order",
+                "description": "How offline channels you follow are ordered on the Following page.",
+                "settingName": "FollowPageSorting",
+                "type": "radio",
+                "default": "streamerLogin",
+                "options": [
+                    {
+                        "title": "Streamer Name",
+                        "id": "streamerLogin"
+                    },
+                    {
+                        "title": "Followers (High to Low)",
+                        "id": "followerCount"
+                    },
+                    {
+                        "title": "Followers (Low to High)",
+                        "id": "ASC_followerCount"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "advanced",
+        "title": "Advanced",
+        "description": "Configure playback compatibility and optional diagnostics.",
+        "children": [
+            {
+                "title": "Built-in Enhanced Broadcasting Splitter",
+                "description": "Play supported combined audio and video streams on this Roku without another computer. Changes take effect when opening a stream.",
+                "settingName": "proxy.builtin",
+                "type": "bool",
+                "default": "true"
+            },
+            {
+                "title": "Demux service URL (optional)",
+                "description": "Some Twitch streams package audio and video together in a way Roku can't play directly. If you run Stitch's optional demux service on your network, enter its address, for example http://192.168.1.20:8080. Leave empty to turn it off.",
+                "settingName": "proxy.url",
+                "type": "text",
+                "default": ""
+            },
+            {
+                "title": "Optional diagnostics",
+                "description": "Share app usage and device details to help improve Stitch. Off by default. Changes take effect on next app start.",
+                "settingName": "analytics.enabled",
+                "type": "bool",
+                "default": "false"
+            }
+        ]
+    },
+    {
         "title": "Support Stitch",
         "description": "Stitch is a free, community-built Twitch client. If it's useful to you, scan the QR code to support development on Buy Me a Coffee. Thank you!",
         "settingName": "support",
         "type": "action",
         "action": "support_stitch"
-    },
-    {
-        "title": "Preferred Video Quality",
-        "description": "Determines the default behavior of video quality selection when starting a stream.",
-        "settingName": "playback.video.quality",
-        "type": "radio",
-        "default": "auto",
-        "options": [
-            {
-                "title": "Automatic (Adjust based on network conditions)",
-                "id": "auto"
-            },
-            {
-                "title": "Highest (Choose highest possible option)",
-                "id": "highest"
-            },
-            {
-                "title": "Lowest (Minimal latency for live streams)",
-                "id": "lowest"
-            }
-        ]
-    },
-    {
-        "title": "Chat On-By-Default",
-        "description": "Determines default state of chat window when opening a stream",
-        "settingName": "ChatOption",
-        "type": "bool",
-        "default": "false"
-    },
-
-    {
-        "title": "Chat Font Size",
-        "description": "Base font size for chat while watching a stream. Emotes/Badges/Etc scale based on this value.",
-        "settingName": "ChatFontSize",
-        "type": "radio",
-        "default": "14",
-        "options": [
-            {
-                "title": "10",
-                "id": "10"
-            },
-            {
-                "title": "12",
-                "id": "12"
-            },
-            {
-                "title": "14",
-                "id": "14"
-            },
-            {
-                "title": "16",
-                "id": "16"
-            },
-            {
-                "title": "18",
-                "id": "18"
-            },
-            {
-                "title": "20",
-                "id": "20"
-            }
-        ]
-    },
-
-    {
-        "title": "BetterTTV Emotes",
-        "description": "Enables or Disables BetterTTV Emotes",
-        "settingName": "BetterTTVEmote",
-        "type": "bool",
-        "default": "true"
-    },
-    {
-        "title": "7TV Emotes",
-        "description": "Enables or Disables 7TV Emotes",
-        "settingName": "7tvEmote",
-        "type": "bool",
-        "default": "true"
-    },
-    {
-        "title": "FrankerFaceZ Emotes",
-        "description": "Enables or Disables FrankerFaceZ Emotes",
-        "settingName": "FFZEmote",
-        "type": "bool",
-        "default": "true"
-    },
-    {
-        "title": "Live Channel Sorting",
-        "description": "Determines how the LiveChannels page results are sorted.",
-        "settingName": "LiveChannelSorting",
-        "type": "radio",
-        "default": "VIEWER_COUNT",
-        "options": [
-            {
-                "title": "Recommended",
-                "id": "RELEVANCE"
-            },
-            {
-                "title": "Viewers (High to Low)",
-                "id": "VIEWER_COUNT"
-            },
-            {
-                "title": "Viewers (Low to High)",
-                "id": "VIEWER_COUNT_ASC"
-            },
-            {
-                "title": "Recently Started",
-                "id": "RECENT"
-            }
-        ]
-    },
-    {
-        "title": "Offline Follow Sorting",
-        "description": "Determines how the offline channels on the following page are sorted.",
-        "settingName": "FollowPageSorting",
-        "type": "radio",
-        "default": "streamerLogin",
-        "options": [
-            {
-                "title": "Streamer Name",
-                "id": "streamerLogin"
-            },
-            {
-                "title": "Followers (High to Low)",
-                "id": "followerCount"
-            },
-            {
-                "title": "Followers (Low to High)",
-                "id": "ASC_followerCount"
-            }
-        ]
-    },
-    {
-        "title": "Anonymous Analytics",
-        "description": "Share anonymous usage data to help improve Stitch. No personal information is collected. Changes take effect on next app start.",
-        "settingName": "analytics.enabled",
-        "type": "bool",
-        "default": "true"
-    },
-    {
-        "title": "Built-in Enhanced Broadcasting Splitter",
-        "description": "Plays Enhanced Broadcasting streams without a proxy server by splitting them inside the app. Uses a bit more memory and CPU while playing those streams. Ignored when a Proxy URL is set.",
-        "settingName": "proxy.builtin",
-        "type": "bool",
-        "default": "false"
-    },
-    {
-        "title": "Proxy URL",
-        "description": "URL of the fmp4-demux-proxy server for Enhanced Broadcasting streams (e.g. http://192.168.1.x:8080). Leave empty to disable.",
-        "settingName": "proxy.url",
-        "type": "text",
-        "default": ""
-    },
-    {
-        "title": "Log Out",
-        "description": "Sign out of your Twitch account.",
-        "settingName": "logout",
-        "type": "action",
-        "action": "logout"
     }
 ]

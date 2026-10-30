@@ -1,0 +1,7 @@
+# Keep formatter input identical on Windows and Linux.
+*.brs text eol=lf
+*.bs text eol=lf
+
+# Preserve the generated regression corpus's checked byte identity.
+tools/tests/fixtures/roku-demux-core/corpus.json text eol=lf
+tools/tests/fixtures/roku-demux-epochs/*.m3u8 text eol=lf

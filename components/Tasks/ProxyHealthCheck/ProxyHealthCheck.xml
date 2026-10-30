@@ -6,4 +6,5 @@
     </interface>
     <script type="text/brightscript" uri="ProxyHealthCheck.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/http.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/playbackHls.brs" />
 </component>

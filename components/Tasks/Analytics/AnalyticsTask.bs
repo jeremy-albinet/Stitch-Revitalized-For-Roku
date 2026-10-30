@@ -8,11 +8,8 @@
 ' Global props (app_version, is_dev, is_logged_in) are injected automatically
 ' on every outbound event so call-sites never need to include them.
 '
-' Respects the "analytics.enabled" registry setting (opt-out, default true).
+' Requires explicit opt-in and a maintainer-configured destination.
 ' When disabled, events are silently dropped.
-
-const POSTHOG_CAPTURE_URL = "https://us.i.posthog.com/capture/"
-const POSTHOG_API_KEY = "phc_xfHnhpGgpwjwRCPGDYUeoNGLaazv8uZLu4npYa3huN58"
 
 sub init()
     m.top.functionName = "analyticsLoop"
@@ -23,7 +20,8 @@ sub analyticsLoop()
     m.deviceInfo = CreateObject("roDeviceInfo")
 
     ' Read once at startup. Change takes effect on next app launch.
-    m.enabled = get_user_setting("analytics.enabled", "true") <> "false"
+    m.config = getAnalyticsConfiguration()
+    if m.config = invalid then return
 
     ' Per-event rate limit state: tracks last send time per event name.
     m.rateLimits = {}
@@ -32,26 +30,11 @@ sub analyticsLoop()
     m.top.observeField("identify", m.port)
     m.top.observeField("captureException", m.port)
 
-    ' Fields set before this thread started observing never reach the port
-    ' (heroScene sets app_opened + identify right after control = "RUN"),
-    ' so flush whatever is already there. A set racing with the observe can
-    ' arrive twice; sendCapture's rate limit and sendIdentify's dedupe drop it.
-    ' Snapshot all three first: each send blocks on HTTP, and a field set
-    ' meanwhile would otherwise replace a startup value before it is read.
-    if m.enabled
-        identify = m.top.identify
-        capture = m.top.capture
-        captureException = m.top.captureException
-        if identify <> invalid then sendIdentify(identify)
-        if capture <> invalid then sendCapture(capture)
-        if captureException <> invalid then sendException(captureException)
-    end if
+    flushStartupAnalytics()
 
     while true
         msg = wait(0, m.port)
         if type(msg) <> "roSGNodeEvent" then continue while
-
-        if not m.enabled then continue while
 
         field = msg.getField()
         data = msg.getData()
@@ -65,6 +48,18 @@ sub analyticsLoop()
             sendException(data)
         end if
     end while
+end sub
+
+sub flushStartupAnalytics()
+    ' Values assigned before this Task starts do not reach the message port.
+    ' Snapshot all fields before any request blocks, then use the normal dedupe.
+    identify = m.top.identify
+    capture = m.top.capture
+    exception = m.top.captureException
+    if identify <> invalid then sendIdentify(identify)
+    if capture <> invalid then sendCapture(capture)
+    if exception <> invalid then sendException(exception)
+
 end sub
 
 ' Sends a standard PostHog event with global props auto-injected.
@@ -83,31 +78,25 @@ sub sendCapture(data as object)
     mergedProps["distinct_id"] = getDistinctId()
 
     payload = {
-        api_key: POSTHOG_API_KEY,
+        api_key: m.config.apiKey,
         event: event,
         distinct_id: getDistinctId(),
         properties: mergedProps
     }
 
-    ' heroScene reads this marker to send app_opened once per day. Saved only
-    ' on delivery so an offline launch retries on the next one.
-    if postToPostHog(payload) and event = "app_opened"
-        set_setting("analytics.last_app_opened", CreateObject("roDateTime").ToISOString().Left(10))
-    end if
+    postToPostHog(payload)
 end sub
 
 ' Sends a PostHog $identify event with a $set payload.
-' Skipped when the props match the last ones sent from this device, so it
-' costs one event per version/login/OS change instead of one per launch.
 sub sendIdentify(data as object)
     setProps = data.set
     if setProps = invalid then setProps = {}
 
     serialized = FormatJson(setProps)
-    if get_setting("analytics.last_identify") = serialized then return
+    if m.lastIdentify = serialized then return
 
     payload = {
-        api_key: POSTHOG_API_KEY,
+        api_key: m.config.apiKey,
         event: "$identify",
         distinct_id: getDistinctId(),
         properties: {
@@ -116,8 +105,8 @@ sub sendIdentify(data as object)
         }
     }
 
-    ' Saved only on delivery so a failed send retries on the next launch.
-    if postToPostHog(payload) then set_setting("analytics.last_identify", serialized)
+    ' Keep dedupe within this anonymous session and retry after failed delivery.
+    if postToPostHog(payload) then m.lastIdentify = serialized
 end sub
 
 ' Sends a PostHog $exception event for a caught BrightScript error.
@@ -182,13 +171,12 @@ sub sendException(err as object)
     mergedProps["distinct_id"] = distinctId
     mergedProps["$exception_list"] = [exceptionItem]
     mergedProps["$exception_level"] = "error"
-    ' PostHog rejects a non-string fingerprint ("invalid type: sequence, expected a string").
     mergedProps["$exception_fingerprint"] = "BrightScriptException:" + err.message + ":" + err.location
     mergedProps["$os"] = "Roku OS"
     mergedProps["$device_model"] = m.deviceInfo.GetModel()
 
     payload = {
-        api_key: POSTHOG_API_KEY,
+        api_key: m.config.apiKey,
         event: "$exception",
         distinct_id: distinctId,
         properties: mergedProps
@@ -207,11 +195,10 @@ function getGlobalProps() as object
     }
 end function
 
-' Returns the anonymous distinct_id for this device+channel pair.
-' roDeviceInfo.GetChannelClientId() is Roku-assigned, anonymous, per-channel.
+' Use a session identifier rather than a persistent device identifier.
 function getDistinctId() as string
     if m.distinctId = invalid
-        m.distinctId = m.deviceInfo.GetChannelClientId()
+        m.distinctId = m.deviceInfo.GetRandomUUID()
     end if
     return m.distinctId
 end function
@@ -219,16 +206,17 @@ end function
 ' Synchronous HTTPS POST to PostHog capture endpoint.
 ' We are already in a background Task thread so blocking is safe.
 ' Synchronous avoids the GC risk of async transfers without a retained port.
-' Returns true when PostHog accepted the event (HTTP 200).
 function postToPostHog(payload as object) as boolean
-    transfer = CreateObject("roUrlTransfer")
-    if transfer = invalid then return false
-    transfer.SetUrl(POSTHOG_CAPTURE_URL)
-    transfer.SetRequest("POST")
-    transfer.AddHeader("Content-Type", "application/json")
-    transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
-    transfer.InitClientCertificates()
-    return transfer.PostFromString(FormatJson(payload)) = 200
+    request = HttpRequest({
+        url: m.config.captureUrl,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: payload,
+        timeout: 5000
+    })
+    response = request.send()
+    if response = invalid then return false
+    return response.GetResponseCode() = 200
 end function
 
 ' Returns true if this event name was already sent within the last 10 seconds.
@@ -240,6 +228,13 @@ function isRateLimited(event as string) as boolean
         elapsed = m.rateLimits[event].TotalSeconds()
         if elapsed < 10 then return true
     end if
+    if m.rateLimits.Count() >= 128 then m.rateLimits.Clear()
     m.rateLimits[event] = now
     return false
 end function
+
+sub onDestroy()
+    m.top.unobserveField("capture")
+    m.top.unobserveField("identify")
+    m.top.unobserveField("captureException")
+end sub

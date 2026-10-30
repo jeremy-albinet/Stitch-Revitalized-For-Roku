@@ -1,0 +1,17 @@
+<!-- Session IO boundary only. It records calls and supplies explicit acks;
+     it neither implements nor proves the real task/session manager. -->
+<component name="SessionBoundary" extends="Group">
+    <interface>
+        <field id="busy" type="boolean" value="false" alwaysNotify="true" />
+        <field id="cleanupBlocked" type="boolean" value="false" />
+        <field id="event" type="assocarray" alwaysNotify="true" />
+        <field id="allowAttach" type="boolean" value="true" />
+        <field id="refuseStart" type="boolean" value="false" />
+        <field id="calls" type="array" />
+        <function name="startSession" />
+        <function name="attachVideo" />
+        <function name="stopSession" />
+        <function name="canLeaveBlockedSession" />
+    </interface>
+    <script uri="pkg:/components/SessionBoundary.brs" />
+</component>

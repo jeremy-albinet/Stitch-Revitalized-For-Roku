@@ -12,17 +12,17 @@ Bug reference: https://github.com/jeremy-albinet/roku-fmp4-track-order-bug
 
 ## Relationship to Main Repo
 
-`fmp4-demux-proxy` is shipped alongside the Roku channel but is logically separable. It runs as a standalone Docker service. The Roku device calls into it at runtime when playing Enhanced Broadcasting streams. The channel is configured with the proxy URL via **Settings → Proxy URL**.
+`fmp4-demux-proxy` is shipped alongside the Roku channel but is logically separable. It runs as a Python service; Docker is optional packaging. The Roku calls it for streams requiring demux or filtered manifests. The channel is configured via **Settings → Proxy URL**. Ordinary compatible playback can bypass the service.
 
 ## Build, Lint, Test, Format
 
 All commands run from inside `fmp4-demux-proxy/`.
 
 ```bash
-uv sync                        # install dev dependencies
-ruff check src/ tests/         # lint
-ruff format src/ tests/        # format
-pytest                         # test
+uv sync --locked --all-extras       # install locked development dependencies
+uv run --locked ruff check src/ tests/
+uv run --locked ruff format src/ tests/
+uv run --locked pytest
 docker build -t fmp4-demux-proxy .   # Docker image
 docker compose up -d           # run via Compose
 ```
@@ -76,7 +76,7 @@ GET /health
 
 ### Segment Cache
 
-`segment_route.py` maintains an LRU cache (50 entries) + per-URL `asyncio.Lock` to deduplicate concurrent requests for the same segment. Both video and audio tracks fetch the same upstream URL; the lock ensures the upstream is fetched once and the result shared.
+`segment_route.py` maintains a byte-bounded LRU (also capped at 50 entries) and bounded shared in-flight fetch tasks keyed by URL and source range. Video and audio consumers coalesce the same upstream request. Every media link carries its exact init URL/range; request order and directory layout do not determine track identity. See README.md for variant filtering, demux classification, limits and unsupported layouts.
 
 ## Security
 

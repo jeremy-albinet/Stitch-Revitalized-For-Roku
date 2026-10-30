@@ -1,4 +1,5 @@
 sub init()
+    m.disposed = false
     ' m.poster = m.top.findNode("poster")
     ' m.timer = m.top.findNode("timer")
     m.top.observeField("width", "onSizeChange")
@@ -15,6 +16,7 @@ sub init()
 end sub
 
 sub onUriChange()
+    if m.disposed then return
     if m.firstRun
         m.firstRun = false
         ' ? "GifPlayer URI"; m.top.uri
@@ -25,6 +27,7 @@ sub onUriChange()
 end sub
 
 sub gifDecoderDidFinish()
+    if m.disposed or m.decoder = invalid then return
     ' ? "Decoder Finished"
     frames = m.decoder.frames
     fps = m.decoder.fps
@@ -44,6 +47,19 @@ sub onSizeChange()
         x: 0,
         y: 0
     }
+end sub
+
+sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    m.top.unobserveField("width")
+    m.top.unobserveField("height")
+    m.top.unobserveField("uri")
+    m.decoder = destroyTask(m.decoder, "finished")
+    if m.animator <> invalid
+        m.animator.callFunc("onDestroy")
+        m.animator = invalid
+    end if
 end sub
 
 ' function onControlChange() as void

@@ -10,7 +10,7 @@ function getBrowsePagePopularQuery() as object
         query: ReadAsciiFile("pkg:/source/graphql/BrowseLiveChannels_Query.gql"),
         variables: variables
     })
-    if rsp = invalid
+    if graphQLFieldFailed(rsp, ["streams", "edges"])
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid
@@ -31,7 +31,7 @@ function getBrowsePageQuery() as object
         query: ReadAsciiFile("pkg:/source/graphql/BrowseCategories_Query.gql"),
         variables: variables
     })
-    if rsp = invalid
+    if graphQLFieldFailed(rsp, ["directoriesWithTags", "edges"])
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid

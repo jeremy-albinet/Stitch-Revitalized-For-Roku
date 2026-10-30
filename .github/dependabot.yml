@@ -63,7 +63,7 @@ updates:
     labels:
       - "dependencies"
 
-  - package-ecosystem: "pip"
+  - package-ecosystem: "uv"
     directory: "/fmp4-demux-proxy"
     schedule:
       interval: "weekly"

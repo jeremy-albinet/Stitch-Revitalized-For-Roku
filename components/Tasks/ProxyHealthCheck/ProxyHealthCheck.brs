@@ -65,6 +65,10 @@ sub runCheck()
         return
     end if
 
+    if GetInterface(parsed.status, "ifString") = invalid
+        m.top.result = { ok: false, reason: "bad_status", message: "Proxy /health status is not 'ok'" }
+        return
+    end if
     if parsed.status <> "ok"
         m.top.result = { ok: false, reason: "bad_status", message: "Proxy /health status is not 'ok'" }
         return
@@ -72,5 +76,9 @@ sub runCheck()
 
     version = parsed.version
     if version = invalid then version = ""
+    if not proxySupportsSelectedMaster(parsed)
+        m.top.result = { ok: false, reason: "upgrade", message: "Update the audio service to version 0.3.0 or later", version: version }
+        return
+    end if
     m.top.result = { ok: true, reason: "ok", message: "Connection successful", version: version }
 end sub

@@ -1,0 +1,8 @@
+<!-- Native fields and focus, without the unsupported DynamicMiniKeyboard. -->
+<component name="KeyboardBoundary" extends="Group">
+    <interface>
+        <field id="text" type="string" alwaysNotify="true" />
+        <field id="textEditBox" type="node" />
+    </interface>
+    <script uri="keyboard.brs" />
+</component>

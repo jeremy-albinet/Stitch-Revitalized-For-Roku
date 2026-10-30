@@ -75,6 +75,18 @@ sub unset_user_setting(key)
     registry_delete(key, get_setting("active_user"))
 end sub
 
+' Keep account preferences and anonymous device identity when signing out.
+sub signOutAccount()
+    deviceCode = get_user_setting("device_code")
+    if deviceCode <> invalid and registry_read("device_code", "$default$") = invalid
+        registry_write("device_code", deviceCode, "$default$")
+    end if
+    unset_user_setting("access_token")
+    unset_user_setting("refresh_token")
+    unset_user_setting("token_expires_at")
+    set_setting("active_user", "$default$")
+end sub
+
 
 ' Recursivly search the config tree for entry with settingname equal to key
 function findConfigTreeKey(key as string, tree)
@@ -138,12 +150,4 @@ sub NukeRegistry(section = invalid)
         RegistrySection.flush()
     end if
 
-end sub
-
-' Starts the built-in Enhanced Broadcasting splitter once, if its setting is on.
-sub startBuiltinSplitter()
-    if get_user_setting("proxy.builtin", "false") <> "true" or m.global.demuxServer <> invalid then return
-    demuxServer = CreateObject("roSGNode", "DemuxServer")
-    demuxServer.control = "RUN"
-    m.global.addFields({ demuxServer: demuxServer })
 end sub

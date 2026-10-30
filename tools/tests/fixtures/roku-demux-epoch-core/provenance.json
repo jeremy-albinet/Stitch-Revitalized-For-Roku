@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "network": false,
+  "runtimePythonRequired": false,
+  "pythonReferenceSha256": "8283ec1a601de9257b05fa16253c2685397f788dad7bdb9ccccf07e967bebc1d",
+  "generatorSha256": "938583729299d353a677b511d7ea903ee39b1aecf07eb0786c5d1a5d7281776e",
+  "corpusSha256": "65b392ba779c2529a65dc68b5c94a0067635d75991a01e5329c1ae5ddfefc6fe",
+  "actualDecoderApproval": false,
+  "initVariants": 3,
+  "mediaPairs": 25,
+  "manifestGoldens": 8
+}

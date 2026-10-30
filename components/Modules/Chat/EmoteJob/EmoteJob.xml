@@ -5,10 +5,15 @@
     <interface>
         <field id="channel" type="string" />
         <field id="channel_id" type="string" />
+        <field id="completed" type="bool" value="false" />
+        <field id="animatedEmotes" type="assocarray" alwaysNotify="true" />
+        <field id="cacheComplete" type="bool" value="false" />
+        <field id="stopRequested" type="bool" value="false" />
     </interface>
 
     <script type="text/brightscript" uri="EmoteJob.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/http.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/ircEmotes.brs" />
 
 </component>

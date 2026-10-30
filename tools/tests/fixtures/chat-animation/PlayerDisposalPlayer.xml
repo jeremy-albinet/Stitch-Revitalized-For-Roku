@@ -1,0 +1,20 @@
+<!-- Playback/UI hooks are offline; exit/disposal handlers remain production code. -->
+<component name="PlayerDisposalPlayer" extends="Group">
+    <interface>
+        <field id="supportsDisposal" type="bool" value="true" />
+        <field id="backPressed" type="bool" value="false" />
+        <field id="contentSelected" type="node" />
+        <field id="lastFocus" type="node" />
+        <field id="state" type="string" />
+        <field id="channelRequested" type="node" />
+        <field id="channelSignInRequested" type="bool" />
+        <function name="onDestroy" />
+        <function name="requestBack" />
+        <function name="fixtureReadPlayer" />
+    </interface>
+    <children>
+        <Chat id="chat" visible="false" />
+    </children>
+    <script uri="PlayerDisposalPlayer.brs" />
+    <script uri="pkg:/source/utils/taskFactory.brs" />
+</component>

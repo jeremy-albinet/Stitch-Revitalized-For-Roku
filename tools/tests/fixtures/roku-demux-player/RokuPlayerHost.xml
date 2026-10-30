@@ -1,0 +1,3 @@
+<component name="RokuPlayerHost" extends="Scene">
+    <interface><field id="localPlaybackSession" type="node" /></interface>
+</component>

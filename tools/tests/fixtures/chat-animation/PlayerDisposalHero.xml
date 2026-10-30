@@ -1,0 +1,8 @@
+<!-- Offline initialization; Back/discard handlers are extracted from heroScene. -->
+<component name="PlayerDisposalHero" extends="Scene">
+    <interface>
+        <function name="fixtureMount" />
+    </interface>
+    <script uri="PlayerDisposalHero.brs" />
+    <script uri="pkg:/source/utils/lifecycle.brs" />
+</component>

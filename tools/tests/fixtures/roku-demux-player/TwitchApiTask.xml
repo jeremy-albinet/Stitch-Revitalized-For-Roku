@@ -1,0 +1,10 @@
+<!-- Offline task boundary (bookmarks): no worker or network. -->
+<component name="TwitchApiTask" extends="Group">
+    <interface>
+        <field id="response" type="assocarray" alwaysNotify="true" />
+        <field id="request" type="assocarray" />
+        <field id="followStopRequested" type="boolean" value="false" />
+        <field id="control" type="string" value="stop" />
+        <field id="functionName" type="string" />
+    </interface>
+</component>

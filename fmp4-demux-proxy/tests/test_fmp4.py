@@ -348,11 +348,13 @@ class TestSplitMoofMdat:
         box_types = [h.type for h, _ in iter_top_level_boxes(result)]
         assert b"emsg" not in box_types
 
-    def test_no_matching_track_passes_through_unchanged(self) -> None:
+    def test_no_matching_track_fails_closed(self) -> None:
         segment = make_split_media_segment(1, self._VIDEO_DATA, self._AUDIO_DATA)
         track_map: dict[int, str] = {}
-        result = split_moof_mdat(segment, track_map, "video")
-        assert result == segment
+        from fmp4_demux_proxy.fmp4 import Fmp4Error
+
+        with pytest.raises(Fmp4Error, match="requested track"):
+            split_moof_mdat(segment, track_map, "video")
 
 
 class TestTruncatedBoxErrors:

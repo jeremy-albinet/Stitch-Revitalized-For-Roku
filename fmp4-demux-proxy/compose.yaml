@@ -7,4 +7,20 @@ services:
       - PORT=8080
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PROXY_PUBLIC_URL=${PROXY_PUBLIC_URL:-}
+      - UPSTREAM_HOST_ALLOWLIST=${UPSTREAM_HOST_ALLOWLIST:-ttvnw.net,twitch.tv,twitchcdn.net}
+      - UPSTREAM_CONNECT_TIMEOUT=${UPSTREAM_CONNECT_TIMEOUT:-5}
+      - UPSTREAM_READ_TIMEOUT=${UPSTREAM_READ_TIMEOUT:-30}
+      - UPSTREAM_TOTAL_TIMEOUT=${UPSTREAM_TOTAL_TIMEOUT:-45}
+      - MAX_MANIFEST_BYTES=${MAX_MANIFEST_BYTES:-2097152}
+      - MAX_SEGMENT_BYTES=${MAX_SEGMENT_BYTES:-33554432}
+      - SEGMENT_CACHE_BYTES=${SEGMENT_CACHE_BYTES:-134217728}
+      - MAX_UPSTREAM_CONCURRENCY=${MAX_UPSTREAM_CONCURRENCY:-8}
+      - MAX_INFLIGHT_REQUESTS=${MAX_INFLIGHT_REQUESTS:-64}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 64
     restart: unless-stopped

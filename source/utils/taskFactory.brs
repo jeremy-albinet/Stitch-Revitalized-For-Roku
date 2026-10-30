@@ -43,9 +43,9 @@ function createTimer(duration as float, callback as string, repeat = false as bo
     return timer
 end function
 
-' Stops a task or timer, unobserves its field, and returns invalid.
+' Unobserves then stops a Task and returns invalid.
 ' Use: m.task = destroyTask(m.task, "response")
-'      m.timer = destroyTask(m.timer, "fire")
+' Timers must be stopped before unobserving; do not pass them here.
 function destroyTask(task, observedField as string) as dynamic
     if task <> invalid
         task.unobserveField(observedField)

@@ -45,18 +45,49 @@ sub Main(input as dynamic)
     m.scene.observeField("exitApp", m.port)
     m.scene.setFocus(true)
 
+    screenClosed = false
     while true
         msg = wait(0, m.port)
         msgType = type(msg)
         if msgType = "roSGScreenEvent"
             if msg.isScreenClosed()
-                return
+                screenClosed = true
+                exit while
             end if
         else if msgType = "roSGNodeEvent"
             field = msg.getField()
             if field = "exitApp"
-                return
+                exit while
             end if
         end if
     end while
+    finishMainScene(screen, m.scene, m.port, screenClosed)
+    m.scene = invalid
+end sub
+
+sub finishMainScene(screen as object, scene as object, port as object, screenClosed as boolean)
+    if screenClosed then return
+    session = scene.GetField("localPlaybackSession")
+    metadataOwner = scene.findNode("stitchAdMetadataOwner")
+    scene.unobserveField("exitApp")
+    ' callFunc synchronizes with render; keep it alive for cooperative cleanup.
+    scene.callFunc("onDestroy")
+    clock = CreateObject("roTimeSpan")
+    clock.Mark()
+    while session <> invalid or metadataOwner <> invalid
+        sessionBusy = false
+        metadataBusy = false
+        if session <> invalid then sessionBusy = session.busy
+        if metadataOwner <> invalid then metadataBusy = metadataOwner.busy
+        if not sessionBusy and not metadataBusy then exit while
+        remaining = 15000 - clock.TotalMilliseconds()
+        if remaining <= 0 then exit while
+        timeout = 100
+        if remaining < timeout then timeout = remaining
+        msg = wait(timeout, port)
+        if type(msg) = "roSGScreenEvent"
+            if msg.isScreenClosed() then return
+        end if
+    end while
+    screen.close()
 end sub

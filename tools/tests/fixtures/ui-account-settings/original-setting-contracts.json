@@ -1,0 +1,15 @@
+[
+    { "settingName": "logout", "type": "action", "action": "logout" },
+    { "settingName": "playback.video.quality", "type": "radio", "default": "auto", "optionIds": ["auto", "highest", "lowest"] },
+    { "settingName": "playback.lowLatency", "type": "bool", "default": "false" },
+    { "settingName": "ChatOption", "type": "bool", "default": "false" },
+    { "settingName": "ChatFontSize", "type": "radio", "default": "14", "optionIds": ["10", "12", "14", "16", "18", "20"] },
+    { "settingName": "BetterTTVEmote", "type": "bool", "default": "true" },
+    { "settingName": "7tvEmote", "type": "bool", "default": "true" },
+    { "settingName": "FFZEmote", "type": "bool", "default": "true" },
+    { "settingName": "LiveChannelSorting", "type": "radio", "default": "VIEWER_COUNT", "optionIds": ["RELEVANCE", "VIEWER_COUNT", "VIEWER_COUNT_ASC", "RECENT"] },
+    { "settingName": "FollowPageSorting", "type": "radio", "default": "streamerLogin", "optionIds": ["streamerLogin", "followerCount", "ASC_followerCount"] },
+    { "settingName": "proxy.url", "type": "text", "default": "" },
+    { "settingName": "analytics.enabled", "type": "bool", "default": "false" },
+    { "settingName": "support", "type": "action", "action": "support_stitch" }
+]

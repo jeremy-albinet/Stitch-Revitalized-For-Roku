@@ -20,6 +20,8 @@ def make_test_config(
         upstream_connect_timeout=1.0,
         upstream_read_timeout=2.0,
         upstream_host_allowlist=upstream_host_allowlist,
+        # Loopback fixtures deliberately bypass production DNS/private-address policy.
+        allow_unsafe_upstream=True,
     )
 
 

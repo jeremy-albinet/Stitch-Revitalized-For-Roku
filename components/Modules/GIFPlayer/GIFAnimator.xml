@@ -1,5 +1,7 @@
 <component name="GIFAnimator" extends="Node">
     <interface>
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
         <function name="start" />
         <function name="finish" />
     </interface>

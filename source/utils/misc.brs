@@ -420,6 +420,150 @@ function createGrid(list as object)
 end function
 
 
+' Applies the interface palette to a standard dialog or keyboard dialog. Keys
+' follow Roku's RSGPalette documentation (Standard Dialog Framework). Without a
+' palette field or constants, the dialog keeps the inherited system palette.
+function applyDialogPalette(dialog as dynamic) as boolean
+    if dialog = invalid then return false
+    if not dialog.hasField("palette") then return false
+    color = m.global?.constants?.ui?.color
+    if color = invalid then return false
+    palette = CreateObject("roSGNode", "RSGPalette")
+    if palette = invalid then return false
+    palette.colors = {
+        DialogBackgroundColor: color.surface,
+        DialogItemColor: color.focus,
+        DialogTextColor: color.text,
+        DialogFocusColor: color.focusFill,
+        DialogFocusItemColor: color.onAccent,
+        DialogSecondaryTextColor: color.textSecondary,
+        DialogSecondaryItemColor: color.divider,
+        DialogInputFieldColor: color.raised,
+        DialogKeyboardColor: color.raised,
+        DialogFootprintColor: color.divider
+    }
+    dialog.palette = palette
+    return true
+end function
+
+' Sign-out confirmation shared by the Account panel and Settings. Button 0
+' confirms; the caller observes buttonSelected/wasClosed and signs out.
+function createSignOutDialog() as object
+    dialog = CreateObject("roSGNode", "StandardMessageDialog")
+    dialog.title = tr("Sign out of Twitch?")
+    dialog.message = [tr("Your settings and recent channels stay on this Roku. You can still watch public streams.")]
+    dialog.buttons = [tr("Sign out"), tr("Cancel")]
+    applyDialogPalette(dialog)
+    return dialog
+end function
+
+' Sets a label's text and widens it and its plate to fit, never below
+' minWidth. Width 0 lets the label size to its text for measuring.
+function fitLabelPlate(label as dynamic, plate as dynamic, text as string, padding as integer, minWidth as integer) as integer
+    width = minWidth
+    if label = invalid then return width
+    label.width = 0
+    label.text = text
+    try
+        textWidth = Int(label.localBoundingRect().width) + padding
+        if textWidth > width then width = textWidth
+    catch e
+    end try
+    label.width = width
+    if plate <> invalid then plate.width = width
+    return width
+end function
+
+' Centered status message for the live and recorded player wrappers: a
+' surface plate with an optional Bold 24 title and a Regular 20 body.
+function createPlayerMessageOverlay() as object
+    ui = m.global?.constants?.ui
+    surface = "0x1F1F23FF"
+    text = "0xEFEFF1FF"
+    secondary = "0xADADB8FF"
+    if ui <> invalid
+        surface = ui.color.surface
+        text = ui.color.text
+        secondary = ui.color.textSecondary
+    end if
+    overlay = CreateObject("roSGNode", "Group")
+    overlay.visible = false
+    plate = overlay.createChild("Rectangle")
+    plate.id = "messagePlate"
+    plate.width = 640
+    plate.color = surface
+    title = overlay.createChild("Label")
+    title.id = "messageTitle"
+    title.font = createArchivoFont(true, 24)
+    title.color = text
+    title.horizAlign = "center"
+    title.width = 576
+    title.height = 32
+    body = overlay.createChild("Label")
+    body.id = "messageText"
+    body.font = createArchivoFont(false, 20)
+    body.color = secondary
+    body.horizAlign = "center"
+    body.wrap = true
+    body.maxLines = 3
+    body.width = 576
+    return overlay
+end function
+
+' Fills a createPlayerMessageOverlay group and centers its plate on screen.
+sub setPlayerMessage(overlay as object, title as string, message as string)
+    titleNode = overlay.findNode("messageTitle")
+    body = overlay.findNode("messageText")
+    plate = overlay.findNode("messagePlate")
+    if titleNode = invalid or body = invalid or plate = invalid then return
+    titleNode.text = title
+    titleNode.visible = (title <> "")
+    body.text = message
+    bodyHeight = 28
+    try
+        measured = Int(body.localBoundingRect().height)
+        if measured > bodyHeight then bodyHeight = measured
+    catch e
+    end try
+    bodyTop = 24
+    if title <> "" then bodyTop = 68
+    plateHeight = bodyTop + bodyHeight + 24
+    top = 360 - Int(plateHeight / 2)
+    plate.height = plateHeight
+    plate.translation = [0, top]
+    titleNode.translation = [32, top + 24]
+    body.translation = [32, top + bodyTop]
+end sub
+
+function createArchivoFont(bold as boolean, size as integer) as object
+    font = CreateObject("roSGNode", "Font")
+    if bold
+        font.uri = "pkg:/fonts/Archivo-Bold.otf"
+    else
+        font.uri = "pkg:/fonts/Archivo-Regular.otf"
+    end if
+    font.size = size
+    return font
+end function
+
+' Splits items into consecutive groups of at most size items. The final group
+' keeps any remainder, so no trailing item is dropped.
+function chunkItems(items as dynamic, size as integer) as object
+    groups = []
+    if type(items) <> "roArray" or size < 1 then return groups
+    group = []
+    for each item in items
+        group.push(item)
+        if group.count() = size
+            groups.push(group)
+            group = []
+        end if
+    end for
+    if group.count() > 0 then groups.push(group)
+    return groups
+end function
+
+
 function numberToText(number as object) as object
     result = ""
     if number < 1000

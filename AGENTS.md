@@ -27,11 +27,14 @@ CI runs on PRs: `lint` → `fmt:check` → `package`. All three must pass.
 > Always run `npm run fmt:check` after formatting to confirm the diff is clean before staging.
 
 ```bash
-npm test                                         # Run Rooibos tests on simulator (default)
-ROKU_HOST=192.168.x.x ROKU_PASSWORD=pw npm test  # Run on physical TV
+npm test                # Execute offline BrightScript and Node regression tests
+npm run test:compile    # Compile/package Rooibos tests without deployment
+npm run test:device     # Deploy tests to local simulator (default target)
 ```
 
-Tests live in `source/tests/` as `*.spec.bs` files. Build config: `bsconfig.test.json`.
+Rooibos tests live in `source/tests/` as `*.spec.bs` files. Build config: `bsconfig.test.json`.
+Offline fixtures live in `source/tests/offline/`; tooling and lifecycle regressions live in `tools/tests/`.
+Physical testing requires explicit access and private `ROKU_HOST` / `ROKU_PASSWORD` environment variables before `npm run test:device`.
 
 ## Project Structure
 ```
@@ -68,7 +71,7 @@ components/                # SceneGraph components (XML + BRS pairs)
     LoginPage/             # OAuth device code login flow
   Modules/                 # Reusable UI components
     MenuBar/               # Top horizontal menu bar (Following, Discover, LiveChannels, Categories)
-    FollowedStreamsBar/    # Left sidebar showing followed live streams (with SidebarItem)
+    RecentlyWatchedBar/    # Recent channel sidebar with live status
     VideoItem/             # Stream/VOD/clip card with thumbnail, labels, badges
     Chat/                  # Twitch chat overlay (IRC-based, with ChatJob + EmoteJob)
     CirclePoster/          # Circular avatar component
@@ -82,11 +85,11 @@ components/                # SceneGraph components (XML + BRS pairs)
   Tasks/                   # Task nodes for async work (API calls, content loading)
     GetTwitchContent/      # Content-fetching task nodes
     httpRequest/           # Generic HTTP task node
-    PlayerTask/            # Video player task node
-    twitch-api-sdk/        # Twitch GraphQL API client (monolithic TwitchApiTask.bs)
+    LowLatencyRelay/       # Loopback relay serving trimmed live playlists (opt-in lower latency)
+    twitch-api-sdk/        # TwitchApiTask XML and separate auth/query SDK scripts
   DeepLinking/             # External launch handling
 settings/settings.json     # User-facing settings definitions
-manifest                   # Roku channel metadata (v2.2.0)
+manifest                   # Roku channel metadata (HD UI, OS 15.1 minimum)
 images/                    # UI assets
 fonts/                     # Custom fonts
 locale/                    # i18n translation files
@@ -122,7 +125,7 @@ All network I/O and expensive work runs in Task nodes. Pattern:
 Uses a lightweight scene stack in heroScene (`m.footprints`) for back-navigation.
 Scenes are created via `buildNode(name)` and appended/removed from the scene tree.
 Top-level tab switching is handled by `MenuBar` (horizontal menu: Following, Discover, LiveChannels, Categories) via `onMenuSelection()`.
-`FollowedStreamsBar` provides a left sidebar showing live followed streams for quick channel access.
+`RecentlyWatchedBar` provides recent channels and live status for quick access.
 
 ### State Management
 - `m.global` — read-only global node (constants, emote caches, app info)
@@ -132,7 +135,7 @@ Top-level tab switching is handled by `MenuBar` (horizontal menu: Following, Dis
 
 ### Observer Cleanup
 
-Every `observeField` call must have a corresponding `unobserveField` in `sub onDestroy()`. SceneGraph calls `onDestroy()` automatically when a component is removed from the scene tree. Without cleanup, observers accumulate across scene transitions and timers keep firing after their component is gone.
+Every `observeField` call must have corresponding cleanup. `onDestroy()` is an application-defined function, not an automatic SceneGraph removal callback. Export it in the component interface and invoke it explicitly before permanent removal. Retained back-stack screens remain reusable and must not receive permanent cleanup when pushed. Without explicit cleanup, observers, tasks and timers can survive detached screens.
 
 Rules:
 - `unobserveField("fieldName")` takes **only the field name** — there is no callback parameter
@@ -205,7 +208,7 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 
 ## Twitch API
 
-- All Twitch communication goes through `TwitchApiTask.bs` via GraphQL
+- Browse/account queries use `TwitchApiTask` and its SDK scripts; playback uses `GetTwitchContent` with GraphQL and Usher; chat uses IRC
 - Client ID: `ue6666qo983tsx6so1t0vnawi233wa`
 - Auth: Device code flow → OAuth token stored in registry
 - Base URL: `https://gql.twitch.tv/gql` (POST, JSON body with `query` field)
@@ -222,15 +225,15 @@ The app has two independent auth levels:
 
 `active_user = "$default$"` means no Twitch account is logged in — but the device still has a `device_code` and can make GQL requests. Anonymous users can browse and watch most public streams and VODs without an `access_token`.
 
-**Never assume login is required for playback.** `TwitchGraphQLRequest` in `shared.bs` blocks when `device_code` is missing (first-launch only, very brief window) — not when `access_token` is missing.
+**Never assume login is required for playback.** `TwitchGraphQLRequest` in `shared.bs` returns `invalid` without sending a request when `device_code` is missing. It does not require an `access_token`. First launch acquires device identity separately and offers retry if registration fails.
 
-### Query Function Contract (TwitchApiTask.bs)
+### Query Function Contract (TwitchApiTask SDK scripts)
 
-There are two distinct function classes in `TwitchApiTask.bs`. **Never mix them.**
+There are two distinct query function classes in the TwitchApiTask SDK scripts. **Never mix them.**
 
-**Raw pass-through** — returns the raw GraphQL response object to the caller. The caller is responsible for deep dot-chain parsing. On failure, set `m.top.response = { "response": invalid }`. Examples: `getHomePageQuery`, `getCategoryQuery`, `getSearchQuery`, and most others.
+**Raw pass-through** — returns the raw GraphQL response object to the caller. The caller is responsible for deep dot-chain parsing. On failure, set `m.top.response = { "response": invalid }`. Examples: `getCategoryQuery` and `getRecommendedSections`.
 
-**Boundary-layer** — parses internally, returns a flat typed struct to the caller. The caller receives clean fields with no deep access needed. On failure, set `m.top.response = invalid`. Examples: `getChannelHomeQuery`, `getFollowingPageQuery`.
+**Boundary-layer** — parses internally, returns a flat typed struct to the caller. The caller receives clean fields with no deep access needed. On failure, set `m.top.response = invalid`. Examples: `getHomePageQuery`, `getSearchQuery`, `getChannelHomeQuery`, and `getFollowingPageQuery`.
 
 Rules for boundary-layer functions:
 - Failure **must** be `m.top.response = invalid` — not `{ "response": invalid }`, not empty arrays
@@ -263,14 +266,14 @@ When adding a new query function, decide upfront which class it belongs to and f
 |---|---|
 | `source/main.brs` | App entry point |
 | `components/heroScene.brs` | Main scene (auth, nav, menu) |
-| `components/Tasks/twitch-api-sdk/TwitchApiTask.bs` | All Twitch API calls |
+| `components/Tasks/twitch-api-sdk/TwitchApiTask.xml` | API Task imports and response interface |
 | `source/utils/config.brs` | Registry read/write helpers |
 | `source/utils/misc.brs` | Shared utility functions |
 | `source/utils/http.brs` | HTTP request wrapper |
 | `source/constants.brs` | Global constants initialization |
 | `settings/settings.json` | User-facing settings schema |
 | `manifest` | Roku channel metadata and version |
-| `bsconfig.json` | BrighterScript compiler config (gitignored, device-specific — do not commit) |
+| `bsconfig.json` | Tracked portable compiler config; keep private device overrides outside tracked files |
 | `bsconfig.test.json` | Test build config (extends bsconfig.json, adds rooibos plugin) |
 
 ## QA & Debugging
@@ -346,17 +349,11 @@ curl -s -X POST http://localhost:8060/keypress/Right
 4. Navigate: ECP keypress commands to localhost:8060
 5. Repeat
 
-#### Running Tests — Stale Package Warning
+#### Running Tests — Fresh Package Verification
 
-`npm test` builds a zip, sideloads it, then streams the debug console output. The simulator **keeps the previous package in memory** until the new one fully loads. This means the first 2–3 test runs printed by the console may reflect the old zip, not the freshly built one.
+`npm test` executes offline fixtures and Node regressions without sideloading. It does not read a simulator's previous package.
 
-**Rule: always `rm -rf out` before `npm test` when you need a definitive result.** This forces a clean build and eliminates any ambiguity about which package is running.
-
-```bash
-rm -rf out && npm test
-```
-
-Rooibos loops the test suite multiple times. Treat the first run that shows the correct test names as canonical. If any run shows test names from a previous version of the spec, discard it — the simulator was still loading.
+`npm run test:device` compiles a separate Rooibos package, opens the console before installation, and requires both successful installation and the new package's unique run marker before accepting a positive test summary. Stale output, zero tests, a crash, failure or timeout fail the command. Use this command for simulator or authorized physical-device tests; do not infer results from an earlier package's console output.
 
 #### Rooibos Test Patterns — brs-engine Limitations
 

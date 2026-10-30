@@ -1,735 +1,401 @@
 sub main()
-    if m.top.contentRequested.contentType = "CLIP"
-        ' For clips, try to find a working URL using a more direct approach
-        clipSlug = m.top.contentRequested.clipSlug
-        if clipSlug = invalid or clipSlug = ""
-            clipSlug = m.top.contentRequested.contentId
-        end if
-
-        content = CreateObject("roSGNode", "TwitchContentNode")
-        contentFields = m.top.contentRequested
-        if GetInterface(contentFields, "ifSGNodeChildren") <> invalid
-            contentFields = contentFields.getFields()
-        end if
-        contentFields.delete("change")
-        contentFields.delete("focusedChild")
-        content.setFields(contentFields)
-
-        ' Try to get a working clip URL with enhanced method
-        workingUrl = findWorkingClipUrl(clipSlug, m.top.contentRequested.previewImageUrl)
-
-        if workingUrl <> invalid and workingUrl <> ""
-            content.url = workingUrl
-            content.StreamUrls = [workingUrl]
-            ' Use boolean to stay consistent with the live/VOD metadata schema
-            if content.streamQualities = invalid
-                content.streamQualities = []
-            end if
-            content.streamQualities.push(true)
-            content.streamContentIds = ["Original"]
-            ' ? "[GetTwitchContent] Using verified clip URL: "; workingUrl
-        else
-            ' ? "[GetTwitchContent] URL verification failed, trying GraphQL approach"
-            ' Try to get clip info via GraphQL first
-            clipUrl = getClipUrlViaGraphQL(clipSlug)
-            if clipUrl <> invalid and clipUrl <> ""
-                content.url = clipUrl
-                content.StreamUrls = [clipUrl]
-                content.streamQualities = ["HD"]
-                content.streamContentIds = ["Original"]
-                ' ? "[GetTwitchContent] Using GraphQL clip URL: "; clipUrl
-            else
-                ' ? "[GetTwitchContent] GraphQL failed, using enhanced fallback"
-                ' Enhanced fallback with multiple attempts
-                fallbackUrls = generateClipFallbackUrls(clipSlug, m.top.contentRequested.previewImageUrl)
-                content.url = fallbackUrls[0]
-                content.StreamUrls = fallbackUrls
-                content.streamQualities = []
-                content.streamContentIds = []
-                for i = 0 to fallbackUrls.Count() - 1
-                    content.streamQualities.push("HD")
-                    content.streamContentIds.push("Fallback_" + i.toStr())
-                end for
-                ' ? "[GetTwitchContent] Using fallback URLs, primary: "; fallbackUrls[0]
-            end if
-        end if
-
-        ' Set clip-specific properties for better playback
-        content.ignoreStreamErrors = true
-        content.switchingStrategy = "no-adaptation"
-    else
-        rsp = invalid
-        if m.top.contentRequested.contentType = "VOD"
-            rsp = TwitchGraphQLRequest({
-                query: "query VodPlayerWrapper_Query($videoId: ID!, $platform: String!, $playerType: String!, $skipPlayToken: Boolean!) { ...VodPlayerWrapper_token } fragment VodPlayerWrapper_token on Query { video(id: $videoId) @skip(if: $skipPlayToken) { playbackAccessToken(params: {platform: $platform, playerType: $playerType}) { signature value } id __typename } }",
-                variables: {
-                    "videoId": m.top.contentRequested.contentId,
-                    "platform": "web_tv",
-                    "playerType": "pulsar",
-                    "skipPlayToken": false
-                }
-            })
-
-        end if
-        if m.top.contentRequested.contentType = "LIVE"
-            rsp = TwitchGraphQLRequest({
-                query: "query StreamPlayer_Query($login: String!, $playerType: String!, $platform: String!, $skipPlayToken: Boolean!) { ...StreamPlayer_token } fragment StreamPlayer_token on Query { user(login: $login) { login stream @skip(if: $skipPlayToken) { playbackAccessToken(params: {platform: $platform, playerType: $playerType}) { signature value } id __typename } id __typename } }",
-                variables: {
-                    "login": m.top.contentRequested.streamerLogin,
-                    "platform": "web_tv",
-                    "playerType": "roku",
-                    "skipPlayToken": false
-                }
-            })
-        end if
-
-        usherUrl = ""
-        if m.top.contentRequested.contentType = "VOD"
-            if rsp = invalid or rsp.data = invalid or rsp.data.video = invalid or rsp.data.video.playbackAccessToken = invalid
-                trackEvent("content_fetch_error", { content_type: "VOD", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
-                m.top.response = invalid
-                return
-            end if
-            usherUrl = "https://usher.ttvnw.net/vod/" + rsp.data.video.id + ".m3u8?playlist_include_framerate=true&allow_source=true&player_type=pulsar&player_backend=mediaplayer&reassignments_supported=true&nauth=" + rsp.data.video.playbackAccessToken.value.EncodeUri() + "&nauthsig=" + rsp.data.video.playbackAccessToken.signature
-        else if m.top.contentRequested.contentType = "LIVE"
-            if rsp = invalid or rsp.data = invalid or rsp.data.user = invalid or rsp.data.user.stream = invalid or rsp.data.user.stream.playbackAccessToken = invalid or rsp.data.user.stream.playbackAccessToken.value = invalid
-                trackEvent("content_fetch_error", { content_type: "LIVE", error_type: "token_fetch_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
-                m.top.response = invalid
-                return
-            end if
-            usherUrl = "https://usher.ttvnw.net/api/channel/hls/" + rsp.data.user.login + ".m3u8"
-            usherUrl += "?allow_source=true"
-            usherUrl += "&fast_bread=true"
-            usherUrl += "&playlist_include_framerate=true"
-            usherUrl += "&player_backend=mediaplayer"
-            usherUrl += "&reassignments_supported=true"
-            usherUrl += "&supported_codecs=avc1%2Cmp4a"
-            usherUrl += "&transcode_mode=cbr_v1"
-            usherUrl += "&p=" + CreateObject("roDeviceInfo").GetRandomUUID().replace("-", "")
-            usherUrl += "&token=" + rsp.data.user.stream.playbackAccessToken.value.EncodeUriComponent()
-            usherUrl += "&sig=" + rsp.data.user.stream.playbackAccessToken.signature.EncodeUriComponent()
-        end if
-
-        ' ? "[GetTwitchContent] Final Usher URL: "; usherUrl
-
-        req = HttpRequest({
-            url: usherUrl,
-            headers: {
-                "Accept": "*/*",
-                "Origin": "https://android.tv.twitch.tv",
-                "Referer": "https://android.tv.twitch.tv/",
-                "User-Agent": "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36",
-                "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko"
-            },
-            method: "GET"
-        })
-
-        usher_response = invalid
-        maxRetries = 3
-        retryCount = 0
-        while retryCount < maxRetries
-            usher_response = req.send()
-            if usher_response <> invalid
-                exit while
-            end if
-            retryCount++
-            sleep(1000)
-        end while
-        if usher_response = invalid
-            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "usher_request_failed", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
-            m.top.response = invalid
+    try
+        request = m.top.contentRequested
+        if request = invalid
+            respondPlaybackError("Content unavailable", "Select the video again from Browse.")
             return
         end if
-
-        statusCode = usher_response.getResponseCode()
-        usher_rsp = usher_response.getString()
-        finalPlaylistContent = ""
-
-        ' Check status code to determine response type
-        if statusCode = 200
-            ' Success - response is M3U8 playlist
-            finalPlaylistContent = usher_rsp
+        if request.contentType = "CLIP"
+            loadClipContent(request)
         else
-            ' Error response - parse JSON for error details
-            try
-                jsonResponse = ParseJson(usher_rsp)
-                if jsonResponse <> invalid and Type(jsonResponse) = "roArray" and jsonResponse.Count() > 0 and jsonResponse[0].type = "error"
-                    ' Handle Twitch error response
-                    errorMsg = "Unknown error"
-                    if jsonResponse[0].error <> invalid
-                        errorMsg = jsonResponse[0].error
-                    end if
-
-                    ' Create an error content node to pass back
-                    content = CreateObject("roSGNode", "TwitchContentNode")
-                    content.setFields({
-                        contentType: "ERROR",
-                        title: "VOD Unavailable",
-                        description: errorMsg,
-                        errorCode: jsonResponse[0].error_code
-                    })
-
-                    m.top.response = content
-                    return
-                else
-                    m.top.response = invalid
-                    return
-                end if
-            catch e
-                captureException(e, "GetTwitchContent/parseUsherErrorResponse")
-                m.top.response = invalid
-                return
-            end try
+            loadHlsContent(request)
         end if
+    catch e
+        captureException(e, "GetTwitchContent/main")
+        respondPlaybackError("Unable to load video", "Twitch returned an unexpected response. Try again in a moment.")
+    end try
+end sub
 
-        ' Detect Enhanced Broadcasting (transmux) from master manifest
-        isTransmux = false
-        list = finalPlaylistContent.Split(chr(10))
-        for each manifestLine in list
-            if manifestLine.InStr("#EXT-X-TWITCH-INFO:") = 0 and manifestLine.InStr("TRANSCODESTACK=") > -1
-                if manifestLine.InStr("transmux") > -1
-                    isTransmux = true
-                end if
-            end if
-        end for
+function playbackRequestContent(request as object) as object
+    content = CreateObject("roSGNode", "TwitchContentNode")
+    fields = request
+    if GetInterface(fields, "ifSGNodeChildren") <> invalid then fields = fields.GetFields()
+    fields.Delete("change")
+    fields.Delete("focusedChild")
+    content.SetFields(fields)
+    return content
+end function
 
-        fps = invalid
-        stream_objects = []
-
-        for line = 0 to list.Count() - 1
-            if list[line].InStr("#EXT-X-STREAM-INF:") = 0
-                rawLine = list[line]
-                stream_info = rawLine.Split(",")
-                streamobject = {}
-                for info = 0 to stream_info.Count() - 1
-                    info_parsed = stream_info[info].Split("=")
-                    if info_parsed.Count() >= 2
-                        key = info_parsed[0].replace("#EXT-X-STREAM-INF:", "")
-                        value = toString(info_parsed[1]).replace(chr(34), "")
-                        streamobject[key] = value
-                    end if
-                end for
-
-                ' CODECS="..." may contain commas (e.g. "avc1.64001f,mp4a.40.2"), which the
-                ' comma-split above truncates. Re-extract it from the raw line verbatim.
-                codecsStart = rawLine.InStr("CODECS=")
-                if codecsStart >= 0
-                    afterEq = rawLine.Mid(codecsStart + 7)
-                    if Left(afterEq, 1) = chr(34)
-                        closeQuote = afterEq.Mid(1).InStr(chr(34))
-                        if closeQuote >= 0
-                            streamobject["CODECS"] = afterEq.Mid(1, closeQuote)
-                        end if
-                    end if
-                end if
-
-                ' Get the URL from the next line
-                if line + 1 < list.Count() and Left(list[line + 1], 1) <> "#"
-                    streamobject["URL"] = list[line + 1]
-                    stream_objects.push(streamobject)
-                end if
-            end if
-        end for
-
-        ' If no streams found, this is a critical error
-        if stream_objects.Count() = 0
-            trackEvent("content_fetch_error", { content_type: m.top.contentRequested.contentType, error_type: "no_streams_in_manifest", content_id: m.top.contentRequested.contentId, streamer_login: m.top.contentRequested.streamerLogin })
-            m.top.response = invalid
-            return
-        end if
-
-        stream_bitrates = []
-        stream_urls = []
-        stream_qualities = []
-        stream_content_ids = []
-        stream_sticky = []
-        stream_formats = []
-        streams = []
-        metadata = []
-
-        for each stream_item in stream_objects
-            if stream_item["RESOLUTION"] <> invalid and stream_item["URL"] <> invalid
-                res = stream_item["RESOLUTION"].split("x")[1]
-                streamUrl = stream_item["URL"]
-
-                if stream_item["VIDEO"] = "chunked"
-                    if stream_item["FRAME-RATE"] <> invalid
-                        fps = stream_item["FRAME-RATE"].split(".")[0]
-                    end if
-                    value = res + "p"
-                    if fps <> invalid
-                        value = value + fps + " (Source)"
-                    end if
-                else
-                    value = stream_item["VIDEO"]
-                end if
-
-                if m.global?.supportedgraphicsresolution <> invalid
-                    if Val(res) > m.global.supportedgraphicsresolution
-                        ' ? "Res Skip: "; res
-                        continue for
-                    end if
-                end if
-
-                if Val(res) >= 720
-                    stream_qualities.push(true)
-                    stream_quality = true
-                else
-                    stream_qualities.push(false)
-                    stream_quality = false
-                end if
-
-                ' Use the stream URL as-is from the playlist
-                stream_bitrates.push(Int(Val(stream_item["BANDWIDTH"])) / 1000)
-                stream_sticky.push(false)
-                stream_content_ids.push(value)
-                stream_urls.push(streamUrl)
-                stream_formats.push("hls")
-
-                stream = {
-                    url: streamUrl,
-                    stickyredirects: false,
-                    quality: stream_quality,
-                    contentid: value,
-                    bitrate: Int(Val(stream_item["BANDWIDTH"])) / 1000
-                }
-                streams.push(stream)
-
-                metadata.push({
-                    QualityID: value,
-                    Streams: [stream],
-                    StreamUrls: [streamUrl],
-                    StreamStickyHttpRedirects: [false],
-                    StreamQualities: [stream_quality],
-                    StreamContentIds: [value],
-                    StreamBitrates: [Int(Val(stream_item["BANDWIDTH"])) / 1000]
-                })
-            end if
-        end for
-
-        ' Sort streams by bitrate (highest first) for quality preference
-        if streams.Count() > 0
-            for i = 0 to streams.Count() - 2
-                for j = i + 1 to streams.Count() - 1
-                    if streams[i].bitrate < streams[j].bitrate
-                        ' Swap all arrays
-                        temp = streams[i]
-                        streams[i] = streams[j]
-                        streams[j] = temp
-
-                        temp_meta = metadata[i]
-                        metadata[i] = metadata[j]
-                        metadata[j] = temp_meta
-
-                        temp_val = stream_bitrates[i]
-                        stream_bitrates[i] = stream_bitrates[j]
-                        stream_bitrates[j] = temp_val
-
-                        temp_val = stream_urls[i]
-                        stream_urls[i] = stream_urls[j]
-                        stream_urls[j] = temp_val
-
-                        temp_val = stream_qualities[i]
-                        stream_qualities[i] = stream_qualities[j]
-                        stream_qualities[j] = temp_val
-
-                        temp_val = stream_content_ids[i]
-                        stream_content_ids[i] = stream_content_ids[j]
-                        stream_content_ids[j] = temp_val
-
-                        temp_val = stream_sticky[i]
-                        stream_sticky[i] = stream_sticky[j]
-                        stream_sticky[j] = temp_val
-                    end if
-                end for
-            end for
-        end if
-
-        metadata.unshift({
-            QualityID: "Automatic",
-            StreamBitrates: stream_bitrates,
-            streams: streams,
-            StreamUrls: stream_urls,
-            StreamQualities: stream_qualities,
-            StreamContentIDs: stream_content_ids,
-            StreamStickyHttpRedirects: stream_sticky
-        })
-
-        content = CreateObject("roSGNode", "TwitchContentNode")
-        contentFields = m.top.contentRequested
-        if GetInterface(contentFields, "ifSGNodeChildren") <> invalid
-            contentFields = contentFields.getFields()
-        end if
-        ' Strip internal SceneGraph fields that leak through getFields()
-        contentFields.delete("change")
-        contentFields.delete("focusedChild")
-        content.setFields(contentFields)
-
-        ' Set live stream properties
-        if m.top.contentRequested.contentType = "LIVE"
-            content.live = true
-        end if
-
-        userQualityPreference = get_user_setting("playback.video.quality", "auto")
-
-        selectedMetadata = invalid
-        if userQualityPreference = "highest" and metadata.Count() > 1
-            selectedMetadata = metadata[1]
-            ' ? "[GetTwitchContent] Using HIGHEST quality setting: "; metadata[1].QualityID
-        else if userQualityPreference = "lowest" and metadata.Count() > 0
-            ' Select the lowest quality stream
-            lowestQualityIndex = metadata.Count() - 1
-            selectedMetadata = metadata[lowestQualityIndex]
-            ' ? "[GetTwitchContent] Using LOWEST quality setting: "; metadata[lowestQualityIndex].QualityID
-        else
-            ' Use automatic selection (index 0) - this allows adaptive bitrate
-            selectedMetadata = metadata[0]
-            ' ? "[GetTwitchContent] Using AUTOMATIC quality setting: "; metadata[0].QualityID
-        end if
-
-        ' Set only valid ContentNode fields to avoid type mismatch
-        if selectedMetadata <> invalid
-            ' Set QualityID
-            if selectedMetadata.QualityID <> invalid
-                content.QualityID = selectedMetadata.QualityID
-            end if
-
-            ' Set URL and StreamUrls - handle both single and multiple streams
-            if selectedMetadata.StreamUrls <> invalid and selectedMetadata.StreamUrls.Count() > 0
-                content.url = selectedMetadata.StreamUrls[0]
-                content.StreamUrls = selectedMetadata.StreamUrls
-            else if selectedMetadata.Streams <> invalid and selectedMetadata.Streams.Count() > 0
-                ' Fallback to Streams array if StreamUrls not available
-                content.url = selectedMetadata.Streams[0].url
-                streamUrls = []
-                for each stream in selectedMetadata.Streams
-                    streamUrls.push(stream.url)
-                end for
-                content.StreamUrls = streamUrls
-            end if
-
-            ' Set qualities - handle field name variations
-            if selectedMetadata.StreamQualities <> invalid
-                content.StreamQualities = selectedMetadata.StreamQualities
-            end if
-
-            ' Set content IDs - handle field name variations
-            if selectedMetadata.StreamContentIds <> invalid
-                content.StreamContentIds = selectedMetadata.StreamContentIds
-            else if selectedMetadata.StreamContentIDs <> invalid
-                content.StreamContentIds = selectedMetadata.StreamContentIDs
-            end if
-
-            ' Set bitrates
-            if selectedMetadata.StreamBitrates <> invalid
-                content.StreamBitrates = selectedMetadata.StreamBitrates
-            end if
-
-            ' Set sticky redirects - handle field name variations
-            if selectedMetadata.StreamStickyHttpRedirects <> invalid
-                content.StreamStickyHttpRedirects = selectedMetadata.StreamStickyHttpRedirects
-            end if
-        end if
-
-        ' Detect fMP4 from the variant playlist if not already flagged via master manifest
-        if not isTransmux and content.url <> invalid and content.url <> ""
-            try
-                variantReq = HttpRequest({
-                    url: content.url,
-                    headers: {
-                        "Accept": "*/*",
-                        "User-Agent": "Mozilla/5.0"
-                    },
-                    method: "GET"
-                })
-                variantRsp = invalid
-                retries = 0
-                while retries < 300
-                    variantRsp = variantReq.send()
-                    if variantRsp <> invalid then exit while
-                    sleep(10)
-                    retries++
-                end while
-                if variantRsp <> invalid
-                    variantBody = variantRsp.getString()
-                    if variantBody <> invalid and variantBody.InStr("#EXT-X-MAP:") > -1
-                        isTransmux = true
-                    end if
-                end if
-            catch e
-                captureException(e, "GetTwitchContent/detectTransmux")
-            end try
-        end if
-
-        if isTransmux
-            content.isTransmux = true
-
-            proxyUrl = get_user_setting("proxy.url", "").trim()
-            if proxyUrl.right(1) = "/" then proxyUrl = proxyUrl.left(proxyUrl.len() - 1)
-            demuxServer = m.global.demuxServer
-            if proxyUrl = "" and demuxServer <> invalid and demuxServer.ready = true and get_user_setting("proxy.builtin", "false") = "true"
-                proxyUrl = "http://127.0.0.1:" + demuxServer.port.toStr()
-            end if
-            ? "[fmp4-demux] isTransmux=true, proxyUrl=" proxyUrl
-            if proxyUrl <> ""
-                ' Preserve upstream codec/bandwidth/resolution per variant so the
-                ' proxy's synthesized demuxed master advertises the real decoder
-                ' requirements (H.264 / HEVC / AV1).
-                variantHints = {}
-                for each item in stream_objects
-                    if item["URL"] <> invalid
-                        variantHints[item["URL"]] = {
-                            codecs: item["CODECS"],
-                            bandwidth: item["BANDWIDTH"],
-                            resolution: item["RESOLUTION"]
-                        }
-                    end if
-                end for
-
-                if content.url <> invalid and content.url <> ""
-                    ? "[fmp4-demux] rewriting url: " content.url
-                    content.url = buildProxyM3u8Url(proxyUrl, content.url, variantHints[content.url])
-                end if
-                if content.StreamUrls <> invalid
-                    newStreamUrls = []
-                    for each streamUrl in content.StreamUrls
-                        newStreamUrls.push(buildProxyM3u8Url(proxyUrl, streamUrl, variantHints[streamUrl]))
-                    end for
-                    content.StreamUrls = newStreamUrls
-                end if
-                content.ForwardQueryStringParams = false
-                content.isTransmux = false
-                content.isProxied = true
-                ' Proxy the quality-menu options too.
-                for each entry in metadata
-                    proxyQualityEntry(entry, proxyUrl, variantHints)
-                end for
-            end if
-        end if
-
-        m.top.metadata = metadata
-    end if
-
+sub respondPlaybackError(title as string, description as string, code = "" as string)
+    content = CreateObject("roSGNode", "TwitchContentNode")
+    content.SetFields({ contentType: "ERROR", title: title, description: description, errorCode: code })
     m.top.response = content
 end sub
 
-' Proxies one quality option; shared Streams entries are copied, not changed in place.
-sub proxyQualityEntry(entry as object, proxyUrl as string, variantHints as object)
-    if entry.StreamUrls <> invalid
-        urls = []
-        for each streamUrl in entry.StreamUrls
-            urls.push(buildProxyM3u8Url(proxyUrl, streamUrl, variantHints[streamUrl]))
-        end for
-        entry.StreamUrls = urls
+sub loadClipContent(request as object)
+    slug = request.clipSlug
+    if slug = invalid or slug = "" then slug = request.contentId
+    if slug = invalid or slug = ""
+        respondPlaybackError("Clip unavailable", "This clip no longer has a playback identifier.")
+        return
     end if
-    if entry.Streams <> invalid
-        streams = []
-        for each stream in entry.Streams
-            copy = {}
-            copy.Append(stream)
-            copy.url = buildProxyM3u8Url(proxyUrl, stream.url, variantHints[stream.url])
-            streams.push(copy)
+    ' Resolve the signed source from Twitch before attempting legacy CDN guesses.
+    url = getClipUrlViaGraphQL(slug)
+    if url = invalid
+        for each fallback in generateClipFallbackUrls(slug)
+            if isClipUrlAccessible(fallback)
+                url = fallback
+                exit for
+            end if
         end for
-        entry.Streams = streams
     end if
-    entry.ForwardQueryStringParams = false
+    if url = invalid
+        respondPlaybackError("Clip unavailable", "Twitch could not load this clip. It may have been removed; try again later.")
+        return
+    end if
+    content = playbackRequestContent(request)
+    content.SetFields({ url: url, streamFormat: "mp4", StreamUrls: [url], StreamQualities: [true], StreamContentIds: ["Original"], QualityID: "Original", ignoreStreamErrors: false, playbackTransport: "direct", localPlaybackDescriptor: invalid })
+    m.top.metadata = []
+    m.top.response = content
 end sub
 
-function buildProxyM3u8Url(proxyUrl as string, streamUrl as string, hints as dynamic) as string
-    url = proxyUrl + "/m3u8?u=" + streamUrl.EncodeUriComponent()
-    if hints = invalid then return url
-
-    codecs = hints.codecs
-    if isValidAndNotEmpty(codecs)
-        url = url + "&codecs=" + codecs.EncodeUriComponent()
+sub loadHlsContent(request as object)
+    token = invalid
+    liveStream = invalid
+    if request.contentType = "VOD"
+        rsp = TwitchGraphQLRequest({
+            query: "query VodPlayerWrapper_Query($videoId: ID!, $platform: String!, $playerType: String!, $skipPlayToken: Boolean!) { video(id: $videoId) @skip(if: $skipPlayToken) { playbackAccessToken(params: {platform: $platform, playerType: $playerType}) { signature value } id } }",
+            variables: { "videoId": request.contentId, platform: "web_tv", "playerType": "pulsar", "skipPlayToken": false }
+        })
+        if rsp <> invalid and rsp.data <> invalid and rsp.data.video <> invalid then token = rsp.data.video.playbackAccessToken
+        endpoint = "/vod/v2/" + request.contentId + ".m3u8?nauth="
+        signatureParam = "&nauthsig="
+    else if request.contentType = "LIVE"
+        rsp = TwitchGraphQLRequest({
+            query: "query StreamPlayer_Query($login: String!, $playerType: String!, $platform: String!, $skipPlayToken: Boolean!) { user(login: $login) { stream @skip(if: $skipPlayToken) { createdAt game { name displayName boxArtURL } playbackAccessToken(params: {platform: $platform, playerType: $playerType}) { signature value } } } }",
+            variables: { login: request.streamerLogin, platform: "web_tv", "playerType": "roku", "skipPlayToken": false }
+        })
+        if rsp <> invalid and rsp.data <> invalid and rsp.data.user <> invalid and rsp.data.user.stream <> invalid
+            liveStream = rsp.data.user.stream
+            token = liveStream.playbackAccessToken
+        end if
+        endpoint = "/api/v2/channel/hls/" + request.streamerLogin + ".m3u8?token="
+        signatureParam = "&sig="
+    else
+        respondPlaybackError("Content unavailable", "This type of content does not support playback.")
+        return
+    end if
+    if token = invalid or token.value = invalid or token.signature = invalid
+        respondPlaybackError("Video unavailable", "Twitch could not authorize this video. The stream may be offline or the video may be restricted.", "token_fetch_failed")
+        return
     end if
 
-    bw = hints.bandwidth
-    if isValidAndNotEmpty(bw)
-        url = url + "&bw=" + bw.EncodeUriComponent()
+    ' Current Usher names are h264/h265, distinct from HLS avc1/hvc1 strings.
+    ' https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/twitch.py
+    device = CreateObject("roDeviceInfo")
+    usherUrl = "https://usher.ttvnw.net" + endpoint + token.value.EncodeUriComponent() + signatureParam + token.signature.EncodeUriComponent()
+    usherUrl += "&allow_source=true&playlist_include_framerate=true&multigroup_video=true&supported_codecs=" + getTwitchSupportedCodecs(device).EncodeUriComponent()
+    headers = { Accept: "*/*", Origin: "https://android.tv.twitch.tv", Referer: "https://android.tv.twitch.tv/", "User-Agent": "Stitch Roku", "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko" }
+    response = HttpRequest({ url: usherUrl, method: "GET", headers: headers, timeout: 15000, retries: 2 }).Send()
+    if response = invalid
+        respondPlaybackError("Connection problem", "The video playlist did not arrive. Check your connection and try again.")
+        return
     end if
-
-    res = hints.resolution
-    if isValidAndNotEmpty(res)
-        url = url + "&res=" + res.EncodeUriComponent()
+    if response.GetResponseCode() <> 200
+        code = ""
+        message = "Twitch could not load this video. Try again later."
+        error = ParseJSON(response.GetString())
+        if GetInterface(error, "ifArray") <> invalid and error.Count() > 0
+            if error[0].error <> invalid then message = error[0].error
+            if error[0].error_code <> invalid then code = error[0].error_code
+        end if
+        respondPlaybackError("Video unavailable", message, code)
+        return
     end if
+    rawMaster = response.GetString()
+    manifest = parsePlaybackHlsMaster(rawMaster, usherUrl)
+    proxyUrl = get_user_setting("proxy.url", "").Trim()
+    while proxyUrl.Right(1) = "/"
+        proxyUrl = proxyUrl.Left(proxyUrl.Len() - 1)
+    end while
+    m.rokuDemuxEnabled = false
+    m.rokuVodEnabled = request.contentType = "VOD" and rokuVodRuntimeAvailable()
+    if m.top.HasField("enableRokuDemux") then m.rokuDemuxEnabled = m.top.enableRokuDemux and (request.contentType = "LIVE" or m.rokuVodEnabled) and proxyUrl = ""
+    m.rokuVodEnabled = m.rokuVodEnabled and m.rokuDemuxEnabled
+    metadata = []
+    nativeMetadata = []
+    allowedUrls = []
+    selections = []
+    hasMuxedVariants = false
+    hasSeparateAudio = false
+    allVariantsSupported = true
+    m.playbackProbeCount = 0
+    m.playbackProbeCache = {}
+    m.playbackProbeOrigins = {}
+    m.playbackProbeVodComplete = {}
+    m.playbackProbeFailed = false
+    m.proxySelectionChecked = invalid
+    m.playbackProbeClock = CreateObject("roTimeSpan")
+    m.playbackProbeClock.Mark()
+    for each variant in manifest.variants
+        if variant["RESOLUTION"] = invalid then continue for
+        if not isTwitchVariantSupported(variant, device)
+            allVariantsSupported = false
+            continue for
+        end if
+        separateAudio = variant["SEPARATE-AUDIO"]
+        hasSeparateAudio = hasSeparateAudio or separateAudio
+        transmux = false
+        if not separateAudio
+            transmux = isMuxedCmafVariant(variant, headers)
+            if transmux = invalid
+                if manifest.isTransmux
+                    transmux = true
+                else
+                    allVariantsSupported = false
+                    continue for
+                end if
+            end if
+        end if
+        hasMuxedVariants = hasMuxedVariants or transmux
+        selection = playbackSelectionDescriptor(variant, manifest.media)
+        if allowedUrls.Count() < 32
+            allowedUrls.Push(variant["URL"])
+            selections.Push(selection)
+        end if
+        url = variant["URL"]
+        proxied = false
+        if proxyUrl <> "" and (transmux or separateAudio)
+            if separateAudio
+                if not ensureProxySelectionSupport(proxyUrl) then return
+                url = buildProxySelectedM3u8Url(proxyUrl, usherUrl, [selection])
+                if url = invalid
+                    respondPlaybackError("Playlist selection unavailable", "The stream's quality metadata could not be safely selected. Reopen the video to refresh it.")
+                    return
+                end if
+            else
+                url = buildProxyM3u8Url(proxyUrl, url, variant)
+            end if
+            proxied = true
+        else if separateAudio
+            ' A child video playlist alone omits its external audio. Retain
+            ' the complete native master; manual selection requires hosting
+            ' a filtered master through the optional service.
+            continue for
+        end if
+        entry = playbackQualityEntry(variant, url, transmux and not proxied, proxied)
+        descriptor = invalid
+        if m.rokuDemuxEnabled and transmux and not separateAudio
+            if m.rokuVodEnabled
+                if m.playbackProbeVodComplete[variant["URL"]] = true then descriptor = rokuVodDescriptorFromTrustedMaster(rawMaster, usherUrl, { "sourceUrl": variant["URL"], "qualityId": entry.QualityID }, request.contentId)
+            else
+                descriptor = rokuDemuxPlaybackDescriptor(variant, entry.QualityID, m.playbackProbeOrigins[variant["URL"]])
+            end if
+        end if
+        entry = rokuDemuxPlaybackEntry(entry, descriptor)
+        metadata.Push(entry)
+        if not transmux then nativeMetadata.Push(entry)
+    end for
+    if proxyUrl = "" and nativeMetadata.Count() > 0
+        retainedMetadata = []
+        for each entry in metadata
+            if not entry.isTransmux or (entry.playbackTransport = "roku-demux" and entry.localPlaybackDescriptor <> invalid)
+                retainedMetadata.Push(entry)
+            end if
+        end for
+        metadata = retainedMetadata
+    end if
+    if metadata.Count() = 0
+        if allVariantsSupported and hasSeparateAudio and not hasMuxedVariants
+            ' All renditions have external audio; preserve the upstream master.
+            variant = invalid
+            for each candidate in manifest.variants
+                if candidate["RESOLUTION"] <> invalid
+                    variant = candidate
+                    exit for
+                end if
+            end for
+            entry = playbackQualityEntry(variant, usherUrl, false, false)
+            entry.QualityID = "Automatic"
+            entry.playbackNotice = "Automatic preserves this stream's separate audio. Configure the audio service to choose a manual quality."
+            entry = rokuDemuxPlaybackEntry(entry)
+            metadata.Push(entry)
+        else
+            if m.playbackProbeFailed
+                respondPlaybackError("Video transport unavailable", "Twitch's video playlists could not be inspected within the connection deadline. Check your connection and try again.")
+                return
+            end if
+            if hasSeparateAudio and proxyUrl = ""
+                respondPlaybackError("Audio service needed for quality filtering", "This Roku supports part of the video ladder, but the video uses separate audio. Configure the optional audio service in Settings to select compatible qualities while preserving sound.")
+                return
+            end if
+            respondPlaybackError("No compatible quality", "Twitch did not offer a video quality this Roku can decode. Try another stream or a lower quality broadcast.")
+            return
+        end if
+    end if
+    sortPlaybackMetadata(metadata)
+    if metadata[0].QualityID <> "Automatic"
+        automatic = invalid
+        automaticMetadata = metadata
+        if proxyUrl = "" and nativeMetadata.Count() > 0
+            ' Keep native Automatic while retaining eligible local manual choices.
+            sortPlaybackMetadata(nativeMetadata)
+            automaticMetadata = nativeMetadata
+        else if m.rokuDemuxEnabled
+            automatic = rokuDemuxAutomaticEntry(metadata)
+        end if
+        if automatic = invalid
+            if proxyUrl <> "" and (hasMuxedVariants or hasSeparateAudio or not allVariantsSupported)
+                if not ensureProxySelectionSupport(proxyUrl) then return
+            end if
+            automatic = playbackAutomaticEntry(automaticMetadata, usherUrl, proxyUrl, allowedUrls, allVariantsSupported, hasMuxedVariants, hasSeparateAudio, invalid, selections)
+            if automatic <> invalid then automatic = rokuDemuxPlaybackEntry(automatic)
+        end if
+        if automatic = invalid
+            respondPlaybackError("Playlist selection unavailable", "The stream's quality metadata could not be safely selected. Reopen the video to refresh it.")
+            return
+        end if
+        ' SceneGraph ignores legacy StreamUrls for HLS ABR. A real master URL
+        ' enables adaptation, provided every offered variant is safe/native.
+        metadata.Unshift(automatic)
+    end if
+    preference = get_user_setting("playback.video.quality", "auto")
+    index = playbackPreferredQualityIndex(metadata, preference)
+    content = playbackRequestContent(request)
+    content.SetFields(metadata[index])
+    if liveStream <> invalid
+        if GetInterface(liveStream.createdAt, "ifString") <> invalid then content.createdAt = liveStream.createdAt
+        if GetInterface(liveStream.game, "ifAssociativeArray") <> invalid
+            if GetInterface(liveStream.game.name, "ifString") <> invalid then content.gameName = liveStream.game.name
+            if GetInterface(liveStream.game.displayName, "ifString") <> invalid then content.gameDisplayName = liveStream.game.displayName
+            if GetInterface(liveStream.game.boxArtURL, "ifString") <> invalid then content.gameBoxArtUrl = liveStream.game.boxArtURL.Replace("{width}", "188").Replace("{height}", "250")
+        end if
+    end if
+    content.live = request.contentType = "LIVE"
+    m.top.metadata = metadata
+    m.top.response = content
+end sub
 
+function ensureProxySelectionSupport(proxyUrl as string) as boolean
+    if m.proxySelectionChecked <> invalid then return m.proxySelectionChecked
+    m.proxySelectionChecked = false
+    response = HttpRequest({ url: proxyUrl + "/health", method: "GET", timeout: 3000, retries: 1 }).Send()
+    health = invalid
+    if response <> invalid
+        if response.GetResponseCode() = 200 then health = ParseJSON(response.GetString())
+    end if
+    validHealth = false
+    if GetInterface(health, "ifAssociativeArray") <> invalid
+        if GetInterface(health.status, "ifString") <> invalid then validHealth = health.status = "ok"
+    end if
+    if not validHealth
+        respondPlaybackError("Audio service unavailable", "Could not check the configured audio service. Check its address and connection, or clear its URL in Settings to use supported playback on this Roku.", "proxy_health_failed")
+        return false
+    end if
+    m.proxySelectionChecked = proxySupportsSelectedMaster(health)
+    if not m.proxySelectionChecked
+        respondPlaybackError("Update the audio service", "Update the configured audio service to version 0.3.0 or later. You can also clear its URL in Settings to use supported playback on this Roku.", "proxy_upgrade_required")
+    end if
+    return m.proxySelectionChecked
+end function
+
+function isMuxedCmafVariant(variant as object, headers as object) as dynamic
+    url = variant["URL"]
+    if m.playbackProbeCache[url] <> invalid then return m.playbackProbeCache[url]
+    remaining = 15000 - m.playbackProbeClock.TotalMilliseconds()
+    if remaining <= 0 or m.playbackProbeCount >= 8
+        m.playbackProbeFailed = true
+        return invalid
+    end if
+    timeout = 3000
+    if remaining < timeout then timeout = remaining
+    m.playbackProbeCount++
+    response = HttpRequest({ url: url, method: "GET", headers: headers, timeout: timeout, retries: 1 }).Send()
+    isMuxed = invalid
+    if response <> invalid and response.GetResponseCode() = 200
+        playlist = response.GetString()
+        isMuxed = isMuxedPlaybackCmaf(variant, playlist)
+        if m.rokuDemuxEnabled and isMuxed = true
+            if m.rokuVodEnabled
+                cache = m.playbackProbeVodComplete
+                completed = rokuVodPlaylistCompleted(playlist, url)
+                if m.playbackProbeClock.TotalMilliseconds() >= 15000
+                    m.playbackProbeFailed = true
+                    return invalid
+                end if
+                cache[url] = completed
+                m.playbackProbeVodComplete = cache
+            else
+                origins = rokuDemuxMediaOrigins(playlist, url)
+                if origins <> invalid
+                    cache = m.playbackProbeOrigins
+                    cache[url] = origins
+                    m.playbackProbeOrigins = cache
+                end if
+            end if
+        end if
+    end if
+    if isMuxed = invalid then m.playbackProbeFailed = true
+    m.playbackProbeCache[url] = isMuxed
+    return isMuxed
+end function
+
+sub sortPlaybackMetadata(metadata as object)
+    for index = 0 to metadata.Count() - 2
+        for other = index + 1 to metadata.Count() - 1
+            if metadata[index].StreamBitrates[0] < metadata[other].StreamBitrates[0]
+                temp = metadata[index]
+                metadata[index] = metadata[other]
+                metadata[other] = temp
+            end if
+        end for
+    end for
+end sub
+
+function getClipUrlViaGraphQL(slug as string) as dynamic
+    rsp = TwitchGraphQLRequest({
+        query: "query ClipAccessToken($slug: ID!) { clip(slug: $slug) { playbackAccessToken(params: {platform: " + Chr(34) + "web" + Chr(34) + ", playerType: " + Chr(34) + "site" + Chr(34) + "}) { signature value } videoQualities { frameRate quality sourceURL } } }",
+        variables: { slug: slug }
+    })
+    if rsp = invalid or rsp.data = invalid or rsp.data.clip = invalid then return invalid
+    clip = rsp.data.clip
+    if GetInterface(clip.videoQualities, "ifArray") = invalid then return invalid
+    best = invalid
+    lowest = invalid
+    for each quality in clip.videoQualities
+        if quality.sourceURL <> invalid and quality.sourceURL <> ""
+            if lowest = invalid
+                lowest = quality
+            else if Val(quality.quality) < Val(lowest.quality)
+                lowest = quality
+            end if
+            if Val(quality.quality) <= 1080
+                if best = invalid
+                    best = quality
+                else if Val(quality.quality) > Val(best.quality)
+                    best = quality
+                end if
+            end if
+        end if
+    end for
+    if best = invalid then best = lowest
+    if best = invalid then return invalid
+    url = best.sourceURL
+    token = clip.playbackAccessToken
+    if token <> invalid and token.value <> invalid and token.signature <> invalid
+        separator = "?"
+        if url.InStr("?") >= 0 then separator = "&"
+        url += separator + "token=" + token.value.EncodeUriComponent() + "&sig=" + token.signature.EncodeUriComponent()
+    end if
     return url
 end function
 
-function getClipUrlViaGraphQL(clipSlug as string) as dynamic
-    ' Try to get clip URL via GraphQL API with proper authentication
-    ' ? "[GetTwitchContent] Attempting GraphQL clip lookup for: "; clipSlug
-
-    try
-        ' First try to get clip info with playback access token
-        rsp = TwitchGraphQLRequest({
-            query: "query ClipAccessToken($slug: ID!) { clip(slug: $slug) { id slug title playbackAccessToken(params: {platform: " + chr(34) + "web" + chr(34) + ", playerType: " + chr(34) + "site" + chr(34) + "}) { signature value } videoQualities { frameRate quality sourceURL } } }",
-            variables: {
-                "slug": clipSlug
-            }
-        })
-
-        if rsp <> invalid and rsp.data <> invalid and rsp.data.clip <> invalid
-            clip = rsp.data.clip
-
-            ' If we have a playback access token, try to use it
-            if clip.playbackAccessToken <> invalid
-                token = clip.playbackAccessToken.value
-                signature = clip.playbackAccessToken.signature
-
-                ' Try to construct authenticated URL
-                if clip.videoQualities <> invalid and clip.videoQualities.Count() > 0
-                    bestQuality = clip.videoQualities[0]
-                    for each quality in clip.videoQualities
-                        if quality.quality <> invalid and bestQuality.quality <> invalid
-                            if Val(quality.quality) > Val(bestQuality.quality)
-                                bestQuality = quality
-                            end if
-                        end if
-                    end for
-
-                    if bestQuality.sourceURL <> invalid
-                        authenticatedUrl = bestQuality.sourceURL
-                        if token <> invalid and signature <> invalid
-                            ' Add authentication parameters
-                            if authenticatedUrl.InStr("?") > -1
-                                authenticatedUrl += "&token=" + token.EncodeUriComponent() + "&sig=" + signature.EncodeUriComponent()
-                            else
-                                authenticatedUrl += "?token=" + token.EncodeUriComponent() + "&sig=" + signature.EncodeUriComponent()
-                            end if
-                        end if
-
-                        ' ? "[GetTwitchContent] GraphQL found authenticated clip URL: "; authenticatedUrl
-                        return authenticatedUrl
-                    end if
-                end if
-            end if
-
-            ' Fallback to regular video qualities if no token
-            if clip.videoQualities <> invalid and clip.videoQualities.Count() > 0
-                bestQuality = clip.videoQualities[0]
-                for each quality in clip.videoQualities
-                    if quality.quality <> invalid and bestQuality.quality <> invalid
-                        if Val(quality.quality) > Val(bestQuality.quality)
-                            bestQuality = quality
-                        end if
-                    end if
-                end for
-
-                if bestQuality.sourceURL <> invalid
-                    ' ? "[GetTwitchContent] GraphQL found clip URL: "; bestQuality.sourceURL
-                    return bestQuality.sourceURL
-                end if
-            end if
-        end if
-    catch e
-        ' ? "[GetTwitchContent] GraphQL clip lookup failed: "; e.message
-        captureException(e, "GetTwitchContent/getClipUrlViaGraphQL")
-    end try
-
-    return invalid
+function generateClipFallbackUrls(slug as string) as object
+    ' Retain two legacy endpoints for old clips, with a six-second total budget.
+    return ["https://clips-media-assets2.twitch.tv/" + slug.EncodeUriComponent() + ".mp4", "https://clips-media-assets.twitch.tv/" + slug.EncodeUriComponent() + ".mp4"]
 end function
 
-function generateClipFallbackUrls(clipSlug as string, previewImageUrl as string) as object
-    ' Generate multiple fallback URLs to try
-    fallbackUrls = []
-
-    ' Extract UUID from preview URL if available
-    uuid = invalid
-    if previewImageUrl <> invalid and previewImageUrl <> ""
-        if previewImageUrl.InStr("twitch-clips-thumbnails-prod") > -1
-            pathParts = previewImageUrl.Split("/")
-            if pathParts.Count() >= 6
-                uuid = pathParts[5]
-            end if
-        end if
-    end if
-
-    ' Primary patterns with UUID if available
-    if uuid <> invalid
-        fallbackUrls.push("https://production.assets.clips.twitchcdn.net/v2/media/" + clipSlug + "/" + uuid + "/video.mp4")
-        fallbackUrls.push("https://clips-media-assets2.twitch.tv/" + clipSlug + "-" + uuid + ".mp4")
-        fallbackUrls.push("https://clips-media-assets.twitch.tv/" + clipSlug + "-" + uuid + ".mp4")
-        fallbackUrls.push("https://clips-media-assets2.twitch.tv/" + clipSlug + "/" + uuid + ".mp4")
-    end if
-
-    ' Standard patterns
-    fallbackUrls.push("https://clips-media-assets2.twitch.tv/" + clipSlug + ".mp4")
-    fallbackUrls.push("https://clips-media-assets.twitch.tv/" + clipSlug + ".mp4")
-
-    ' Alternative CDN patterns
-    fallbackUrls.push("https://production.assets.clips.twitchcdn.net/" + clipSlug + ".mp4")
-    fallbackUrls.push("https://clips-media-assets2.twitch.tv/" + clipSlug + "-source.mp4")
-
-    ' Encoded patterns
-    fallbackUrls.push("https://clips-media-assets2.twitch.tv/AT-cm%7C" + clipSlug + ".mp4")
-
-    ' ? "[GetTwitchContent] Generated "; fallbackUrls.Count(); " fallback URLs"
-    return fallbackUrls
-end function
-
-function findWorkingClipUrl(clipSlug as string, previewImageUrl as string) as dynamic
-    ' Generate test URLs
-    testUrls = generateClipFallbackUrls(clipSlug, previewImageUrl)
-
-    ' Test each URL with a simple HTTP request
-    for each testUrl in testUrls
-        ' ? "[GetTwitchContent] Testing clip URL: "; testUrl
-        if isUrlAccessible(testUrl)
-            ' ? "[GetTwitchContent] Found working clip URL: "; testUrl
-            return testUrl
-        end if
-        ' Small delay between requests to avoid rate limiting
-        sleep(100)
-    end for
-
-    ' ? "[GetTwitchContent] No working clip URL found via testing"
-    return invalid
-end function
-
-function isUrlAccessible(url as string) as boolean
-    ' Make a quick HEAD request to test if the URL is accessible
-    req = CreateObject("roUrlTransfer")
-    if req = invalid then return false
-    req.SetCertificatesFile("common:/certs/ca-bundle.crt")
-    req.InitClientCertificates()
-    req.SetUrl(url)
-
-    ' Enhanced headers for clip access
-    req.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    req.AddHeader("Accept", "video/mp4,video/webm,video/*,*/*")
-    req.AddHeader("Accept-Encoding", "identity")
-    req.AddHeader("Accept-Language", "en-US,en;q=0.9")
-    req.AddHeader("Cache-Control", "no-cache")
-    req.AddHeader("Connection", "keep-alive")
-    req.AddHeader("DNT", "1")
-    req.AddHeader("Origin", "https://www.twitch.tv")
-    req.AddHeader("Pragma", "no-cache")
-    req.AddHeader("Referer", "https://www.twitch.tv/")
-    req.AddHeader("Sec-Ch-Ua", chr(34) + "Not_A Brand" + chr(34) + ";v=" + chr(34) + "8" + chr(34) + ", " + chr(34) + "Chromium" + chr(34) + ";v=" + chr(34) + "120" + chr(34) + ", " + chr(34) + "Google Chrome" + chr(34) + ";v=" + chr(34) + "120" + chr(34))
-    req.AddHeader("Sec-Ch-Ua-Mobile", "?0")
-    req.AddHeader("Sec-Ch-Ua-Platform", chr(34) + "Windows" + chr(34))
-    req.AddHeader("Sec-Fetch-Dest", "video")
-    req.AddHeader("Sec-Fetch-Mode", "cors")
-    req.AddHeader("Sec-Fetch-Site", "cross-site")
-    req.AddHeader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-
-    ' Use GET with range instead of HEAD to avoid some server restrictions
-    req.AddHeader("Range", "bytes=0-1023")
-
-    ' Set timeout and try the request
-    req.SetMessagePort(CreateObject("roMessagePort"))
-
-    if req.AsyncGetToString()
-        msg = wait(3000, req.GetMessagePort()) ' 3 second timeout
-        if msg <> invalid and type(msg) = "roUrlEvent"
-            responseCode = msg.GetResponseCode()
-            ' ? "[GetTwitchContent] URL test response: "; responseCode; " for "; url
-            ' Accept 200 (OK), 206 (Partial Content), or 302 (Redirect) as success
-            return (responseCode = 200 or responseCode = 206 or responseCode = 302)
-        end if
-    end if
-
-    return false
+function isClipUrlAccessible(url as string) as boolean
+    response = HttpRequest({ url: url, method: "GET", headers: { Range: "bytes=0-1023", Accept: "video/mp4" }, timeout: 3000, retries: 1 }).Send()
+    return response <> invalid and (response.GetResponseCode() = 200 or response.GetResponseCode() = 206)
 end function

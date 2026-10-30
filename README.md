@@ -13,12 +13,26 @@ A feature-complete Twitch client for Roku.
 ## Features
 
 - Browse live streams by category, search, or followed channels
-- Live chat overlay while watching streams
-- Recently Watched sidebar for quick access to channels you've visited
+- Live chat beside the video or over full-size video, with four corner positions and adjustable background opacity
+- Separate Pinned and Live sidebar sections, per-profile pins and individual local removal
 - VOD and clip playback
 - Auto-reconnect after mid-roll ads
 - Respects Twitch's business model: ads and monetization work as intended
 - Anonymous browsing without login; sign in to access followed channels and chat
+
+## Modernized interface and playback
+
+This checkout integrates the 3.1.0 interface, playback and chat work from [Narehood's fork](https://github.com/Narehood/Stitch-Revitalized-For-Roku), retaining this project's support links and release history. Build the checkout to test these changes before they appear in a published release.
+
+- Choose a preferred startup resolution with a lower playable fallback.
+- Open a streamer's channel, pin/unpin, and check Follow/Unfollow status from player Channel actions.
+- Display Unicode emoji, highlighted mentions, provider emotes and pinned author badges. Compatible devices animate one visible BTTV/7TV emote or eligible Twitch subscriber GIF at a time; static images or titles remain available as fallbacks.
+- Choose synchronized or live chat timing. Hype Trains, pinned messages and experimental Twitch watch credit are separate opt-in settings.
+- Use clearer Settings choices, scroll indicators, player hints and bounded playback recovery. Lower live latency remains experimental and off by default.
+
+## Support Stitch
+
+Stitch remains free and community-built. Open **Settings > Support Stitch** to scan the existing Buy Me a Coffee QR, or visit [jeremyalbinet on Buy Me a Coffee](https://www.buymeacoffee.com/jeremyalbinet).
 
 ## Installation
 
@@ -41,7 +55,7 @@ Streams using **Twitch Enhanced Broadcasting** deliver audio and video as two se
 
 Roku has officially confirmed they will not support this packaging shape. Twitch is aware but does not plan a server-side change. Affected streams are visible as "Enhanced Broadcasting" on the broadcaster's dashboard. Regular (non-EB) streams are unaffected.
 
-**Workaround:** the self-hosted [`fmp4-demux-proxy`](./fmp4-demux-proxy/README.md) splits the bundled segments into separate audio and video HLS renditions on the fly, producing a CMAF-conformant manifest Roku accepts. Configure under **Settings → Proxy URL** in the app. See [issue #14](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues/14) for the full investigation and current status.
+**Playback options:** the built-in audio splitter handles eligible live streams and recordings on the Roku. The optional self-hosted [`fmp4-demux-proxy`](./fmp4-demux-proxy/README.md) splits bundled segments into separate audio and video HLS renditions; configure it under **Settings > Proxy URL**. Codec and device limits still apply. Mixed MPEG-TS ads inside separated proxy CMAF remain unsupported; ordinary native TS playback is preserved. See [issue #14](https://github.com/jeremy-albinet/Stitch-Revitalized-For-Roku/issues/14) for the full investigation and current status.
 
 ## Contributing
 
@@ -51,7 +65,7 @@ Pull requests are welcome. All contributions must be submitted under the [Unlice
 
 ## Privacy
 
-The app collects no personal data. Anonymous, opt-out analytics are available in Settings. Roku and Twitch collect data independently under their own privacy policies.
+The app collects no personal data. Anonymous, opt-out analytics are available in Settings. Roku and Twitch collect data independently under their own privacy policies. Optional Twitch watch credit sends signed-in viewing reports directly to Twitch, defaults to off, and is separate from anonymous diagnostics.
 
 ## License & Credits
 

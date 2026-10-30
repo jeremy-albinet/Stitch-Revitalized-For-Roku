@@ -1,42 +1,91 @@
-name: Proxy CI
+﻿name: Proxy CI
 
 on:
+  workflow_call:
   push:
     branches: [main]
     paths:
       - 'fmp4-demux-proxy/**'
+      - '.github/workflows/proxy-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'fmp4-demux-proxy/**'
+      - '.github/workflows/proxy-ci.yml'
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    name: Lint & test
+    name: Python ${{ matrix.python }} lint, test and audit
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.14', '3.15']
+    defaults:
+      run:
+        working-directory: fmp4-demux-proxy
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
+          version: '0.13.5'
           working-directory: fmp4-demux-proxy
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --all-extras
+      - run: uv run ruff check src/ tests/
+      - run: uv run ruff format --check src/ tests/
+      - run: uv run pytest -q
+      - name: Audit runtime dependencies
+        run: |
+          uv export --locked --no-dev --no-emit-project --output-file runtime-requirements.txt
+          uvx pip-audit==2.10.1 --disable-pip --require-hashes --strict -r runtime-requirements.txt
 
-      - name: Install dependencies
-        run: uv sync --locked --all-extras
-        working-directory: fmp4-demux-proxy
+  container:
+    name: Container build, CA trust and startup health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build container
+        run: docker build --pull --tag fmp4-demux-proxy:ci fmp4-demux-proxy
+      - name: Verify container startup and health
+        run: |
+          docker run --detach --name fmp4-demux-proxy-ci \
+            --publish 127.0.0.1:18080:8080 fmp4-demux-proxy:ci
+          test "$(docker exec fmp4-demux-proxy-ci id -u)" = "1000"
 
-      - name: Lint
-        run: uv run ruff check src/ tests/
-        working-directory: fmp4-demux-proxy
+          for ((attempt = 0; attempt < 30; attempt++)); do
+            health="$(docker inspect --format '{{.State.Health.Status}}' fmp4-demux-proxy-ci)"
+            if [ "$health" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$health" = "healthy"
 
-      - name: Format check
-        run: uv run ruff format --check src/ tests/
-        working-directory: fmp4-demux-proxy
+          python3 - <<'PY'
+          import json
+          import urllib.request
 
-      - name: Test
-        run: uv run pytest -q
-        working-directory: fmp4-demux-proxy
+          with urllib.request.urlopen("http://127.0.0.1:18080/health", timeout=5) as response:
+              assert response.status == 200
+              body = json.load(response)
+          assert body["status"] == "ok", body
+          assert "version" in body, body
+          assert body["selected_master_version"] == 1, body
+          PY
+      - name: Verify runtime CA package and Python trust store
+        run: docker exec fmp4-demux-proxy-ci python /usr/local/bin/check-ca-trust.py
+      - name: Show container logs and clean up
+        if: always()
+        run: |
+          if docker container inspect fmp4-demux-proxy-ci > /dev/null 2>&1; then
+            docker logs fmp4-demux-proxy-ci || true
+            docker rm --force fmp4-demux-proxy-ci
+          fi

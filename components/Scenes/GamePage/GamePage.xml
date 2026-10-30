@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="GamePage" extends="SceneManagerGroup" initialFocus="homeRowList">
     <interface>
+        <function name="onDestroy" />
         <field id="contentRequested" type="node" onChange="updatePage" />
         <field id="backgroundColor" type="string" alias="background.color" />
         <field id="pageTitle" type="string" alias="Header.text" />
@@ -9,33 +10,49 @@
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Modules/StatusPanel/StatusPanelHost.brs" />
     <children>
         <rectangle id="background" width="1920" height="1080" />
+        <!-- Category header, as on Twitch: box art beside the name and viewers -->
+        <Rectangle id="boxArtBase" color="0x1F1F23FF" width="90" height="120" translation="[110,36]" />
+        <Poster
+            id="boxArt"
+            width="90"
+            height="120"
+            loadWidth="188"
+            loadHeight="250"
+            loadDisplayMode="scaleToFit"
+            translation="[110,36]" />
         <SimpleLabel
             id="Header"
-            translation="[75,20]"
-            text="Browse"
-            fontSize="48"
+            translation="[224,52]"
+            text=""
+            fontSize="40"
+            color="0xEFEFF1FF"
             fontUri="pkg:/fonts/Archivo-Bold.otf" />
+        <Label id="viewers" translation="[224,108]" color="0xADADB8FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+        </Label>
         <RowList
             id="homeRowList"
             visible="true"
             rowLabelOffset="[[0,5]]"
-            rowLabelFont="font:MediumBoldSystemFont"
-            translation="[ 100, 120 ]"
+            rowLabelColor="0xEFEFF1FF"
+            translation="[ 110, 184 ]"
             itemComponentName="VideoItem"
             numRows="4"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,0]]"
-            itemSize="[1920,295]"
+            itemSize="[1280,295]"
             itemSpacing="[ 0, 40 ]"
             showRowLabel="[ false ]"
-            rowHeights="[235]"
-            focusBitmapUri="pkg:/images/focus_row.9.png"
-            drawFocusFeedbackOnTop="true"
+            rowHeights="[255]"
+            focusBitmapUri="pkg:/images/transparent.9.png"
             vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="floatingFocus"
-        />
+            rowFocusAnimationStyle="fixedFocus">
+            <Font role="rowLabelFont" uri="pkg:/fonts/Archivo-Bold.otf" size="24" />
+        </RowList>
+        <StatusPanel id="status" translation="[110, 200]" />
     </children>
 
 </component>

@@ -10,15 +10,6 @@ function build_Following()
     return node
 end function
 
-' Dev-only tab: Following as a logged-out user sees it.
-function build_Anonymous()
-    node = createObject("roSGNode", "Following")
-    node.id = "Anonymous"
-    node.anonymous = true
-    node.translation = [0, 0]
-    return node
-end function
-
 function build_Browse()
     node = createObject("roSGNode", "Browse")
     node.id = "Browse"
@@ -46,6 +37,8 @@ function build_LoginPage()
     node.id = "LoginPage"
     node.translation = [0, 0]
     node.observeField("finished", "onLoginFinished")
+    ' Sign-out confirmed in the Account panel.
+    node.observeField("signedOut", "onLogoutFinished")
     return node
 end function
 

@@ -1,156 +1,175 @@
-"""fMP4 segment proxy route: GET /s?u=<upstream_url>&k=<kind>[&track=<video|audio>]"""
+"""Track-separated media with exact init identity and bounded shared fetches."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from collections import OrderedDict
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 from typing import Final
-from urllib.parse import urlparse
 
-import aiohttp
 from aiohttp import web
 
 from fmp4_demux_proxy import fmp4
-from fmp4_demux_proxy.upstream import CONFIG_KEY, SESSION_KEY, validate_upstream_url
-
-_VALID_TRACKS: Final[frozenset[str]] = frozenset({"video", "audio"})
+from fmp4_demux_proxy.upstream import (
+    CONFIG_KEY,
+    ByteRange,
+    UpstreamData,
+    fetch_upstream,
+    parse_byte_range,
+    validate_upstream_url,
+)
 
 logger = logging.getLogger(__name__)
-
-_VALID_KINDS: Final[frozenset[str]] = frozenset({"init", "media", "part", "prefetch"})
-_SEGMENT_CONTENT_TYPE: Final[str] = "video/mp4"
-_MAX_CACHE: Final[int] = 50
-# Cap track_maps independently — one entry per unique variant directory path.
-# Bounded so long-running / multi-channel proxies don't leak memory.
-_MAX_TRACK_MAPS: Final[int] = 100
-
-TRACK_MAP_KEY: Final[web.AppKey[OrderedDict[str, dict[int, fmp4.TrackKind]]]] = web.AppKey(
-    "track_maps", OrderedDict
-)
-SEGMENT_CACHE_KEY: Final[web.AppKey[OrderedDict[str, bytes]]] = web.AppKey(
-    "segment_cache", OrderedDict
-)
-SEGMENT_LOCKS_KEY: Final[web.AppKey[dict[str, asyncio.Lock]]] = web.AppKey("segment_locks", dict)
+type FetchKey = tuple[str, ByteRange | None]
+_MAX_CACHE_ENTRIES = 50
+_MAX_TRACK_MAPS = 100
 
 
-def _cache_key(upstream: str) -> str:
-    parsed = urlparse(upstream)
-    path = parsed.path.rsplit("/", 1)[0]
-    # Twitch CDN serves some media segments under /s1/v1/segment while init stays on
-    # /v1/segment; strip the /sN prefix so both share one track_map entry.
-    path = re.sub(r"^/s\d+(?=/)", "", path)
-    return f"{parsed.scheme}://{parsed.netloc}{path}"
+@dataclass
+class SegmentStore:
+    cache: OrderedDict[FetchKey, UpstreamData] = field(default_factory=OrderedDict)
+    track_maps: OrderedDict[FetchKey, dict[int, fmp4.TrackKind]] = field(
+        default_factory=OrderedDict
+    )
+    pending: dict[FetchKey, asyncio.Task[UpstreamData]] = field(default_factory=dict)
+    cached_bytes: int = 0
 
 
-async def _fetch_dedup(
-    session: aiohttp.ClientSession,
-    upstream: str,
-    app: web.Application,
-) -> bytes:
-    cache = app[SEGMENT_CACHE_KEY]
-    locks = app[SEGMENT_LOCKS_KEY]
+STORE_KEY: Final = web.AppKey("segment_store", SegmentStore)
+
+
+async def segment_store_cleanup_ctx(app: web.Application) -> AsyncIterator[None]:
+    yield
+    tasks = list(app[STORE_KEY].pending.values())
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
+async def _fetch_cached(
+    app: web.Application, upstream: str, byte_range: ByteRange | None
+) -> UpstreamData:
+    store = app[STORE_KEY]
     cfg = app[CONFIG_KEY]
+    key = (upstream, byte_range)
+    if key in store.cache:
+        store.cache.move_to_end(key)
+        return store.cache[key]
+    task = store.pending.get(key)
+    if task is None:
+        if len(store.pending) >= cfg.max_inflight_requests:
+            raise web.HTTPServiceUnavailable(text="Proxy is busy; retry shortly")
 
-    if upstream not in locks:
-        locks[upstream] = asyncio.Lock()
-    lock = locks[upstream]
-
-    async with lock:
-        if upstream in cache:
-            cache.move_to_end(upstream)
-            return cache[upstream]
-
-        cached = False
-        try:
+        async def fetch_and_cache() -> UpstreamData:
             try:
-                async with session.get(upstream, allow_redirects=True) as resp:
-                    validate_upstream_url(str(resp.url), cfg.upstream_host_allowlist)
-                    if resp.status != 200:
-                        logger.warning("upstream segment returned %s for %s", resp.status, upstream)
-                        raise web.HTTPBadGateway(text=f"upstream status {resp.status}")
-                    data = await resp.read()
-            except aiohttp.ClientError as exc:
-                logger.error("upstream segment fetch failed for %s: %s", upstream, exc)
-                raise web.HTTPBadGateway(text=f"upstream fetch failed: {exc}") from exc
+                result = await fetch_upstream(
+                    app, upstream, limit=cfg.max_segment_bytes, byte_range=byte_range
+                )
+                if len(result.body) <= cfg.segment_cache_bytes:
+                    store.cache[key] = result
+                    store.cached_bytes += len(result.body)
+                    while (
+                        len(store.cache) > _MAX_CACHE_ENTRIES
+                        or store.cached_bytes > cfg.segment_cache_bytes
+                    ):
+                        _, evicted = store.cache.popitem(last=False)
+                        store.cached_bytes -= len(evicted.body)
+                return result
+            finally:
+                store.pending.pop(key, None)
 
-            if not data:
-                logger.warning("upstream returned empty body for %s", upstream)
-                raise web.HTTPBadGateway(text="upstream returned empty segment")
+        task = asyncio.create_task(fetch_and_cache())
+        # A disconnected client must not leave an unobserved failed task exception.
+        task.add_done_callback(lambda done: done.exception() if not done.cancelled() else None)
+        store.pending[key] = task
+    return await asyncio.shield(task)
 
-            cache[upstream] = data
-            cached = True
-            if len(cache) > _MAX_CACHE:
-                evicted, _ = cache.popitem(last=False)
-                locks.pop(evicted, None)
-            return data
-        finally:
-            # Drop the lock entry when nothing was cached (fetch failed) so that
-            # a parade of bad URLs cannot grow SEGMENT_LOCKS_KEY without bound.
-            if not cached:
-                locks.pop(upstream, None)
+
+async def _track_map(
+    app: web.Application, init_url: str, init_range: ByteRange | None
+) -> dict[int, fmp4.TrackKind]:
+    store = app[STORE_KEY]
+    identity = (init_url, init_range)
+    cached = store.track_maps.get(identity)
+    if cached is not None:
+        store.track_maps.move_to_end(identity)
+        return cached
+    init = await _fetch_cached(app, init_url, init_range)
+    tracks = fmp4.extract_track_map(init.body)
+    if not tracks:
+        raise fmp4.Fmp4Error("Init segment contains no valid tracks")
+    store.track_maps[identity] = tracks
+    store.track_maps.move_to_end(identity)
+    if len(store.track_maps) > _MAX_TRACK_MAPS:
+        store.track_maps.popitem(last=False)
+    return tracks
 
 
 async def segment_handler(request: web.Request) -> web.Response:
-    session: aiohttp.ClientSession = request.app[SESSION_KEY]
     cfg = request.app[CONFIG_KEY]
-
     upstream = request.query.get("u")
     kind = request.query.get("k")
     track = request.query.get("track")
-
-    if not upstream or not kind:
-        raise web.HTTPBadRequest(text="missing query params: u, k")
-    if kind not in _VALID_KINDS:
-        raise web.HTTPBadRequest(text=f"invalid kind: {kind}")
-    if not track or track not in _VALID_TRACKS:
-        raise web.HTTPBadRequest(text=f"invalid or missing track: {track}")
-
-    validate_upstream_url(upstream, cfg.upstream_host_allowlist)
-
-    data = await _fetch_dedup(session, upstream, request.app)
-
-    # MPEG-TS segment (0x47 sync byte, 188-byte packets): not fMP4, pass through.
-    if data[:1] == b"\x47" and (len(data) < 189 or data[188] == 0x47):
-        logger.debug("MPEG-TS segment detected for %s; passing through", upstream)
-        return web.Response(
-            body=data,
-            content_type="video/mp2t",
-            headers={"Cache-Control": "no-store"},
+    mode = request.query.get("mode", "demux")
+    if not upstream or kind not in {"init", "media", "part", "prefetch", "key"}:
+        raise web.HTTPBadRequest(text="Missing or invalid segment URL/kind")
+    if mode not in {"demux", "passthrough"}:
+        raise web.HTTPBadRequest(text="Invalid segment mode")
+    if mode == "demux" and track not in {"video", "audio"}:
+        raise web.HTTPBadRequest(text="Missing or invalid segment track")
+    validate_upstream_url(
+        upstream, cfg.upstream_host_allowlist, allow_unsafe=cfg.allow_unsafe_upstream
+    )
+    input_range = parse_byte_range(request.query.get("r"))
+    init_range = parse_byte_range(request.query.get("ir"))
+    init_url = upstream if kind == "init" else request.query.get("i")
+    if mode == "demux":
+        if not init_url:
+            raise web.HTTPBadRequest(text="Media requires an exact init segment reference")
+        validate_upstream_url(
+            init_url, cfg.upstream_host_allowlist, allow_unsafe=cfg.allow_unsafe_upstream
         )
 
-    track_maps = request.app[TRACK_MAP_KEY]
-    cache_key = _cache_key(upstream)
-    keep: fmp4.TrackKind = "video" if track == "video" else "audio"
-
     try:
-        if kind == "init":
-            track_map = fmp4.extract_track_map(data)
-            track_maps[cache_key] = track_map
-            track_maps.move_to_end(cache_key)
-            if len(track_maps) > _MAX_TRACK_MAPS:
-                track_maps.popitem(last=False)
-            rewritten = fmp4.split_moov(data, track_map, keep)
-            logger.debug("init rewritten for %s; track_map=%s", cache_key, track_map)
+        if mode == "passthrough":
+            result = await _fetch_cached(request.app, upstream, input_range)
+            rewritten = result.body
+            content_type = result.content_type
         else:
-            track_map = track_maps.get(cache_key)
-            if track_map is None:
-                logger.warning(
-                    "no track_map cached for %s (k=%s); passing through unchanged",
-                    cache_key,
-                    kind,
-                )
-                rewritten = data
-            else:
-                track_maps.move_to_end(cache_key)
-                rewritten = fmp4.split_moof_mdat(data, track_map, keep)
+            keep: fmp4.TrackKind = "video" if track == "video" else "audio"
+            tracks = await _track_map(
+                request.app, init_url, input_range if kind == "init" else init_range
+            )
+            if sum(value == keep for value in tracks.values()) != 1:
+                raise fmp4.Fmp4Error("Init segment must contain exactly one requested track")
+            result = await _fetch_cached(request.app, upstream, input_range)
+            rewritten = (
+                fmp4.split_moov(result.body, tracks, keep)
+                if kind == "init"
+                else fmp4.split_moof_mdat(result.body, tracks, keep)
+            )
+            content_type = "video/mp4" if keep == "video" else "audio/mp4"
     except fmp4.Fmp4Error as exc:
-        logger.warning("fmp4 demux failed for %s (k=%s): %s", upstream, kind, exc)
+        logger.warning("fmp4 demux failed (kind=%s): %s", kind, exc)
         raise web.HTTPBadGateway(text=f"fmp4 demux failed: {exc}") from exc
-
-    return web.Response(
-        body=rewritten,
-        content_type=_SEGMENT_CONTENT_TYPE,
-        headers={"Cache-Control": "no-store"},
-    )
+    headers = {"Cache-Control": "no-store", "Accept-Ranges": "bytes"}
+    status = 200
+    if request.headers.get("Range"):
+        try:
+            requested = request.http_range
+            if requested.start is not None and requested.start >= len(rewritten):
+                raise ValueError("Out of bounds")
+            start, end, _ = requested.indices(len(rewritten))
+            if start >= end:
+                raise ValueError("Empty range")
+        except ValueError as exc:
+            raise web.HTTPRequestRangeNotSatisfiable(
+                headers={"Content-Range": f"bytes */{len(rewritten)}"}
+            ) from exc
+        headers["Content-Range"] = f"bytes {start}-{end - 1}/{len(rewritten)}"
+        rewritten = rewritten[start:end]
+        status = 206
+    return web.Response(body=rewritten, content_type=content_type, headers=headers, status=status)

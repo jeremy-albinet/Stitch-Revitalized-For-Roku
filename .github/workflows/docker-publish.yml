@@ -1,61 +1,78 @@
-name: Docker – Build & Publish
+﻿name: Docker build and publish
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'fmp4-demux-proxy/**'
-    tags:
-      - 'proxy-v*'
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/proxy-ci.yml'
+    tags: ['proxy-v*']
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'fmp4-demux-proxy/**'
-    types: [opened, synchronize, reopened, closed]
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/proxy-ci.yml'
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-push:
-    name: Build & push fmp4-demux-proxy image
+  validate-python:
+    name: Validate Python source and runtime dependencies
+    uses: ./.github/workflows/proxy-ci.yml
+
+  validate:
+    name: Build container and check health
     runs-on: ubuntu-latest
-    # Skip the build on PR close — only the cleanup job runs then
-    if: github.event.action != 'closed'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build --tag stitch-proxy-ci ./fmp4-demux-proxy
+      - name: Check running service
+        timeout-minutes: 2
+        run: |
+          docker run --detach --name stitch-proxy-smoke \
+            --publish 127.0.0.1:18080:8080 --read-only --cap-drop ALL \
+            --security-opt no-new-privileges:true --memory 1g --pids-limit 64 stitch-proxy-ci
+          # Docker can publish the port before aiohttp is ready, resetting early connections.
+          curl --fail --silent --show-error --retry 30 --retry-all-errors \
+            --retry-delay 1 --retry-max-time 30 --connect-timeout 2 --max-time 5 \
+            http://127.0.0.1:18080/health
+      - name: Container logs
+        if: failure()
+        run: docker logs stitch-proxy-smoke
+      - name: Remove smoke container
+        if: always()
+        run: docker rm --force stitch-proxy-smoke
+
+  publish:
+    name: Publish main or release image
+    needs: [validate, validate-python]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
+      - id: meta
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/fmp4-demux-proxy
+          flavor: latest=false
           tags: |
             type=ref,event=branch
-            type=ref,event=pr,prefix=pr-
-            type=semver,pattern={{version}},prefix=proxy-v,event=tag
-            type=semver,pattern={{major}}.{{minor}},prefix=proxy-v,event=tag
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@v7
+            type=match,pattern=proxy-v(.*),group=1
+      - uses: docker/build-push-action@v7
         with:
           context: ./fmp4-demux-proxy
           platforms: linux/amd64,linux/arm64
@@ -64,33 +81,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Write image summary
-        run: |
-          {
-            echo "## Docker image"
-            echo ""
-            echo "| Tag | Pull command |"
-            echo "| --- | --- |"
-            while IFS= read -r tag; do
-              echo "| \`$tag\` | \`docker pull $tag\` |"
-            done <<< "${{ steps.meta.outputs.tags }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  cleanup-pr-image:
-    name: Delete PR image on close
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    permissions:
-      packages: write
-
-    steps:
-      - name: Delete PR image from GHCR
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: fmp4-demux-proxy
-          package-type: container
-          token: ${{ secrets.GITHUB_TOKEN }}
-          delete-only-pre-release-versions: false
-          min-versions-to-keep: 0
-          ignore-versions: '^(main|proxy-v|sha-).*'

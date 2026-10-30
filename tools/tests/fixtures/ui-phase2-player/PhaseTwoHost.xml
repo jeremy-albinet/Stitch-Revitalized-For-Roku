@@ -1,0 +1,2 @@
+<!-- Empty scene that hosts the actual components created by each fixture main. -->
+<component name="PhaseTwoHost" extends="Scene" />

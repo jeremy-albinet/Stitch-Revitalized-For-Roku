@@ -14,28 +14,49 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
-        node-version: '23.x'
+        node-version: '24.x'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
+
+    - name: Audit dependencies against reviewed policy
+      run: npm run audit
+
+    - name: Lint channel source
+      run: npm run lint
+
+    - name: Check channel formatting
+      run: npm run fmt:check
+
+    - name: Execute offline fixtures and tooling regressions
+      run: npm test
+
+    - name: Compile device tests
+      run: npm run test:compile
 
     - name: Create package
       run: npm run package
       
     - name: Extract version from tag
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      run: |
+        version="${GITHUB_REF#refs/tags/v}"
+        display_version="v${version}"
+        if [[ "$version" =~ ^3[.]0[.]0-alpha[.]([1-9][0-9]*)$ ]]; then
+          display_version="3.0.0 Alpha ${BASH_REMATCH[1]}"
+        fi
+        printf 'VERSION=%s\nDISPLAY_VERSION=%s\n' "$version" "$display_version" >> "$GITHUB_OUTPUT"
       
     - name: Create Release
       uses: softprops/action-gh-release@v3
       with:
         generate_release_notes: true
+        prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
         files: out/Stitch-Revitalized-For-Roku.zip
-        name: Stitch Revitalized v${{ steps.version.outputs.VERSION }}
-
+        name: Stitch Revitalized ${{ steps.version.outputs.DISPLAY_VERSION }}

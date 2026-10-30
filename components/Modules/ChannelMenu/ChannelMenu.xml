@@ -5,7 +5,7 @@
       visible="true"
       id="headerRect"
       color="0x26262cFF"
-      width="1920"
+      width="1280"
       height="80"
       translation="[0, 0]"
     />
@@ -13,13 +13,15 @@
       visible="true"
       id="headerRectShadow"
       color="0x26262cFF"
-      width="1920"
+      width="1280"
       height="2"
       translation="[0, 78]"
     />
     <ButtonGroupHoriz id="MenuOptions" layoutDirection="horiz" horizAlignment="left" />
   </children>
   <interface>
+    <function name="onDestroy" />
+    <field id="supportsDisposal" type="boolean" value="true" />
     <field id="buttonFocused" alias="MenuOptions.buttonFocused" />
     <field id="buttonSelected" alias="MenuOptions.buttonSelected" />
     <field

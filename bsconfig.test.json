@@ -1,8 +1,12 @@
 {
     "extends": "bsconfig.json",
+    "outFile": "./out/Stitch-Revitalized-For-Roku-tests.zip",
+    "stagingDir": "./out/.test-staging",
     "files": [
         "source/**/*",
         "source/tests/**/*.spec.bs",
+        "!source/tests/offline/**/*",
+        { "src": "out/test-run-id", "dest": "test-run-id" },
         "components/**/*",
         "images/**/*",
         "fonts/**/*",
@@ -31,7 +35,6 @@
         "keepAppOpen": false,
         "sendHomeOnFinish": true,
         "isGlobalMethodMockingEnabled": false,
-        "isRecordingCodeCoverage": false,
         "lineWidth": 80
     }
 }

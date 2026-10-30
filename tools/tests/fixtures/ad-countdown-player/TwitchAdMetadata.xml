@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Unavailable network boundary only. Retained owner/Video/badge source runs
+     unchanged. This Task acknowledges cooperative stop and can omit its
+     response or report unsafe cleanup; it fetches no data. -->
+<component name="TwitchAdMetadata" extends="Task">
+    <interface>
+        <field id="owner" type="string" />
+        <field id="source" type="string" />
+        <field id="sourceKind" type="string" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <field id="response" type="assocarray" alwaysNotify="true" />
+        <field id="fixtureMode" type="string" />
+        <field id="fixtureHoldStop" type="boolean" value="false" />
+        <field id="fixtureReceivedStop" type="boolean" value="false" />
+    </interface>
+    <script type="text/brightscript" uri="TwitchAdMetadata.brs" />
+</component>

@@ -1,46 +1,36 @@
-name: CI
+﻿name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '23.x'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Security audit
-      run: npm run audit
-      
-    - name: Run linting
-      run: npm run lint
-
-    - name: Check code formatting
-      run: npm run fmt:check
-      
-    - name: Create package
-      run: npm run package
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: roku-package
-        path: out/Stitch-Revitalized-For-Roku.zip
-        retention-days: 7
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+          cache: npm
+      - run: npm ci
+      - name: Audit dependencies against reviewed policy
+        run: npm run audit
+      - run: npm run lint
+      - run: npm run fmt:check
+      - name: Execute offline fixtures and tooling regressions
+        run: npm test
+      - name: Compile device tests
+        run: npm run test:compile
+      - name: Create channel package
+        run: npm run package
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roku-package
+          path: out/Stitch-Revitalized-For-Roku.zip
+          if-no-files-found: error
+          retention-days: 7

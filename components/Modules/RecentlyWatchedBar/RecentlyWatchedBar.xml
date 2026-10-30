@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="RecentlyWatchedBar" extends="Group">
     <interface>
+        <function name="onDestroy" />
+        <function name="buildItems" />
+        <field id="supportsDisposal" type="boolean" value="true" />
         <!-- Set true to give focus into the bar, false to release it back -->
         <field id="itemHasFocus" type="bool" value="false" onChange="onFocusToggle" alwaysNotify="true" />
+        <!-- True for visible pins or confirmed-live history; empty rail cannot take focus -->
+        <field id="hasItems" type="bool" value="false" />
         <!-- Emitted when user confirms a selection (OK key) -->
         <field id="contentSelected" type="node" alwaysNotify="true" />
     </interface>
@@ -10,22 +15,42 @@
     <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="RecentlyWatchedBar.brs" />
 
     <children>
         <Rectangle
             id="backgroundBar"
-            color="0x26262cFF"
+            color="0x18181BFF"
             width="78"
-            height="1016"
+            height="656"
             translation="[0, 0]"
         />
         <Poster
             id="icon"
             uri="pkg:/images/icons/recent.png"
+            blendColor="0xADADB8FF"
             width="24"
             height="24"
-            translation="[27, 0]"
+            translation="[27, 16]"
         />
+        <!-- Headers own separate rows; no pin text or glyph covers an avatar. -->
+        <Label id="pinnedHeader" width="78" height="24" horizAlign="center" vertAlign="center" color="0xADADB8FF" visible="false">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="12" />
+        </Label>
+        <Label id="liveHeader" width="78" height="24" horizAlign="center" vertAlign="center" color="0xADADB8FF" visible="false">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="12" />
+        </Label>
+        <!-- Name (and LIVE) of the focused channel in a tooltip beside the
+             rail, like Twitch's collapsed side nav -->
+        <Group id="caption" visible="false" translation="[88, 0]">
+            <Poster id="captionPlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="120" height="40" />
+            <Label id="captionLabel" color="0xEFEFF1FF" height="40" vertAlign="center" translation="[14, 0]">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+            </Label>
+            <Label id="captionHint" color="0xADADB8FF" height="40" vertAlign="center">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            </Label>
+        </Group>
     </children>
 </component>

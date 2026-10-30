@@ -1,0 +1,15 @@
+<!-- Native decoder boundary. Scripted states prove ownership, not playback. -->
+<component name="AnimatedImageBoundary" extends="Group">
+    <interface>
+        <field id="uri" type="string" />
+        <field id="mimeType" type="string" />
+        <field id="control" type="string" />
+        <field id="state" type="string" value="stop" alwaysNotify="true" />
+        <field id="width" type="float" />
+        <field id="height" type="float" />
+        <field id="loadWidth" type="float" />
+        <field id="loadHeight" type="float" />
+        <field id="mediaWidth" type="integer" />
+        <field id="mediaHeight" type="integer" />
+    </interface>
+</component>

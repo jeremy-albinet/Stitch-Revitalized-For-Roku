@@ -1,0 +1,7 @@
+<!-- Engine does not implement ChannelPage's InfoPane widget. -->
+<component name="InfoBoundary" extends="Group">
+    <interface>
+        <field id="infoText" type="string" />
+        <field id="width" type="float" />
+    </interface>
+</component>

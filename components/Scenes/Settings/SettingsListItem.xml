@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One Settings row: the setting name and its current value. The row draws
+     its own focus ring; the content node's title is the name and
+     shortDescriptionLine1 is the value text. -->
+<component name="SettingsListItem" extends="Group">
+    <interface>
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <field id="itemContent" type="node" onChange="onContentChange" />
+        <field id="focusPercent" type="float" onChange="onFocusChange" />
+        <field id="listHasFocus" type="boolean" onChange="onFocusChange" />
+        <field id="width" type="float" onChange="onSizeChange" />
+        <field id="height" type="float" onChange="onSizeChange" />
+    </interface>
+    <script type="text/brightscript" uri="SettingsListItem.brs" />
+    <children>
+        <Rectangle id="plate" width="520" height="60" color="0x1F1F23FF" />
+        <Label
+            id="name"
+            translation="[20,0]"
+            width="300"
+            height="60"
+            vertAlign="center"
+            color="0xEFEFF1FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
+        </Label>
+        <Label
+            id="value"
+            translation="[320,0]"
+            width="180"
+            height="60"
+            vertAlign="center"
+            horizAlign="right"
+            color="0xADADB8FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
+        <!-- Drawn by the row itself: list focus bitmaps sit under the plate -->
+        <Poster
+            id="focusRing"
+            uri="pkg:/images/twitch-redesign/ring3.9.png"
+            blendColor="0xA970FFFF"
+            width="520"
+            height="60"
+            visible="false" />
+    </children>
+</component>

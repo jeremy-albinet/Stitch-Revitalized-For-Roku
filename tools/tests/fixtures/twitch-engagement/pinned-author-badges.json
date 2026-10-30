@@ -1,0 +1,41 @@
+{
+    "observedAt": "2026-10-25T11:41:22.034Z",
+    "fixtureNowSeconds": 1792928482,
+    "response": {
+        "data": {
+            "channel": {
+                "id": "155586958",
+                "pinnedChatMessages": {
+                    "edges": [
+                        {
+                            "node": {
+                                "id": "a457fc04-69d8-4b78-9e27-5d05e8e12a79",
+                                "type": "MOD",
+                                "startsAt": "2026-10-25T06:29:48Z",
+                                "updatedAt": "2026-10-25T06:29:54Z",
+                                "endsAt": null,
+                                "pinnedMessage": {
+                                    "id": "261fe860-6db9-4227-9713-22365f80a501",
+                                    "sentAt": "2026-10-25T06:29:37.263862871Z",
+                                    "content": {
+                                        "text": "tynDspin Bubbingle tynDspin"
+                                    },
+                                    "sender": {
+                                        "id": "178054219",
+                                        "login": "jourda1n",
+                                        "displayName": "JOURDA1N"
+                                    },
+                                    "senderBadges": [
+                                        { "setID": "moderator", "version": "1" },
+                                        { "setID": "subscriber", "version": "2042" },
+                                        { "setID": "gamerduo", "version": "1" }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RokuDemuxSession" extends="Group">
+  <interface>
+    <function name="startSession" />
+    <function name="stopSession" />
+    <function name="attachVideo" />
+    <function name="canLeaveBlockedSession" />
+    <function name="onDestroy" />
+    <field id="event" type="assocarray" alwaysNotify="true" />
+    <field id="busy" type="boolean" />
+    <field id="cleanupBlocked" type="boolean" />
+  </interface>
+  <script type="text/brightscript" uri="RokuDemuxSession.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxDescriptor.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/rokuVodIndex.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/rokuVodDescriptor.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/rokuVodRuntime.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/playbackHls.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/deviceCapabilities.brs" />
+  <children>
+    <Timer id="cleanupTimer" duration="0.25" repeat="true" />
+  </children>
+</component>

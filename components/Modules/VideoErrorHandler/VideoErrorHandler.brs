@@ -9,7 +9,7 @@ sub init()
     m.errorHistory = []
     m.bufferStallCount = 0
     m.maxBufferStalls = 5
-    m.bufferStallTimeout = 10000 ' 10 seconds
+    m.bufferStallResetSeconds = 120 ' Policy: forget prolonged checks after two quiet minutes.
     m.lastBufferTime = 0
 
     ' Error recovery strategies
@@ -47,10 +47,14 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
         delay: 0,
         newContent: invalid
     }
+    if m.currentRetryCount >= m.maxRetries
+        recovery.action = "fail"
+        return recovery
+    end if
+    m.currentRetryCount++
 
     if strategy = "retry_with_backoff"
         if m.currentRetryCount < m.maxRetries
-            m.currentRetryCount = m.currentRetryCount + 1
             recovery.shouldRetry = true
             recovery.action = "retry"
             recovery.delay = calculateBackoffDelay()
@@ -69,6 +73,7 @@ function handleVideoError(errorCode as integer, errorMessage as string, video as
             recovery.delay = 1000
             ' ? "[VideoErrorHandler] Switching to lower quality: "; newQuality.qualityID
         else
+            recovery.shouldRetry = true
             recovery.action = "retry"
             recovery.delay = 2000
         end if
@@ -104,7 +109,7 @@ function handleBufferStall(video as object) as object
     currentTime = CreateObject("roDateTime").AsSeconds()
 
     ' Check if this is a new buffer stall
-    if currentTime - m.lastBufferTime > m.bufferStallTimeout
+    if currentTime - m.lastBufferTime > m.bufferStallResetSeconds
         m.bufferStallCount = 0
     end if
 
@@ -117,17 +122,14 @@ function handleBufferStall(video as object) as object
         delay: 0
     }
 
+    ' Let Roku's player recover for the first five recent prolonged checks.
+    ' The sixth requests a lower quality; VideoPlayer caps session recoveries.
     if m.bufferStallCount > m.maxBufferStalls
         ' ? "[VideoErrorHandler] Excessive buffering detected ("; m.bufferStallCount; " stalls)"
         recovery.shouldRecover = true
         recovery.action = "reduce_quality"
         recovery.delay = 1000
         m.bufferStallCount = 0
-    else if m.bufferStallCount > 3
-        ' Adjust buffering config
-        recovery.shouldRecover = true
-        recovery.action = "adjust_buffer"
-        recovery.delay = 0
     end if
 
     return recovery
@@ -181,7 +183,9 @@ function calculateBackoffDelay() as integer
 end function
 
 function getNextLowerQuality(video as object) as object
-    if video.qualityOptions = invalid or video.qualityOptions.count() = 0
+    if video = invalid then return invalid
+    options = video.qualityOptions
+    if options = invalid or options.count() = 0
         return invalid
     end if
 
@@ -190,19 +194,35 @@ function getNextLowerQuality(video as object) as object
         return invalid
     end if
 
+    if currentQuality = "Automatic"
+        descriptor = invalid
+        if video.content <> invalid then descriptor = video.content.GetField("localPlaybackDescriptor")
+        if type(descriptor) = "roAssociativeArray"
+            currentQuality = descriptor["qualityId"]
+            if GetInterface(currentQuality, "ifString") = invalid then return invalid
+            if currentQuality = "Automatic" then return invalid
+        else
+            ' Automatic may already be using a low adaptive rung.
+            if options.count() <= 2 then return invalid
+            lowestIndex = options.count() - 1
+            return { qualityID: options[lowestIndex], index: lowestIndex, isLowerQuality: true }
+        end if
+    end if
+
     ' Find current quality index
     currentIndex = -1
-    for i = 0 to video.qualityOptions.count() - 1
-        if video.qualityOptions[i] = currentQuality
+    for i = 0 to options.count() - 1
+        if options[i] = currentQuality
             currentIndex = i
             exit for
         end if
     end for
 
-    ' Get next lower quality (higher index typically means lower quality)
-    if currentIndex >= 0 and currentIndex < video.qualityOptions.count() - 1
+    ' Concrete options are ordered from highest to lowest bitrate.
+    if currentIndex >= 0 and currentIndex < options.count() - 1
         return {
-            qualityID: video.qualityOptions[currentIndex + 1],
+            qualityID: options[currentIndex + 1],
+            index: currentIndex + 1,
             isLowerQuality: true
         }
     end if
@@ -221,6 +241,7 @@ function getAlternativeQuality(video as object, contentRequested as object) as o
         midIndex = Int(qualityCount / 2)
         return {
             qualityID: video.qualityOptions[midIndex],
+            index: midIndex,
             isAlternative: true
         }
     end if
@@ -277,66 +298,69 @@ function getErrorStatistics() as object
     return stats
 end function
 
+' Copy for the playback error dialog. Classification is unchanged; the dialog
+' offers Try again and Back. A 401/403 only says Twitch refused this video:
+' public streams play without an account, so it never claims sign-in is needed.
 function getUserFriendlyErrorMessage(errorCode as integer, errorType as string) as object
     messages = {
         "connection_error": {
-            title: "Connection Problem",
-            message: "Unable to connect to the stream. Please check your internet connection and try again.",
-            suggestion: "Check your network connection"
+            title: tr("Can't connect to the stream"),
+            message: tr("Stitch lost its connection to Twitch while loading this video."),
+            suggestion: tr("Check your internet connection, then try again.")
         },
         "buffer_timeout": {
-            title: "Stream Loading Issue",
-            message: "The stream is taking too long to load. This may be due to network congestion.",
-            suggestion: "Try selecting a lower video quality"
+            title: tr("The stream is loading slowly"),
+            message: tr("The video took too long to load. The network may be busy."),
+            suggestion: tr("Try again, or choose a lower video quality.")
         },
         "stream_unavailable": {
-            title: "Stream Unavailable",
-            message: "This stream is temporarily unavailable. The broadcaster may have ended the stream.",
-            suggestion: "Try refreshing or check back later"
+            title: tr("Stream unavailable"),
+            message: tr("This stream isn't available right now. The broadcaster may have ended it."),
+            suggestion: tr("Try again in a moment, or check back later.")
         },
         "stream_not_found": {
-            title: "Stream Not Found",
-            message: "This stream could not be found. It may have been deleted or moved.",
-            suggestion: "Return to browse for other streams"
+            title: tr("Couldn't find this stream"),
+            message: tr("It may have been deleted or moved."),
+            suggestion: tr("Go back and choose another stream.")
         },
         "authentication_error": {
-            title: "Authentication Required",
-            message: "You need to sign in again to access this content.",
-            suggestion: "Please sign in to continue"
+            title: tr("Twitch didn't authorize this video"),
+            message: tr("It may need a Twitch account or have other restrictions, such as subscriber-only access."),
+            suggestion: tr("Public streams play without signing in. Try again, or choose another video.")
         },
         "excessive_buffering": {
-            title: "Playback Issue",
-            message: "The stream is experiencing frequent interruptions.",
-            suggestion: "Try lowering the video quality or check your connection speed"
+            title: tr("Playback keeps stopping"),
+            message: tr("The stream is being interrupted often."),
+            suggestion: tr("Try a lower video quality, or check your connection speed.")
         },
         "stream_format_error": {
-            title: "Stream Format Error",
-            message: "Unable to play this stream format. The stream may be using an incompatible encoding.",
-            suggestion: "Try a different quality setting or contact support"
+            title: tr("Can't play this stream format"),
+            message: tr("The stream may use an encoding this Roku can't play."),
+            suggestion: tr("Try again, or choose a different video quality.")
         },
         "media_decode_error": {
-            title: "Playback Error",
-            message: "There was a problem playing the video stream.",
-            suggestion: "Try selecting a different video quality"
+            title: tr("Couldn't play this video"),
+            message: tr("There was a problem decoding the video stream."),
+            suggestion: tr("Try again, or choose a different video quality.")
         },
         "server_error": {
-            title: "Service Issue",
-            message: "The streaming service is experiencing problems. Please try again later.",
-            suggestion: "Wait a moment and try again"
+            title: tr("Twitch is having problems"),
+            message: tr("Twitch's video service returned an error."),
+            suggestion: tr("Wait a moment, then try again.")
         },
         "codec_incompatible": {
-            title: "Video Format Not Supported",
-            message: "This video cannot be played on your Roku device due to codec or resolution incompatibility.",
-            suggestion: "Try selecting a lower quality setting (720p or below) from the stream options"
+            title: tr("Video format not supported"),
+            message: tr("This Roku can't play this video's codec or resolution."),
+            suggestion: tr("Try a lower video quality, 720p or below.")
         }
     }
 
     ' Default message if error type not found
     if messages[errorType] = invalid
         return {
-            title: "Playback Error",
-            message: "Unable to play this stream. Error code: " + errorCode.toStr(),
-            suggestion: "Please try again later"
+            title: tr("Couldn't play this video"),
+            message: tr("Error code: {0}").replace("{0}", errorCode.toStr()),
+            suggestion: tr("Try again later.")
         }
     end if
 

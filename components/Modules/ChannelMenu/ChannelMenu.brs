@@ -1,4 +1,5 @@
 sub init()
+    m.disposed = false
     '*******************'
     '* Get Node List
     '*******************'
@@ -130,4 +131,11 @@ sub handleUserLogin()
             end for
         end if
     end if
+end sub
+
+sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    m.top.unobserveField("focusedChild")
+    m.loginIconTask = destroyTask(m.loginIconTask, "response")
 end sub

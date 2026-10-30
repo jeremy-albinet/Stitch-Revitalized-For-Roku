@@ -1,32 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component name="Following" extends="SceneManagerGroup" initialFocus="homeRowList">
     <interface>
+        <function name="onDestroy" />
         <field id="doOffline" type="bool" value="false" />
-        <!-- Dev-only: render the logged-out layout even when logged in -->
-        <field id="anonymous" type="bool" value="false" />
+        <!-- Asks heroScene to open a menu page (e.g. "Browse") -->
+        <field id="menuRequest" type="string" alwaysNotify="true" />
+        <field id="followRefreshPending" type="boolean" value="false" />
     </interface>
     <script type="text/brightscript" uri="Following.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/contentBuilder.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Modules/StatusPanel/StatusPanelHost.brs" />
     <children>
+        <Label
+            id="anonymousHint"
+            visible="false"
+            width="1100"
+            color="0xADADB8FF"
+            translation="[110, 76]">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
         <RowList
             id="homeRowList"
             rowLabelOffset="[[0,10]]"
-            rowLabelFont="font:MediumBoldSystemFont"
-            translation="[94, 80]"
+            rowLabelColor="0xEFEFF1FF"
+            translation="[110, 88]"
             itemComponentName="VideoItem"
             rowItemSize="[[320,180]]"
             rowItemSpacing="[[30,30]]"
-            itemSize="[1920,295]"
+            itemSize="[1280,295]"
             itemSpacing="[0,0]"
             showRowLabel="[ true ]"
-            focusBitmapUri="pkg:/images/focus_row.9.png"
-            drawFocusFeedbackOnTop="true"
+            focusBitmapUri="pkg:/images/transparent.9.png"
             vertFocusAnimationStyle="fixedFocus"
-            rowFocusAnimationStyle="floatingFocus"
-        />
+            rowFocusAnimationStyle="fixedFocus">
+            <Font role="rowLabelFont" uri="pkg:/fonts/Archivo-Bold.otf" size="24" />
+        </RowList>
+        <StatusPanel id="status" translation="[110, 200]" />
     </children>
 
 </component>

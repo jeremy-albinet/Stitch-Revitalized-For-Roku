@@ -5,8 +5,10 @@
     <interface>
         <!-- Field to issue a request to the handler -->
         <field id="contentRequested" type="assocarray" />
-        <field id="response" type="node" />
+        <field id="response" type="node" alwaysNotify="true" />
         <field id="metadata" type="array" />
+        <!-- Enabled by the player when the built-in splitter setting permits it. -->
+        <field id="enableRokuDemux" type="boolean" value="false" />
     </interface>
     <script type="text/brightscript" uri="GetTwitchContent.brs" />
     <script type="text/brightscript" uri="pkg:/source/enums/TaskControl.bs" />
@@ -15,4 +17,10 @@
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/deviceCapabilities.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/playbackHls.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodIndex.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodDescriptor.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuVodRuntime.brs" />
 </component>

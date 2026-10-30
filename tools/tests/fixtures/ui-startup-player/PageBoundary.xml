@@ -1,0 +1,11 @@
+<!-- View boundary for __NAME__ (phase-2 scope, not exercised here). It keeps
+     the navigation contract heroScene relies on: the SceneManagerGroup fields,
+     the finished field the scene factory observes, and a focusable body. -->
+<component name="__NAME__" extends="SceneManagerGroup" initialFocus="body">
+    <interface>
+        <field id="finished" type="boolean" alwaysNotify="true" />
+    </interface>
+    <children>
+        <Group id="body" focusable="true" />
+    </children>
+</component>

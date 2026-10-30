@@ -35,8 +35,22 @@ end sub
 sub captureException(e as object, location as string)
     if m.global.analyticsTask = invalid then return
     m.global.analyticsTask.captureException = {
-        message: e.message,
+        message: "BrightScript exception",
         number: e.number,
         location: location
     }
 end sub
+
+' An optional maintainer-configured service; no fork-specific destination ships.
+function getAnalyticsConfiguration() as dynamic
+    if get_user_setting("analytics.enabled", "false") <> "true" then return invalid
+    if get_user_setting("analytics.consentVersion", "") <> "1" then return invalid
+    config = ParseJSON(ReadAsciiFile("pkg:/env"))
+    if getInterface(config, "ifAssociativeArray") = invalid then return invalid
+    analytics = config.analytics
+    if getInterface(analytics, "ifAssociativeArray") = invalid then return invalid
+    if getInterface(analytics.captureUrl, "ifString") = invalid then return invalid
+    if getInterface(analytics.apiKey, "ifString") = invalid then return invalid
+    if Left(analytics.captureUrl, 8) <> "https://" or analytics.apiKey = "" then return invalid
+    return analytics
+end function

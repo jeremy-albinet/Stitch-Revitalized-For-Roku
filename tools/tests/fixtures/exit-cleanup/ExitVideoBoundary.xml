@@ -1,0 +1,6 @@
+<component name="ExitVideoBoundary" extends="Group">
+  <interface>
+    <field id="state" type="string" alwaysNotify="true" />
+    <field id="control" type="string" />
+  </interface>
+</component>

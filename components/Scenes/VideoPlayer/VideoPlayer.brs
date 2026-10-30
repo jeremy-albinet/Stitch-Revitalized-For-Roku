@@ -1,28 +1,69 @@
 sub handleContent()
+    if m.disposed then return
+    if m.top.contentRequested = invalid then return
+    resetContentAdvisory()
+    chatOwner = m.top.contentRequested.streamerLogin
+    if GetInterface(chatOwner, "ifString") = invalid then chatOwner = ""
+    chatOwner = m.top.contentRequested.contentType + ":" + lcase(chatOwner)
+    if m.chatOwner <> chatOwner
+        m.chatAutoPaused = false
+        m.chatOwner = chatOwner
+    end if
+    closeChannelActions(false)
+    m.channelFollowCache = invalid
+    stopTwitchEngagement()
+    if m.rokuSession = invalid then initRokuPlayback()
+    stopPlaybackForDialog()
+    m.bookmarkStartDone = false
+    m.rokuChosen = false
+    m.PlayVideo = destroyTask(m.PlayVideo, "response")
+    ' The stopped wrapper stays until the new item plays. Without its playback
+    ' observers, an error from its closed relay cannot start recovery.
+    if m.video <> invalid
+        m.video.unobserveField("position")
+        m.video.unobserveField("state")
+        m.video.unobserveField("duration")
+    end if
+    stopLowLatencyRelay()
+    m.lowLatencyUnavailable = false
+    m.lowLatencyDirect = false
+    m.reconnectAttempts = 0
+    m.recoveryAttempts = 0
+    m.sourceTransitionCharges = 0
+    resetLiveRecoveryHealth()
+    m.resumePosition = invalid
+    m.nativeFallbackTried = false
+    m.manualRetryPending = false
+    m.preferredQuality = invalid
+    m.manualLiveQuality = invalid
+    m.errorHandler.callFunc("resetErrorState")
+    m.top.chatStarted = false
+    if m.chatWindow <> invalid
+        m.chatWindow.callFunc("stopJobs")
+        m.chatWindow.visible = false
+    end if
     m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
     m.PlayVideo.observeField("response", "OnResponse")
     m.PlayVideo.contentRequested = m.top.contentRequested.getFields()
-    m.PlayVideo.functionName = "main"
-    m.PlayVideo.control = "run"
-end sub
-
-sub handleItemSelected()
-    selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
-    if selectedRow = invalid then return
-    selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
-    if selectedItem = invalid then return
-    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
-    m.PlayVideo.observeField("response", "OnResponse")
-    m.PlayVideo.contentRequested = selectedItem.getFields()
+    enableRokuDescriptor(m.PlayVideo)
     m.PlayVideo.functionName = "main"
     m.PlayVideo.control = "run"
 end sub
 
 sub onResponse()
+    if m.disposed or m.PlayVideo = invalid then return
+    m.manualRetryPending = false
+    if m.PlayVideo.response = invalid
+        m.PlayVideo = destroyTask(m.PlayVideo, "response")
+        showErrorDialog(tr("Couldn't load this video"), tr("Twitch didn't return a playlist for it. Check your connection, then try again."))
+        return
+    end if
     if m.PlayVideo.response <> invalid and m.PlayVideo.response.contentType = "ERROR"
         ' Display error message to user
-        errorTitle = "Error while loading this video"
-        errorMessage = "Unable to play this content"
+        errorTitle = tr("Couldn't load this video")
+        errorMessage = tr("Twitch couldn't provide this video.")
+        ' Restricted, expired and deleted videos cannot succeed on retry.
+        canRetry = true
 
         if m.PlayVideo.response.description <> invalid and m.PlayVideo.response.description <> ""
             errorMessage = m.PlayVideo.response.description
@@ -30,11 +71,14 @@ sub onResponse()
 
         if m.PlayVideo.response.errorCode <> invalid
             if m.PlayVideo.response.errorCode = "vod_manifest_restricted"
-                errorMessage = "This video is only available to subscribers"
+                errorMessage = tr("This video is only available to subscribers")
+                canRetry = false
             else if m.PlayVideo.response.errorCode = "vod_manifest_expired"
-                errorMessage = "This video has expired and is no longer available"
+                errorMessage = tr("This video has expired and is no longer available")
+                canRetry = false
             else if m.PlayVideo.response.errorCode = "vod_manifest_missing"
-                errorMessage = "This video has been deleted"
+                errorMessage = tr("This video has been deleted")
+                canRetry = false
             end if
         end if
 
@@ -44,16 +88,20 @@ sub onResponse()
             streamer_login: m.top.contentRequested?.streamerLogin,
             content_type: m.top.contentRequested?.contentType
         })
-        showErrorDialog(errorTitle, errorMessage)
+        showErrorDialog(errorTitle, errorMessage, canRetry)
+        m.PlayVideo = destroyTask(m.PlayVideo, "response")
         return
     end if
 
     m.top.content = m.PlayVideo.response
     m.top.metadata = m.PlayVideo.metadata
+    applyPreferredQuality()
+    m.PlayVideo = destroyTask(m.PlayVideo, "response")
 
-    ' Warn before playing Enhanced Broadcasting (transmux) streams
+    ' Enhanced Broadcasting (combined-track) streams play through the optional
+    ' service or this Roku; the dialog only explains a stream neither can play.
     if m.top.content <> invalid and m.top.content.isTransmux = true
-        if m.top.content.isProxied = true
+        if m.top.content.isProxied = true or chooseRokuPlayback()
             playContent()
         else
             showTransmuxWarning()
@@ -64,14 +112,8 @@ sub onResponse()
     playContent()
 end sub
 
-sub taskStateChanged(event as object)
-    state = event.GetData()
-    if state = "done" or state = "stop"
-        exitPlayer()
-    end if
-end sub
-
 sub controlChanged()
+    if m.disposed then return
     control = m.top.control
     if control = "play"
         playContent()
@@ -83,9 +125,11 @@ end sub
 sub initChat()
     if not m.top.chatStarted
         m.top.chatStarted = true
+        if m.chatWindow.hasField("pausedForPerformance") then m.chatWindow.pausedForPerformance = m.chatAutoPaused
+        m.chatWindow.forceLive = get_user_setting("chat.timing", "sync") = "live"
         m.chatWindow.channel_id = m.top.contentRequested.streamerId
         m.chatWindow.channel = m.top.contentRequested.streamerLogin
-        if get_user_setting("ChatOption", "true") = "true"
+        if get_user_setting("ChatOption", "false") = "true"
             m.chatWindow.visible = true
             m.video.chatIsVisible = m.chatWindow.visible
         else
@@ -94,14 +138,46 @@ sub initChat()
     end if
 end sub
 
-sub onQualityChangeRequested()
+sub onQualityChangeRequested(event = invalid as dynamic)
+    if m.disposed or m.isExiting or m.rokuExitPending then return
+    if m.video = invalid or m.top.metadata = invalid or m.top.contentRequested = invalid or m.top.content = invalid then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.video) then return
+        if event.getData() <> true then return
+    end if
+    request = m.video.qualityChangeRequest
+    index = -1
+    if GetInterface(request, "ifInt") <> invalid
+        index = request
+    else
+        for item = 0 to m.top.metadata.Count() - 1
+            if m.top.metadata[item].QualityID = request then index = item
+        end for
+    end if
+    if index < 0 or index >= m.top.metadata.Count() then return
+    if m.top.contentRequested.contentType = "LIVE"
+        m.manualLiveQuality = invalid
+        quality = m.top.metadata[index].QualityID
+        ' Internal error/buffer downshifts have no user event.
+        if event <> invalid and GetInterface(quality, "ifString") <> invalid and quality <> "" and quality <> "Automatic" then m.manualLiveQuality = quality
+    end if
+    if m.video.isSubtype("StitchVideo") then m.video.QualityChangeRequestFlag = false
+    if m.top.contentRequested.contentType <> "LIVE" then m.resumePosition = m.video.position
     new_content = CreateObject("roSGNode", "TwitchContentNode")
-    new_content.setFields(m.top.contentRequested.getFields()) ' Preserve original request fields
-    new_content.setFields(m.top.metadata[m.video.qualityChangeRequest]) ' Apply new quality fields
+    new_content.setFields(m.top.content.getFields()) ' Preserve refreshed stream details across quality changes
+    new_content.setFields(m.top.metadata[index]) ' Includes URL, proxy flags and query forwarding
     m.top.content = new_content ' Update the main content node for VideoPlayer
     m.allowBreak = false
-    exitPlayer() ' This will clean up the old video
-    playContent() ' This will play the new m.top.content
+    if m.rokuSessionId = "" then exitPlayer() ' The session owner stops a local Video before replacement.
+    ' A combined rendition without a Roku descriptor cannot play directly, even
+    ' after another rendition started on this Roku.
+    playable = not new_content.isTransmux or new_content.isProxied
+    if not playable then playable = chooseRokuPlayback()
+    if playable
+        playContent()
+    else
+        showTransmuxWarning()
+    end if
     m.allowBreak = true
 end sub
 
@@ -114,20 +190,20 @@ function FormatSeconds(seconds as integer) as string
 end function
 
 ' isRecovery=true is set by internal recovery paths (watchdog reconnect,
-' error-driven retryPlayback). It tells the freshly-created StitchVideo node
-' to skip its startup live-edge seek so we don't immediately re-anchor at the
-' live edge after a stall — which would shrink buffer headroom and feed the
-' next stall. User-initiated entry points (first open, re-open, quality
-' change) leave isRecovery=false so they get the low-latency seek.
+' error-driven retryPlayback) and is carried through asynchronous Roku-only
+' and lower-latency preparation.
 sub playContent(isRecovery = false as boolean)
-    ' Reset reconnect/watchdog state on every (re)start so stale values
-    ' from a prior playback session don't cause false triggers.
-    m.isExiting = false
-    m.lastGoodPosition = invalid
-    m.stallSeconds = 0
-    m.reconnectAttempts = 0
-
-    ' Reset buffering state so stale timers from prior attempts don't persist
+    if m.disposed then return
+    m.liveReconnect = invalid
+    if m.reconnectTimer <> invalid
+        m.reconnectTimer.control = "stop"
+        m.reconnectTimer.unobserveField("fire")
+        m.reconnectTimer = invalid
+    end if
+    cleanupReconnectTask()
+    pauseTwitchEngagement()
+    if waitForBookmarks(isRecovery) then return
+    m.playbackInitTime = invalid
     m.bufferStartTime = 0
     m.lastBufferState = ""
     if m.bufferCheckTimer <> invalid
@@ -135,10 +211,20 @@ sub playContent(isRecovery = false as boolean)
         m.bufferCheckTimer.unobserveField("fire")
         m.bufferCheckTimer = invalid
     end if
-
-    ' Stamp when this playback attempt started (used for grace period)
-    m.playbackInitTime = CreateObject("roTimeSpan")
-    m.playbackInitTime.Mark()
+    stopAdMetadata()
+    resetLiveRecoveryHealth()
+    if prepareRokuPlayback(isRecovery) then return
+    if prepareLowLatencyPlayback(isRecovery) then return
+    ' Reset reconnect/watchdog state on every (re)start so stale values
+    ' from a prior playback session don't cause false triggers.
+    m.isExiting = false
+    m.compatibilityNoticeShown = false
+    m.lastGoodPosition = invalid
+    m.stallSeconds = 0
+    if m.top.content = invalid
+        showErrorDialog(tr("Couldn't load this video"), tr("Select the video again from Browse."))
+        return
+    end if
 
     ' Only run user-facing side effects on user-initiated plays — internal
     ' reconnects (m.allowBreak = false) must not re-add the stream to the
@@ -161,7 +247,10 @@ sub playContent(isRecovery = false as boolean)
     end if
 
     ' Clean up existing video node and its observers
+    closeChannelActions(false)
+    m.channelFollowCache = invalid
     if m.video <> invalid
+        m.video.unobserveField("channelActionsRequested")
         m.video.unobserveField("toggleChat")
         m.video.unobserveField("QualityChangeRequestFlag") ' StitchVideo specific
         m.video.unobserveField("qualityChangeRequest") ' StitchVideo specific
@@ -169,7 +258,8 @@ sub playContent(isRecovery = false as boolean)
         m.video.unobserveField("state")
         m.video.unobserveField("duration")
         m.video.unobserveField("back") ' CustomVideo specific
-
+        m.video.callFunc("onDestroy")
+        m.video.control = "stop"
         m.top.removeChild(m.video)
         m.video = invalid
     end if
@@ -184,12 +274,19 @@ sub playContent(isRecovery = false as boolean)
                 quality_options.push(quality_option.qualityID)
             end for
         end if
-        m.video = m.top.CreateChild("StitchVideo")
+        ' Insert the wrapper beneath the retained chat, including replacements.
+        m.video = CreateObject("roSGNode", "StitchVideo")
+        m.top.insertChild(m.video, 0)
         m.video.qualityOptions = quality_options
         ' StitchVideo will observe its own selectedQuality field
     else
-        m.video = m.top.CreateChild("CustomVideo")
+        m.video = CreateObject("roSGNode", "CustomVideo")
+        m.top.insertChild(m.video, 0)
     end if
+
+    ' Native FHD video defaults must fit the page's logical viewport.
+    m.video.width = 1280
+    m.video.height = 720
 
     httpAgent = CreateObject("roHttpAgent")
     httpAgent.setCertificatesFile("common:/certs/ca-bundle.crt")
@@ -214,10 +311,6 @@ sub playContent(isRecovery = false as boolean)
         httpAgent.addheader("Sec-Fetch-Site", "cross-site")
         httpAgent.addheader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         httpAgent.addheader("Client-ID", "kimne78kx3ncx6brgo4mv6wki5h1ko")
-        authToken = get_user_setting("access_token", "")
-        if authToken <> ""
-            httpAgent.addheader("Authorization", "Bearer " + authToken)
-        end if
     else ' Live/VOD
         httpAgent.addheader("Accept", "*/*")
         httpAgent.addheader("Origin", "https://android.tv.twitch.tv")
@@ -230,6 +323,8 @@ sub playContent(isRecovery = false as boolean)
     m.video.notificationInterval = 0.5 ' fire position/bufferingStatus every 500ms
 
     ' Add observers to the new video node
+    m.video.channelAvailable = playerChannelContent() <> invalid
+    m.video.observeField("channelActionsRequested", "onChannelActionsRequested")
     m.video.observeField("toggleChat", "onToggleChat")
     if isLiveContent
         m.video.observeField("QualityChangeRequestFlag", "onQualityChangeRequested") ' StitchVideo specific
@@ -239,61 +334,78 @@ sub playContent(isRecovery = false as boolean)
     m.video.observeField("position", "onPositionChanged")
     m.video.observeField("state", "onVideoStateChange")
     m.video.observeField("duration", "onDurationChanged")
+    ' A recreated wrapper inherits the current layout while chat stays open.
+    if m.chatWindow <> invalid and m.chatWindow.visible then onChatVisibilityChange()
 
     videoBookmarks = get_user_setting("VideoBookmarks", "")
     m.video.video_type = m.top.contentRequested.contentType
     m.video.video_id = m.top.contentRequested.contentId
+    if isLiveContent then m.video.selectedQuality = m.top.content.QualityID
 
     if videoBookmarks <> ""
         m.video.videoBookmarks = ParseJSON(videoBookmarks)
     else
         m.video.videoBookmarks = {}
     end if
+    if m.video.videoBookmarks = invalid then m.video.videoBookmarks = {}
 
     contentNodeToPlay = m.top.content ' This is the TwitchContentNode
+    lowLatency = false
     if contentNodeToPlay <> invalid
+        if isLiveContent and m.lowLatencyReadyUrl <> ""
+            contentNodeToPlay = lowLatencyContent(contentNodeToPlay)
+            lowLatency = true
+        end if
         if isLiveContent
             contentNodeToPlay.ignoreStreamErrors = false ' Important for HLS error reporting
             contentNodeToPlay.switchingStrategy = "full-adaptation"
-            ' Hint to start at the live edge. Roku clips this to the current
-            ' availability window. Empirically lands the stream ~30-40s behind
-            ' live on first frame; StitchVideo's startup seek (~3s after
-            ' state=playing) brings the steady-state latency down to ~23s.
-            '
-            ' We tried negative PlayStart values per the OS 8.0 docs claim
-            ' ("supports negative PlayStart values... start playbacks distanced
-            ' from the edge of the live stream") with PlayStart=-2; on Twitch
-            ' HLS we measured no difference vs the int32-max approach. See
-            ' the PlayStart investigation handover for follow-up work.
-            '
+            ' Roku clips this start position to the availability window. A
+            ' G204X began ~18 s before a playlist's end, or at its first segment
+            ' when shorter, so the lower-latency relay shortens the playlist.
             ' https://developer.roku.com/dev/docs/specs/media (live edge spec)
             contentNodeToPlay.PlayStart = 2147483647
+            ' Retain the default splitter's startup offset. The shorter opt-in
+            ' window requests its first segment so all available headroom remains.
+            if m.rokuSessionId <> ""
+                contentNodeToPlay.PlayStart = 4
+                if m.rokuLowLatency then contentNodeToPlay.PlayStart = 0
+            end if
         else if isClipContent
-            contentNodeToPlay.ignoreStreamErrors = true
+            contentNodeToPlay.ignoreStreamErrors = false
             contentNodeToPlay.switchingStrategy = "no-adaptation"
             contentNodeToPlay.enableTrickPlay = false
         else ' VOD
-            contentNodeToPlay.ignoreStreamErrors = true ' Or false, depending on desired strictness
+            contentNodeToPlay.ignoreStreamErrors = false
             contentNodeToPlay.switchingStrategy = "full-adaptation" ' Typically ABR for VODs
+            if m.resumePosition <> invalid
+                contentNodeToPlay.PlayStart = Int(m.resumePosition)
+            else if m.video.videoBookmarks.DoesExist(m.video.video_id)
+                contentNodeToPlay.PlayStart = Int(Val(m.video.videoBookmarks[m.video.video_id]))
+            end if
         end if
 
-        ' Invariant: m.video is a fresh StitchVideo node here. exitPlayer()
-        ' tears down the previous instance, so this assignment runs on a
-        ' newly created node with init() defaults (startupSeekFired=false,
-        ' recentSeekTimestamp=0). Do NOT optimize this path to reuse an
-        ' existing m.video across reconnects without also explicitly
-        ' resetting those latches — otherwise the startup seek will be
-        ' suppressed on the new stream.
-        '
-        ' On recovery paths (watchdog reconnect / error retry) mark the new
-        ' node so it skips the startup live-edge seek. Must be set BEFORE the
-        ' content assignment because state=playing can race through quickly
-        ' after content is applied, and the gate is checked in
-        ' StitchVideo's onVideoStateChange.
-        if isLiveContent and isRecovery
+        ' Seeking to the live edge measured 3 s further behind on a G204X;
+        ' lower latency comes from the relay instead. Both are set before
+        ' content because state=playing can follow it quickly.
+        if isLiveContent
             m.video.suppressStartupSeek = true
+            m.video.lowLatency = lowLatency or (m.rokuSessionId <> "" and m.rokuLowLatency)
         end if
+        if m.rokuSessionId <> ""
+            if not m.rokuSession.callFunc("attachVideo", m.rokuSessionId, m.video)
+                showErrorDialog(tr("Roku playback stopped"), tr("This stream could not continue on Roku. Try again, choose another quality, or configure the optional audio service."))
+                return
+            end if
+        end if
+        ' The native startup allowance belongs to this prepared Video, not to
+        ' worker preparation or subsequent buffering/playing state changes.
+        m.playbackHasAdvanced = false
+        m.playbackLastPosition = m.video.position
+        m.playbackInitTime = CreateObject("roTimeSpan")
+        m.playbackInitTime.Mark()
+        if nativeStartupPending() then startBufferCheckTimer(25)
         m.video.content = contentNodeToPlay
+        startAdMetadata(contentNodeToPlay)
 
         if contentNodeToPlay.streamerProfileImageUrl <> invalid
             m.video.channelAvatar = contentNodeToPlay.streamerProfileImageUrl
@@ -304,36 +416,251 @@ sub playContent(isRecovery = false as boolean)
         if contentNodeToPlay.contentTitle <> invalid
             m.video.videoTitle = contentNodeToPlay.contentTitle
         end if
-
-        m.video.visible = false ' Make visible after PlayerTask starts if needed
-
-        if m.video.video_id <> invalid and m.top.contentRequested.contentType <> "LIVE"
-            if m.video.videoBookmarks.DoesExist(m.video.video_id)
-                m.video.seek = Val(m.video.videoBookmarks[m.video.video_id])
+        if isLiveContent
+            viewersCount = contentNodeToPlay.viewersCount
+            if GetInterface(viewersCount, "ifInt") <> invalid
+                if viewersCount >= 0 then m.video.viewersCount = viewersCount
             end if
         end if
 
-        m.PlayerTask = CreateObject("roSGNode", "PlayerTask")
-        m.PlayerTask.observeField("state", "taskStateChanged")
-        m.PlayerTask.video = m.video
-        m.PlayerTask.control = "RUN"
+        m.engagementGeneration++
+        m.engagementPaused = false
+        m.video.visible = true
+        m.video.control = "play"
+        m.video.SetFocus(true)
 
         if isLiveContent
             initChat()
+            startTwitchEngagement()
         end if
     end if
 end sub
 
+function waitForBookmarks(isRecovery as boolean) as boolean
+    if m.bookmarkStartDone = true then return false
+    if m.top.content = invalid or m.top.contentRequested = invalid then return false
+    if m.top.contentRequested.contentType <> "VOD" then return false
+    if isRecovery or m.resumePosition <> invalid or m.bookmarksReady or m.bookmarksTask = invalid or get_setting("active_user", "$default$") = "$default$"
+        m.bookmarkStartDone = true
+        cancelBookmarkWait()
+        return false
+    end if
+    m.bookmarkPlayPending = true
+    if m.bookmarkWaitTimer = invalid then m.bookmarkWaitTimer = createTimer(2.5, "onBookmarkWaitExpired")
+    return true
+end function
+
+sub onBookmarksResponse(event = invalid as dynamic)
+    if m.disposed or m.bookmarksTask = invalid then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.bookmarksTask) then return
+    end if
+    m.bookmarksReady = true
+    m.bookmarksTask = destroyTask(m.bookmarksTask, "response")
+    if m.bookmarkPlayPending = true
+        cancelBookmarkWait()
+        playContent()
+    end if
+end sub
+
+sub onBookmarkWaitExpired()
+    if m.disposed or m.bookmarkPlayPending <> true then return
+    m.bookmarkStartDone = true
+    cancelBookmarkWait()
+    ' Keep the cached position on failure or timeout; never seek a playing video later.
+    m.bookmarksTask = destroyTask(m.bookmarksTask, "response")
+    playContent()
+end sub
+
+sub cancelBookmarkWait()
+    m.bookmarkPlayPending = false
+    if m.bookmarkWaitTimer <> invalid
+        m.bookmarkWaitTimer.control = "stop"
+        m.bookmarkWaitTimer.unobserveField("fire")
+        m.bookmarkWaitTimer = invalid
+    end if
+end sub
+
+' ChannelPage queries by login, independently of account authentication. Never
+' copy the playback ID, clip slug, URL or local descriptor into navigation.
+function playerChannelContent() as object
+    source = m.top.contentRequested
+    if source = invalid then return invalid
+    login = source.streamerLogin
+    if GetInterface(login, "ifString") = invalid then return invalid
+    login = login.Trim()
+    if not CreateObject("roRegex", "^[a-zA-Z0-9_]{1,25}$", "").IsMatch(login) then return invalid
+    content = CreateObject("roSGNode", "TwitchContentNode")
+    content.contentType = "STREAMER"
+    content.contentId = source.streamerId
+    content.streamerId = source.streamerId
+    content.streamerLogin = login
+    content.streamerDisplayName = source.streamerDisplayName
+    if content.streamerDisplayName = "" then content.streamerDisplayName = login
+    content.streamerProfileImageUrl = source.streamerProfileImageUrl
+    return content
+end function
+
+sub onChannelActionsRequested(event as object)
+    if m.disposed or m.isExiting or m.rokuExitPending or m.pendingChannel <> invalid or m.video = invalid then return
+    if not event.getRoSGNode().isSameNode(m.video) or not m.video.channelActionsRequested then return
+    showPlayerChannelActions()
+end sub
+
+sub showPlayerChannelActions()
+    if m.disposed or m.isExiting or m.rokuExitPending or m.video = invalid then return
+    if m.channelActionsDialog <> invalid then return
+    content = playerChannelContent()
+    if content = invalid then return
+    scene = m.top.GetScene()
+    if scene = invalid or scene.dialog <> invalid then return
+    m.channelActionsContent = content
+    m.channelActionsAccount = RW_Section()
+    m.channelActionsPinned = RW_IsPinned(content.streamerLogin)
+    m.channelActionsOwner = playerChannelOwner(content)
+    follow = playerFollowMenu()
+    m.channelActionIds = ["open", "pin", follow.id, "cancel"]
+    m.channelActionsFollowState = follow.state
+    m.channelActionsFollowComplete = false
+    pinLabel = tr("Pin streamer")
+    name = content.streamerDisplayName
+    if m.channelActionsPinned
+        pinLabel = tr("Unpin streamer")
+        name += " · " + tr("PINNED")
+    end if
+    m.channelActionsName = name
+    dialog = CreateObject("roSGNode", "StandardMessageDialog")
+    dialog.title = tr("Channel actions")
+    dialog.message = [name]
+    ' StandardDialog.buttonFocused is read-only. Freeze button identities and
+    ' labels for this modal's lifetime; only an explicit refresh creates a new
+    ' dialog, using native initial focus on Open channel (index 0).
+    dialog.buttons = [tr("Open channel"), pinLabel, follow.label, tr("Cancel")]
+    applyDialogPalette(dialog)
+    dialog.observeField("buttonSelected", "onChannelActionSelected")
+    dialog.observeField("wasClosed", "onChannelActionsClosed")
+    m.channelActionsDialog = dialog
+    m.video.callFunc("setChannelActionsOpen", true)
+    scene.dialog = dialog
+    dialog.SetFocus(true)
+    if follow.id = "status" then startChannelFollow(false)
+end sub
+
+sub onChannelActionSelected(event as object)
+    if m.disposed or m.isExiting or m.channelActionsDialog = invalid then return
+    if not event.getRoSGNode().isSameNode(m.channelActionsDialog) then return
+    scene = m.top.GetScene()
+    if scene = invalid then return
+    if scene.dialog = invalid then return
+    if not scene.dialog.IsSameNode(m.channelActionsDialog) then return
+    if not playerChannelOwnerCurrent(m.channelActionsOwner)
+        closeChannelActions()
+        return
+    end if
+    selected = event.getData()
+    if selected < 0 or selected >= m.channelActionIds.Count() then return
+    action = m.channelActionIds[selected]
+    if action = "follow" or action = "unfollow" or action = "status"
+        handleChannelFollowAction(action)
+        return
+    else if action = "self"
+        setChannelFollowMessage(tr("You can't follow your own channel."))
+        return
+    end if
+    content = m.channelActionsContent
+    account = m.channelActionsAccount
+    pinned = m.channelActionsPinned
+    closeChannelActions()
+    ' An old dialog must never write into a newly selected account.
+    if account <> RW_Section() or content = invalid then return
+    if action = "open"
+        m.pendingChannel = content
+        m.allowBreak = true
+        m.PlayVideo = destroyTask(m.PlayVideo, "response")
+        exitPlayer()
+    else if action = "pin"
+        result = RW_SetPinned({ login: content.streamerLogin, id: content.streamerId, displayName: content.streamerDisplayName, iconUrl: content.streamerProfileImageUrl }, not pinned)
+        if result = "pinned" or result = "unpinned"
+            m.top.channelPinChanged = true
+        else if result = "limit"
+            showTemporaryMessage(Substitute(tr("Pin limit reached ({0}). Unpin a channel first."), RW_MaxItems().ToStr()))
+        end if
+    else if action = "signin"
+        m.pendingChannelSignIn = true
+        m.allowBreak = true
+        exitPlayer()
+    end if
+end sub
+
+sub onChannelActionsClosed(event as object)
+    if m.channelActionsDialog = invalid then return
+    if not event.getRoSGNode().IsSameNode(m.channelActionsDialog) then return
+    closeChannelActions()
+end sub
+
+sub closeChannelActions(restoreFocus = true as boolean)
+    cancelChannelFollow()
+    dialog = m.channelActionsDialog
+    if dialog = invalid then return
+    m.channelActionsDialog = invalid
+    m.channelActionsContent = invalid
+    m.channelActionsOwner = invalid
+    m.channelActionsFollowState = invalid
+    dialog.unobserveField("buttonSelected")
+    dialog.unobserveField("wasClosed")
+    scene = m.top.GetScene()
+    ownsFocus = true
+    if scene <> invalid and scene.dialog <> invalid
+        if scene.dialog.IsSameNode(dialog)
+            scene.dialog = invalid
+        else
+            ownsFocus = false
+        end if
+    end if
+    if restoreFocus and not m.disposed and not m.isExiting and m.video <> invalid
+        m.video.callFunc("setChannelActionsOpen", false)
+        if ownsFocus then m.video.SetFocus(true)
+    end if
+end sub
+
+' Both direct playback and the acknowledged local stop finish here. Publish
+' last: the root may permanently destroy this Player inside its observer.
+sub finishPlayerExit()
+    if m.disposed or m.top.state = "done" then return
+    m.top.state = "done"
+    if m.pendingChannel <> invalid
+        content = m.pendingChannel
+        m.pendingChannel = invalid
+        m.top.channelRequested = content
+    else if m.pendingChannelSignIn = true
+        m.pendingChannelSignIn = false
+        m.top.channelSignInRequested = true
+    else
+        m.top.backPressed = true
+    end if
+end sub
+
 sub exitPlayer()
+    m.liveReconnect = invalid
+    pauseTwitchEngagement()
+    if m.allowBreak then stopTwitchEngagement()
+    cancelBookmarkWait()
+    stopAdMetadata()
+    resetLiveRecoveryHealth()
     ' If allowBreak is true, this is a real user/back exit. During internal
     ' reconnects we set allowBreak=false before calling exitPlayer().
     if m.allowBreak
         m.isExiting = true
+        resetContentAdvisory()
+        stopLowLatencyRelay()
+        m.bookmarksTask = destroyTask(m.bookmarksTask, "response")
         ' Stop chat immediately so the IRC connection and ChatJob task are
         ' released before the scene tears down, regardless of chat visibility.
         if m.chatWindow <> invalid
             m.chatWindow.callFunc("stopJobs")
+            m.chatWindow.callFunc("onDestroy")
         end if
+        closeOwnedPlayerDialogs()
     end if
 
     ' Stop watchdog/reconnect timers and clean up any in-flight reconnect task
@@ -342,6 +669,7 @@ sub exitPlayer()
     end if
     if m.reconnectTimer <> invalid
         m.reconnectTimer.control = "stop"
+        m.reconnectTimer.unobserveField("fire")
         m.reconnectTimer = invalid
     end if
     if m.retryTimer <> invalid
@@ -352,6 +680,7 @@ sub exitPlayer()
     cleanupReconnectTask()
 
     if m.video <> invalid
+        m.video.unobserveField("channelActionsRequested")
         m.video.unobserveField("toggleChat")
         if m.video.isSubtype("StitchVideo")
             m.video.unobserveField("QualityChangeRequestFlag")
@@ -361,36 +690,57 @@ sub exitPlayer()
         m.video.unobserveField("position")
         m.video.unobserveField("state")
         m.video.unobserveField("duration")
-
+        m.video.callFunc("onDestroy")
         m.video.control = "stop"
         m.video.visible = false
     end if
 
-    m.PlayerTask = destroyTask(m.PlayerTask, "state")
-    if m.splitter <> invalid
-        m.splitter.unobserveField("ready")
-        m.splitter.unobserveField("state")
-        m.splitter = invalid
-    end if
-
     if m.allowBreak
-        m.top.state = "done"
-        m.top.backpressed = true ' Ensure this signals back correctly
+        if not stopRokuPlayback(true)
+            finishPlayerExit()
+        end if
     end if
 end sub
 
 function onKeyEvent(key, press) as boolean
     if press
+        if key = "down" and m.chatWindow <> invalid and m.chatWindow.visible
+            return m.chatWindow.callFunc("showPinnedMessage")
+        end if
         if key = "back"
-            m.allowBreak = true ' Ensure exitPlayer signals upwards
-            exitPlayer()
-            return true
+            return requestBack()
         end if
     end if
     return false ' Let child video component (StitchVideo/CustomVideo) handle other keys
 end function
 
+function requestBack() as boolean
+    if m.disposed or m.rokuExitPending then return true
+    m.allowBreak = true
+    exitPlayer()
+    return true
+end function
+
 sub init()
+    m.chatAutoPaused = false
+    m.chatOwner = ""
+    m.disposed = false
+    m.pendingChannel = invalid
+    m.engagementTask = invalid
+    m.engagementOwner = ""
+    m.engagementGeneration = 0
+    m.engagementSequence = 0
+    m.engagementPaused = true
+    initRokuPlayback()
+    initLowLatencyPlayback()
+    m.bookmarksTask = m.top.findNode("bookmarksTask")
+    m.bookmarksReady = true
+    m.bookmarkStartDone = false
+    if m.bookmarksTask <> invalid and get_setting("active_user", "$default$") <> "$default$"
+        m.bookmarksReady = false
+        m.bookmarksTask.observeField("response", "onBookmarksResponse")
+        m.bookmarksTask.control = "run"
+    end if
     m.chatWindow = m.top.findNode("chat")
     if m.chatWindow <> invalid
         m.chatWindow.fontSize = get_user_setting("ChatFontSize")
@@ -411,12 +761,18 @@ sub init()
     m.isExiting = false
     m.reconnectAttempts = 0
     m.maxReconnectAttempts = 6
+    m.recoveryAttempts = 0
+    m.maxRecoveryAttempts = 6
+    m.sourceTransitionCharges = 0
+    resetLiveRecoveryHealth()
+    m.resumePosition = invalid
     m.reconnectCooldownSec = 45
     m.lastReconnectSuccessSec = 0
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectTimer = invalid
     m.retryTimer = invalid
+    m.manualLiveQuality = invalid
     m.playbackInitTime = invalid ' tracks when current playback attempt started
 
     m.watchdogTimer = CreateObject("roSGNode", "Timer")
@@ -426,7 +782,13 @@ sub init()
 end sub
 
 sub onToggleChat()
+    if m.video = invalid then return
     if m.video.toggleChat = true ' Check the field on the video component
+        if m.top.contentRequested.contentType <> "LIVE"
+            m.video.toggleChat = false
+            showChatUnavailableNotice()
+            return
+        end if
         if m.chatWindow <> invalid
             m.chatWindow.visible = not m.chatWindow.visible
             m.video.chatIsVisible = m.chatWindow.visible ' Update video component's knowledge
@@ -436,26 +798,8 @@ sub onToggleChat()
 end sub
 
 sub onChatVisibilityChange()
-    if m.chatWindow <> invalid and m.video <> invalid
-        screenWidth = m.global.constants.screenWidth
-        screenHeight = m.global.constants.screenHeight
-        chatWidth = 320
-        if m.chatWindow.visible
-            m.chatWindow.translation = [screenWidth - chatWidth, 0] ' Position chat on the right
-            m.chatWindow.height = screenHeight ' Full height
-            m.chatWindow.width = chatWidth
-
-            m.video.width = screenWidth - chatWidth ' Video width adjusted
-            m.video.height = screenHeight ' Video full height
-            m.video.translation = [0, 0] ' Video on the left
-            m.video.chatIsVisible = true
-        else
-            m.video.width = screenWidth ' Video full width
-            m.video.height = screenHeight
-            m.video.translation = [0, 0]
-            m.video.chatIsVisible = false
-        end if
-    end if
+    applyChatLayout()
+    startTwitchEngagement()
 end sub
 
 ' Placeholder for onPositionChanged, onVideoStateChange, onVideoError, onDurationChanged
@@ -463,17 +807,55 @@ end sub
 ' StitchVideo/CustomVideo handle their own UI updates based on these.
 ' However, some global actions might be needed here.
 
-sub onPositionChanged()
+sub onPositionChanged(event = invalid as dynamic)
+    if m.disposed or m.isExiting or m.video = invalid then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.video) then return
+    end if
+    if nativeStartupPending()
+        position = m.video.position
+        if m.video.state = "playing" and liveRecoveryNumber(position) and liveRecoveryNumber(m.playbackLastPosition)
+            if position > m.playbackLastPosition
+                m.playbackHasAdvanced = true
+                if m.bufferCheckTimer <> invalid
+                    m.bufferCheckTimer.control = "stop"
+                    m.bufferCheckTimer.unobserveField("fire")
+                    m.bufferCheckTimer = invalid
+                end if
+            end if
+        end if
+        m.playbackLastPosition = position
+    end if
+    ' Unexpected worker exits recover on advancing playback, at most once per
+    ' 30 seconds. Explicit chat/quality changes can recover immediately.
+    if m.video <> invalid and m.engagementTask <> invalid and m.engagementClock <> invalid
+        if m.video.state = "playing" and m.engagementTask.control = "stop" and m.engagementClock.totalMilliseconds() >= 30000 then startTwitchEngagement()
+    end if
+    publishTwitchPlayback()
     ' This is observed on m.video.
     ' StitchVideo/CustomVideo have their own onPositionChange for UI.
     ' Can be used for global logic if needed, e.g. global bookmarking not tied to UI.
 
     ' LIVE watchdog: keep track of forward progress (post-ad freezes often stop position)
     if m.video <> invalid and m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
+        if m.liveRecoveryVideo <> invalid
+            if not liveRecoveryNumber(m.video.position)
+                resetLiveRecoveryHealth()
+            else if m.video.position < m.liveRecoveryLastPosition
+                resetLiveRecoveryHealth()
+            end if
+        end if
+        delaySeconds = 0.0
+        segment = m.video.streamingSegment
+        if segment <> invalid and segment.latency <> invalid
+            delaySeconds = segment.latency / 1000
+            if delaySeconds < 0 or delaySeconds > 60 then delaySeconds = 0.0
+        end if
+        if m.chatWindow <> invalid then m.chatWindow.delaySeconds = delaySeconds
         if m.lastGoodPosition = invalid
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
-        else if m.video.position > m.lastGoodPosition
+        else if m.video.position <> m.lastGoodPosition
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
         end if
@@ -481,16 +863,31 @@ sub onPositionChanged()
 
 end sub
 
-sub onVideoStateChange()
-    if m.video = invalid then return
+sub onVideoStateChange(event = invalid as dynamic)
+    if m.disposed or m.video = invalid or m.isExiting then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.video) then return
+    end if
+    publishTwitchPlayback()
+    updateContentAdvisory()
+    if m.video.state = "error" or m.video.state = "finished" or m.video.state = "stopped" then hideContentAdvisory()
+    if m.video.state = "error" or m.video.state = "finished" or m.video.state = "stopped" then stopAdMetadata()
+    if m.video.state <> "playing" then resetLiveRecoveryHealth()
+    if m.chatWindow <> invalid and m.video.state <> "playing" then m.chatWindow.delaySeconds = 0
+    if m.video.state = "playing" and not m.compatibilityNoticeShown
+        m.compatibilityNoticeShown = true
+        if m.top.content <> invalid and m.top.content.playbackNotice <> ""
+            m.video.callFunc("showMessage", "Playback quality", m.top.content.playbackNotice, 8)
+        end if
+    end if
 
     ' Handle buffering states
     if m.video.state = "buffering"
         handleBufferingState()
     else if m.lastBufferState = "buffering" and m.video.state = "playing"
-        ' Recovered from buffering — cancel all pending retry/buffer timers
-        m.errorHandler.callFunc("resetErrorState")
-        if m.bufferCheckTimer <> invalid
+        m.bufferStartTime = 0
+        ' A playing state alone must not clear the native startup deadline.
+        if m.bufferCheckTimer <> invalid and not nativeStartupPending()
             m.bufferCheckTimer.control = "stop"
             m.bufferCheckTimer.unobserveField("fire")
             m.bufferCheckTimer = invalid
@@ -516,47 +913,42 @@ sub onVideoStateChange()
     end if
 
     if m.video.state = "finished" and m.allowBreak
-        exitPlayer()
-    else if m.video.state = "error"
-        ' Log the raw error immediately for debugging visibility
-        ? getLogTimestamp(); " [VideoPlayer] video.state=error — code="; m.video.errorCode; " msg="; m.video.errorStr
-
-        ' Grace period: within the first 5 seconds of a fresh playback attempt,
-        ' Roku's engine often fires a transient error on the initial segment fetch
-        ' (CDN 302, auth pre-check, etc.) and then self-recovers on the next segment.
-        ' Skip our retry machinery for non-fatal errors during this window.
-        elapsedMs = 999999
-        if m.playbackInitTime <> invalid
-            elapsedMs = m.playbackInitTime.TotalMilliseconds()
+        if lowLatencyFinishedEarly()
+            beginLiveReconnect("relay_finished")
+        else
+            exitPlayer()
         end if
+    else if m.video.state = "error"
+        ? getLogTimestamp(); " [VideoPlayer] video.state=error code="; m.video.errorCode
+        ' A scheduled reconnect replaces this Video; the stopped Roku-only
+        ' server can fail it first, which must not cancel or repeat recovery.
+        if m.reconnectTimer <> invalid or m.reconnectTask <> invalid then return
 
         errorCode = m.video.errorCode
         errorMsg = m.video.errorStr
         if errorMsg = invalid then errorMsg = ""
 
-        ' Enhanced Broadcasting / codec error — Roku cannot decode this stream at all.
-        ' Exit silently: no dialog, no retry loop.
+        ' A demux error must remain actionable rather than silently exiting.
         if errorMsg.InStr("buffer:loop:demux") > -1 or errorMsg.InStr("970") > -1
-            m.allowBreak = true
-            exitPlayer()
+            if tryNativePlaybackFallback() then return
+            if m.rokuSessionId <> ""
+                showErrorDialog(tr("Roku playback stopped"), tr("This stream could not continue on Roku. Try again, choose another quality, or configure the optional audio service."))
+            else if m.top.content.isProxied
+                showErrorDialog(tr("Audio/video format problem"), tr("The demux service could not provide playable audio and video. Check the service connection and version, then try again."))
+            else
+                ' Fails closed: retrying cannot help until the service is set up.
+                showErrorDialog(tr("Video format needs the audio service"), tr("This stream uses combined audio/video CMAF segments. Configure the optional demux service in Settings, or choose another stream."), false)
+            end if
             return
         end if
 
-        ' Classify as fatal immediately (don't wait): auth errors
-        isFatalError = false
-        if errorCode = 401 or errorCode = 403 or errorCode = 404
-            isFatalError = true
-        end if
-
-        if isFatalError or elapsedMs > 5000
-            handleStreamError(errorMsg)
-        else
-            ? getLogTimestamp(); " [VideoPlayer] Transient error within grace period ("; elapsedMs; "ms) — letting Roku self-recover"
-        end if
+        handleStreamError(errorMsg)
     end if
 end sub
 
 sub handleStreamError(errorStr = invalid as dynamic)
+    if m.video = invalid or m.isExiting or m.errorDialog <> invalid then return
+    if m.retryTimer <> invalid or m.reconnectTimer <> invalid or m.reconnectTask <> invalid then return
     if m.errorHandler = invalid
         m.errorHandler = CreateObject("roSGNode", "VideoErrorHandler")
     end if
@@ -568,21 +960,26 @@ sub handleStreamError(errorStr = invalid as dynamic)
 
     ' Get error classification for user-friendly messages
     errorType = m.errorHandler.callFunc("classifyError", errorCode, errorMessage)
+    if tryNativePlaybackFallback() then return
 
     trackEvent("video_error", {
         error_code: errorCode,
-        error_message: errorMessage,
         error_type: errorType,
         streamer_login: m.top.contentRequested?.streamerLogin,
         content_type: m.top.contentRequested?.contentType
     })
 
     recovery = m.errorHandler.callFunc("handleVideoError", errorCode, errorMessage, m.video, m.top.contentRequested)
+    if m.recoveryAttempts >= m.maxRecoveryAttempts
+        recovery.shouldRetry = false
+    else if recovery.shouldRetry
+        m.recoveryAttempts++
+    end if
 
     if recovery.shouldRetry
         if recovery.action = "retry"
-            ? getLogTimestamp(); " [VideoPlayer] Retry action with delay: "; recovery.delay; " errorCode="; errorCode; " errorMsg="; errorMessage
-            showTemporaryMessage("Reconnecting...")
+            ? getLogTimestamp(); " [VideoPlayer] Retry delay="; recovery.delay; " code="; errorCode
+            showTemporaryMessage(tr("Reconnecting…"))
 
             ' Cancel any in-flight retry timer before creating a new one
             if m.retryTimer <> invalid
@@ -598,42 +995,40 @@ sub handleStreamError(errorStr = invalid as dynamic)
 
         else if recovery.action = "change_quality" and recovery.newContent <> invalid
             ' Show quality change message
-            showTemporaryMessage("Switching to lower quality...")
+            showTemporaryMessage(tr("Switching to a lower quality…"))
 
             ' Switch to different quality
-            m.video.qualityChangeRequest = recovery.newContent.qualityID
+            m.video.qualityChangeRequest = recovery.newContent.index
             onQualityChangeRequested()
 
         else if recovery.action = "refresh_auth"
             ' Show auth message
-            showTemporaryMessage("Refreshing authentication...")
+            showTemporaryMessage(tr("Refreshing video access…"))
 
             ' Refresh authentication and retry
             refreshAuthAndRetry()
 
         else if recovery.action = "force_lower_quality"
             ' Show quality message
-            showTemporaryMessage("Adjusting quality for better playback...")
+            showTemporaryMessage(tr("Adjusting quality for smoother playback…"))
 
             ' Force switch to lowest available quality
             if m.video.qualityOptions <> invalid and m.video.qualityOptions.count() > 0
-                lowestQuality = m.video.qualityOptions[m.video.qualityOptions.count() - 1]
+                lowestQuality = m.video.qualityOptions.count() - 1
                 m.video.qualityChangeRequest = lowestQuality
                 onQualityChangeRequested()
             end if
         else if recovery.action = "fail_immediately"
             ' Get user-friendly error message
             errorInfo = m.errorHandler.callFunc("getUserFriendlyErrorMessage", errorCode, errorType)
-            showErrorDialog(errorInfo.title, errorInfo.message + Chr(10) + Chr(10) + "Suggestion: " + errorInfo.suggestion)
-            exitPlayer()
+            showErrorDialog(errorInfo.title, errorInfo.message + Chr(10) + errorInfo.suggestion)
         end if
     else
-        if m.errorHandler.callFunc("shouldGiveUp")
-            ' Get user-friendly error message for final failure
-            errorInfo = m.errorHandler.callFunc("getUserFriendlyErrorMessage", errorCode, errorType)
-            showErrorDialog(errorInfo.title, errorInfo.message)
-            exitPlayer()
-        end if
+        errorInfo = m.errorHandler.callFunc("getUserFriendlyErrorMessage", errorCode, errorType)
+        ' Only say recovery ran out when it did; other errors get the advice.
+        detail = errorInfo.suggestion
+        if recovery.action = "fail" or m.recoveryAttempts >= m.maxRecoveryAttempts then detail = tr("Playback stopped after several recovery attempts.")
+        showErrorDialog(errorInfo.title, errorInfo.message + Chr(10) + detail)
     end if
 end sub
 
@@ -646,7 +1041,7 @@ sub handleBufferingState()
     currentTime = CreateObject("roDateTime").AsSeconds()
     bufferDuration = currentTime - m.bufferStartTime
 
-    if bufferDuration > 10 ' More than 10 seconds of buffering
+    if bufferDuration > 10 and not nativeStartupPending()
         recovery = m.errorHandler.callFunc("handleBufferStall", m.video)
 
         if recovery.shouldRecover
@@ -654,6 +1049,11 @@ sub handleBufferingState()
                 ' Switch to lower quality
                 lowerQuality = findLowerQuality()
                 if lowerQuality <> invalid
+                    if m.recoveryAttempts >= m.maxRecoveryAttempts
+                        showErrorDialog(tr("Playback interrupted"), tr("This video kept buffering after several recovery attempts. Check your connection, then try again."))
+                        return
+                    end if
+                    m.recoveryAttempts++
                     m.video.qualityChangeRequest = lowerQuality
                     onQualityChangeRequested()
                 end if
@@ -663,38 +1063,78 @@ sub handleBufferingState()
         m.bufferStartTime = 0 ' Reset timer
     end if
 
-    ' Start a timer to check for stuck buffering.
-    ' 25s gives Twitch CDN enough time for initial segment delivery on busy streams.
+    ' A new native Video gets the ordinary 25s startup allowance, measured
+    ' from content assignment. An advancing native stream keeps its 10s limit.
     if m.bufferCheckTimer = invalid
-        m.bufferCheckTimer = CreateObject("roSGNode", "Timer")
-        m.bufferCheckTimer.duration = 25
-        m.bufferCheckTimer.repeat = false
-        m.bufferCheckTimer.observeField("fire", "onBufferTimeout")
-        m.bufferCheckTimer.control = "start"
+        duration = 25.0
+        if m.rokuSessionId <> "" and m.top.contentRequested <> invalid
+            if m.top.contentRequested.contentType = "LIVE"
+                duration = 10
+                if nativeStartupPending() then duration = 25 - m.playbackInitTime.TotalMilliseconds() / 1000.0
+            end if
+        end if
+        startBufferCheckTimer(duration)
     end if
 end sub
 
-sub onBufferTimeout()
+function nativeStartupPending() as boolean
+    if m.rokuSessionId = invalid or m.rokuSessionId = "" or m.top.contentRequested = invalid then return false
+    return m.top.contentRequested.contentType = "LIVE" and m.playbackInitTime <> invalid and m.playbackHasAdvanced <> true
+end function
+
+sub startBufferCheckTimer(duration as float)
+    if duration < 0.001 then duration = 0.001
+    m.bufferCheckTimer = CreateObject("roSGNode", "Timer")
+    m.bufferCheckTimer.duration = duration
+    m.bufferCheckTimer.repeat = false
+    m.bufferCheckTimer.observeField("fire", "onBufferTimeout")
+    m.bufferCheckTimer.control = "start"
+end sub
+
+sub onBufferTimeout(event = invalid as dynamic)
+    if m.disposed or m.isExiting or m.bufferCheckTimer = invalid then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.bufferCheckTimer) then return
+    end if
+    m.bufferCheckTimer.control = "stop"
+    m.bufferCheckTimer.unobserveField("fire")
     m.bufferCheckTimer = invalid
     if m.video = invalid then return
-    if m.video.state <> "buffering" then return
-    ' LIVE streams stall 15-20s waiting for the CDN segment to be produced — normal.
-    ' Let Roku self-recover; don't force an error retry.
-    if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE" then return
+    if m.retryTimer <> invalid or m.reconnectTimer <> invalid or m.reconnectTask <> invalid then return
+    if nativeStartupPending()
+        remaining = 25 - m.playbackInitTime.TotalMilliseconds() / 1000.0
+        if remaining > 0
+            startBufferCheckTimer(remaining)
+            return
+        end if
+    else if m.video.state <> "buffering"
+        return
+    end if
+    ' Refresh LIVE playback within its existing bounded reconnect budget.
+    if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
+        beginLiveReconnect("buffer_timeout")
+        return
+    end if
     handleStreamError()
 end sub
 
 ' ===== LIVE stall watchdog / reconnect =====
 sub onWatchdogFire()
-    if m.isExiting then return
-    if m.video = invalid or m.top.contentRequested = invalid then return
-    if m.top.contentRequested.contentType <> "LIVE" then return
-    if m.video.state <> "playing" then return
+    if m.disposed or m.isExiting or m.video = invalid or m.top.contentRequested = invalid
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if m.top.contentRequested.contentType <> "LIVE" or m.video.state <> "playing"
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if nativeStartupPending() then return
 
     nowSec = CreateObject("roDateTime").AsSeconds()
 
     ' Cooldown after a successful reconnect to avoid immediate re-triggers while Twitch stabilizes
     if m.lastReconnectSuccessSec <> 0 and (nowSec - m.lastReconnectSuccessSec) < m.reconnectCooldownSec
+        resetLiveRecoveryHealth()
         return
     end if
 
@@ -706,11 +1146,14 @@ sub onWatchdogFire()
     ' actively undoes the live-edge correction. 20s gives Roku enough time
     ' to fully restabilize even on slow networks before re-engaging.
     if m.video.recentSeekTimestamp <> 0 and (nowSec - m.video.recentSeekTimestamp) < 20
+        resetLiveRecoveryHealth()
         ' Reset position tracking so the moment cooldown ends we start fresh.
         m.lastGoodPosition = invalid
         m.stallSeconds = 0
         return
     end if
+
+    updateLiveRecoveryHealth(nowSec)
 
     ' If position advanced, reset stall tracking
     if m.lastGoodPosition = invalid
@@ -719,8 +1162,6 @@ sub onWatchdogFire()
         return
     end if
 
-    ' Position moved either way. Backward means a quality switch, reconnect,
-    ' or the 2147483647 PlayStart placeholder was captured: track fresh.
     if m.video.position <> m.lastGoodPosition
         m.lastGoodPosition = m.video.position
         m.stallSeconds = 0
@@ -749,17 +1190,101 @@ sub onWatchdogFire()
     end if
 end sub
 
+sub resetLiveRecoveryHealth()
+    m.liveRecoveryVideo = invalid
+    m.liveRecoverySessionId = ""
+    m.liveRecoveryStartSec = invalid
+    m.liveRecoveryLastSec = invalid
+    m.liveRecoveryStartPosition = invalid
+    m.liveRecoveryLastPosition = invalid
+end sub
+
+function liveRecoveryNumber(value as dynamic) as boolean
+    kind = type(value, 3)
+    if kind <> "Integer" and kind <> "LongInteger" and kind <> "Float" and kind <> "Double" and kind <> "roInt" and kind <> "roFloat" and kind <> "roDouble" then return false
+    return value >= 0 and value <= 2147483647
+end function
+
+sub updateLiveRecoveryHealth(nowSec as integer)
+    if m.disposed or m.isExiting or m.rokuExitPending or m.rokuDeferredPlay or m.manualRetryPending or m.errorDialog <> invalid or m.transmuxDialog <> invalid
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if m.retryTimer <> invalid or m.reconnectTimer <> invalid or m.reconnectTask <> invalid or m.rokuPendingContent <> invalid
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if m.video = invalid or m.rokuSession = invalid or m.rokuPreparedContent = invalid or m.top.content = invalid or m.top.contentRequested = invalid
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if not m.rokuChosen or m.rokuSessionId = "" or m.rokuSession.cleanupBlocked or m.top.contentRequested.contentType <> "LIVE" or m.video.state <> "playing"
+        resetLiveRecoveryHealth()
+        return
+    end if
+    if not m.rokuPreparedContent.isSameNode(m.top.content)
+        resetLiveRecoveryHealth()
+        return
+    end if
+    position = m.video.position
+    if not liveRecoveryNumber(nowSec) or not liveRecoveryNumber(position)
+        resetLiveRecoveryHealth()
+        return
+    end if
+    sameOwner = false
+    if m.liveRecoveryVideo <> invalid then sameOwner = m.liveRecoveryVideo.isSameNode(m.video) and m.liveRecoverySessionId = m.rokuSessionId
+    if sameOwner
+        elapsed = nowSec - m.liveRecoveryLastSec
+        progress = position - m.liveRecoveryLastPosition
+        ' Duplicate ticks add no time; a seek/backward observation still breaks health.
+        if elapsed = 0 and progress >= 0 and progress <= 3 then return
+        if elapsed < 0 or elapsed > 6 or progress <= 0 or progress > elapsed + 3
+            resetLiveRecoveryHealth()
+            sameOwner = false
+        end if
+    end if
+    if not sameOwner
+        m.liveRecoveryVideo = m.video
+        m.liveRecoverySessionId = m.rokuSessionId
+        m.liveRecoveryStartSec = nowSec
+        m.liveRecoveryStartPosition = position
+    end if
+    m.liveRecoveryLastSec = nowSec
+    m.liveRecoveryLastPosition = position
+    ' A ready/playing event cannot forgive failures. Require real elapsed time
+    ' and sustained media progress; preserve all unrelated error-recovery debt.
+    if nowSec - m.liveRecoveryStartSec < 120 or position - m.liveRecoveryStartPosition < 90 then return
+    charges = m.sourceTransitionCharges
+    kind = type(charges, 3)
+    if kind <> "Integer" and kind <> "LongInteger" and kind <> "roInt" then return
+    if charges <= 0 or charges > m.maxReconnectAttempts or charges > m.reconnectAttempts or charges > m.recoveryAttempts then return
+    m.reconnectAttempts -= charges
+    m.recoveryAttempts -= charges
+    m.sourceTransitionCharges = 0
+    resetLiveRecoveryHealth()
+end sub
+
 sub beginLiveReconnect(reason as string)
-    if m.isExiting then return
+    if m.disposed or m.isExiting then return
 
     ' If a reconnect is already scheduled/in-flight, don't stack them
-    if m.reconnectTimer <> invalid then return
+    if m.reconnectTimer <> invalid or m.reconnectTask <> invalid then return
+    if (reason = "stall" or reason = "buffer_timeout") and m.chatWindow <> invalid and m.chatWindow.visible
+        if m.chatWindow.hasField("pausedForPerformance")
+            if m.chatWindow.callFunc("suspendIfOverloaded") = true
+                m.chatAutoPaused = true
+                startTwitchEngagement()
+            end if
+        end if
+    end if
+    pauseTwitchEngagement()
+
+    resetLiveRecoveryHealth()
 
     m.reconnectAttempts = m.reconnectAttempts + 1
-    if m.reconnectAttempts > m.maxReconnectAttempts
-        showErrorDialog("Stream frozen", "Twitch playback froze after an ad and could not be recovered.")
-        m.allowBreak = true
-        exitPlayer()
+    m.recoveryAttempts++
+    if m.reconnectAttempts > m.maxReconnectAttempts or m.recoveryAttempts > m.maxRecoveryAttempts
+        showErrorDialog(tr("Stream frozen"), tr("Twitch playback stopped and couldn't be recovered automatically."))
         return
     end if
 
@@ -771,30 +1296,98 @@ sub beginLiveReconnect(reason as string)
     if delaySec > 16 then delaySec = 16
 
     ? getLogTimestamp(); " [VideoPlayer] beginLiveReconnect reason="; reason; " attempt="; m.reconnectAttempts; "/"; m.maxReconnectAttempts
-    showTemporaryMessage("Reconnecting... (" + m.reconnectAttempts.toStr() + "/" + m.maxReconnectAttempts.toStr() + ")")
+    showTemporaryMessage(tr("Reconnecting… ({0}/{1})").replace("{0}", m.reconnectAttempts.toStr()).replace("{1}", m.maxReconnectAttempts.toStr()))
 
     if m.watchdogTimer <> invalid
         m.watchdogTimer.control = "stop"
     end if
 
+    rememberLiveReconnect(reason)
     m.reconnectTimer = CreateObject("roSGNode", "Timer")
     m.reconnectTimer.duration = delaySec
     m.reconnectTimer.repeat = false
     m.reconnectTimer.observeField("fire", "doLiveReconnect")
+    ' Roku-only stalls at ad boundaries recur every break; refund them after
+    ' healthy playback like transitions so long sessions keep their budget.
+    if reason = "source_transition" or (reason = "buffer_timeout" and m.rokuSessionId <> "") then m.sourceTransitionCharges++
     m.reconnectTimer.control = "start"
 end sub
+
+sub rememberLiveReconnect(reason as string)
+    ' A failed refresh spends another attempt without changing why this same
+    ' owner needed recovery or the position from which it must resume.
+    if reason = "refresh_failed" and liveReconnectOwnerCurrent() then return
+    position = invalid
+    if m.video <> invalid then position = m.video.position
+    m.liveReconnect = { reason: reason, video: m.video, session: m.rokuSession, sessionId: m.rokuSessionId, content: m.top.content, request: m.top.contentRequested, position: position }
+end sub
+
+function liveReconnectOwnerCurrent() as boolean
+    owner = m.liveReconnect
+    if owner = invalid or m.video = invalid or m.top.content = invalid or m.top.contentRequested = invalid then return false
+    if owner.video = invalid or owner.content = invalid or owner.request = invalid then return false
+    if not owner.video.isSameNode(m.video) or not owner.content.isSameNode(m.top.content) or not owner.request.isSameNode(m.top.contentRequested) then return false
+    if owner.sessionId <> m.rokuSessionId then return false
+    if owner.session <> invalid
+        if m.rokuSession = invalid then return false
+        if not owner.session.isSameNode(m.rokuSession) then return false
+    end if
+    return true
+end function
+
+' Only buffer/stall recovery can become obsolete through resumed progress.
+' A failed/stopping worker still needs replacement even if its Video advances.
+function cancelObsoleteLiveReconnect() as boolean
+    if m.liveReconnect = invalid then return false
+    sameOwner = liveReconnectOwnerCurrent()
+    resumed = false
+    if sameOwner
+        owner = m.liveReconnect
+        if (owner.reason = "buffer_timeout" or owner.reason = "stall") and m.video.state = "playing"
+            if liveRecoveryNumber(owner.position) and liveRecoveryNumber(m.video.position)
+                resumed = m.video.position > owner.position
+            end if
+            if resumed and m.rokuSessionId <> ""
+                resumed = false
+                if m.rokuSession <> invalid
+                    workerEvent = m.rokuSession.event
+                    if type(workerEvent) = "roAssociativeArray" and m.rokuSession.busy and not m.rokuSession.cleanupBlocked
+                        resumed = workerEvent.id = m.rokuSessionId and workerEvent.status = "ready"
+                    end if
+                end if
+            end if
+        end if
+    end if
+    if sameOwner and not resumed then return false
+    cleanupReconnectTask()
+    m.liveReconnect = invalid
+    if resumed
+        dismissTemporaryMessage()
+        m.engagementPaused = false
+        publishTwitchPlayback()
+        if m.watchdogTimer <> invalid then m.watchdogTimer.control = "start"
+    end if
+    return true
+end function
 
 sub cleanupReconnectTask()
     m.reconnectTask = destroyTask(m.reconnectTask, "response")
 end sub
 
-sub doLiveReconnect()
-    if m.isExiting then return
+sub doLiveReconnect(event = invalid as dynamic)
+    if m.disposed or m.isExiting then return
+    if event <> invalid
+        if m.reconnectTimer = invalid then return
+        if not event.getRoSGNode().isSameNode(m.reconnectTimer) then return
+    end if
 
     if m.reconnectTimer <> invalid
         m.reconnectTimer.control = "stop"
+        m.reconnectTimer.unobserveField("fire")
         m.reconnectTimer = invalid
     end if
+    if cancelObsoleteLiveReconnect() then return
+    if m.liveReconnect = invalid then rememberLiveReconnect("error_retry")
 
     ' Clean up any prior reconnect task before creating a new one
     cleanupReconnectTask()
@@ -803,17 +1396,23 @@ sub doLiveReconnect()
     m.reconnectTask = CreateObject("roSGNode", "GetTwitchContent")
     m.reconnectTask.observeField("response", "onLiveReconnectResponse")
     m.reconnectTask.contentRequested = m.top.contentRequested.getFields()
+    enableRokuDescriptor(m.reconnectTask)
     m.reconnectTask.functionName = "main"
     m.reconnectTask.control = "run"
 end sub
 
-sub onLiveReconnectResponse()
-    if m.isExiting
+sub onLiveReconnectResponse(event = invalid as dynamic)
+    if m.reconnectTask = invalid then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.reconnectTask) then return
+    end if
+    if m.disposed or m.isExiting
         cleanupReconnectTask()
         return
     end if
+    if cancelObsoleteLiveReconnect() then return
 
-    if m.reconnectTask = invalid or m.reconnectTask.response = invalid
+    if m.reconnectTask.response = invalid
         cleanupReconnectTask()
         beginLiveReconnect("refresh_failed")
         return
@@ -833,6 +1432,22 @@ sub onLiveReconnectResponse()
     ' Apply fresh content + metadata
     m.top.content = refreshedContent
     m.top.metadata = refreshedMetadata
+    if m.video <> invalid
+        if m.top.contentRequested.contentType <> "LIVE" then m.resumePosition = m.video.position
+        quality = m.video.GetField("selectedQuality")
+        if m.top.contentRequested.contentType = "LIVE" and m.manualLiveQuality <> invalid then quality = m.manualLiveQuality
+        if quality <> invalid and refreshedMetadata <> invalid
+            for each entry in refreshedMetadata
+                if entry.QualityID = quality then refreshedContent.SetFields(entry)
+            end for
+        end if
+    end if
+    if refreshedContent.isTransmux
+        if not chooseRokuPlayback()
+            showTransmuxWarning()
+            return
+        end if
+    end if
 
     ' Reset stall tracking
     m.lastGoodPosition = invalid
@@ -851,8 +1466,7 @@ sub onLiveReconnectResponse()
     ' Mark successful reconnect (cooldown prevents immediate re-triggers)
     m.lastReconnectSuccessSec = CreateObject("roDateTime").AsSeconds()
 
-    ' Success -> reset attempt counter and restart watchdog
-    m.reconnectAttempts = 0
+    ' The budget belongs to the session, not an individual restart.
     if m.watchdogTimer <> invalid
         m.watchdogTimer.control = "start"
     end if
@@ -860,55 +1474,94 @@ end sub
 
 sub retryPlayback()
     ? getLogTimestamp(); " [VideoPlayer] retryPlayback() — restarting playback"
-    m.retryTimer = invalid
+    if m.retryTimer <> invalid
+        m.retryTimer.control = "stop"
+        m.retryTimer.unobserveField("fire")
+        m.retryTimer = invalid
+    end if
+    if m.isExiting then return
+    m.liveReconnect = invalid
     ' isRecovery=true: same reasoning as onLiveReconnectResponse — we just
     ' hit a stream error, conditions are degraded, prioritize stability
     ' over latency. The user can re-open the stream to get the seek again.
-    m.allowBreak = false
-    exitPlayer()
-    m.allowBreak = true
-    playContent(true)
+    if m.top.contentRequested.contentType <> "LIVE" and m.video <> invalid then m.resumePosition = m.video.position
+    doLiveReconnect()
 end sub
 
 sub refreshAuthAndRetry()
-    ' TODO: Implement auth refresh logic
-    ' For now, just retry
+    ' Refresh the signed playback token. Account OAuth is handled separately.
     retryPlayback()
 end sub
 
 function findLowerQuality() as dynamic
-    if m.video.qualityOptions = invalid or m.video.qualityOptions.count() = 0
+    if m.video = invalid then return invalid
+    options = m.video.GetField("qualityOptions")
+    if options = invalid or options.count() = 0
         return invalid
     end if
 
     currentQuality = m.video.selectedQuality
     if currentQuality = invalid
-        currentQuality = m.video.qualityOptions[0]
+        currentQuality = options[0]
+    end if
+
+    if currentQuality = "Automatic"
+        descriptor = invalid
+        if m.video.content <> invalid then descriptor = m.video.content.GetField("localPlaybackDescriptor")
+        if type(descriptor) = "roAssociativeArray"
+            currentQuality = descriptor["qualityId"]
+            if GetInterface(currentQuality, "ifString") = invalid then return invalid
+            if currentQuality = "Automatic" then return invalid
+        else
+            ' Adaptive Automatic has no known current rung. Choose the lowest
+            ' concrete option only when the ladder actually has lower rungs.
+            if options.count() <= 2 then return invalid
+            return options.count() - 1
+        end if
     end if
 
     ' Find current index
     currentIndex = -1
-    for i = 0 to m.video.qualityOptions.count() - 1
-        if m.video.qualityOptions[i] = currentQuality
+    for i = 0 to options.count() - 1
+        if options[i] = currentQuality
             currentIndex = i
             exit for
         end if
     end for
 
     ' Return next lower quality
-    if currentIndex >= 0 and currentIndex < m.video.qualityOptions.count() - 1
-        return m.video.qualityOptions[currentIndex + 1]
+    if currentIndex >= 0 and currentIndex < options.count() - 1
+        return currentIndex + 1
     end if
 
     return invalid
 end function
 
-sub showErrorDialog(title as string, message as string)
-    dialog = CreateObject("roSGNode", "Dialog")
+' Playback stops behind the dialog. Try again makes one fresh attempt for the
+' same video; Back (button or remote) leaves the player as before. Errors
+' that a retry cannot fix pass allowRetry=false and offer only Back.
+sub showErrorDialog(title as string, message as string, allowRetry = true as boolean)
+    if m.disposed or m.errorDialog <> invalid then return
+    rememberRetryState()
+    stopPlaybackForDialog()
+    m.manualRetryPending = false
+    dialog = CreateObject("roSGNode", "StandardMessageDialog")
     dialog.title = title
-    dialog.message = message
-    dialog.buttons = ["OK"]
-    dialog.observeField("buttonSelected", "onErrorDialogDismissed")
+    paragraphs = []
+    for each paragraph in message.split(Chr(10))
+        if paragraph.trim() <> "" then paragraphs.push(paragraph)
+    end for
+    dialog.message = paragraphs
+    if allowRetry and m.top.contentRequested <> invalid
+        m.errorDialogActions = ["retry", "back"]
+        dialog.buttons = [tr("Try again"), tr("Back")]
+    else
+        m.errorDialogActions = ["back"]
+        dialog.buttons = [tr("Back")]
+    end if
+    applyDialogPalette(dialog)
+    dialog.observeField("buttonSelected", "onErrorDialogButton")
+    dialog.observeField("wasClosed", "onErrorDialogClosed")
     ' Use the scene's dialog property, not m.top.dialog
     scene = m.top.getScene()
     if scene <> invalid
@@ -917,23 +1570,117 @@ sub showErrorDialog(title as string, message as string)
     m.errorDialog = dialog
 end sub
 
-sub onErrorDialogDismissed()
-    scene = m.top.getScene()
-    if scene <> invalid
-        scene.dialog = invalid
+sub onErrorDialogButton()
+    dialog = m.errorDialog
+    if dialog = invalid then return
+    action = "back"
+    index = dialog.buttonSelected
+    if index >= 0 and index < m.errorDialogActions.count() then action = m.errorDialogActions[index]
+    closeErrorDialog()
+    if action = "retry"
+        retryAfterError()
+    else
+        exitPlayer()
     end if
-    m.errorDialog = invalid
+end sub
+
+sub onErrorDialogClosed()
+    if m.errorDialog = invalid then return
+    closeErrorDialog()
     exitPlayer()
 end sub
 
+' Idempotent: unobserves first, so a second button event or a close that
+' follows a choice cannot act again.
+sub closeErrorDialog()
+    dialog = m.errorDialog
+    if dialog = invalid then return
+    m.errorDialog = invalid
+    dialog.unobserveField("buttonSelected")
+    dialog.unobserveField("wasClosed")
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid
+        if scene.dialog.isSameNode(dialog) then scene.dialog = invalid
+    end if
+end sub
+
+' Keeps the recorded position or the live quality a Try again should reuse.
+sub rememberRetryState()
+    m.retryPosition = invalid
+    m.retryQuality = invalid
+    if m.video = invalid or m.top.contentRequested = invalid then return
+    if m.top.contentRequested.contentType = "LIVE"
+        quality = m.video.selectedQuality
+        if m.manualLiveQuality <> invalid then quality = m.manualLiveQuality
+        if quality <> invalid and quality <> "" then m.retryQuality = quality
+    else
+        position = m.video.position
+        if position <> invalid and position > 0 then m.retryPosition = position
+        if m.retryPosition = invalid then m.retryPosition = m.resumePosition
+    end if
+end sub
+
+' One explicit Try again is one fresh content request for the same video, the
+' same work as reopening it, so the session recovery budget starts over. The
+' pending flag ignores repeated presses until that request answers; the old
+' wrapper keeps only its Back/chat observers, so no stale state change can
+' start automatic recovery meanwhile. Disposal destroys the request.
+sub retryAfterError()
+    if m.disposed or m.manualRetryPending then return
+    if m.top.contentRequested = invalid
+        exitPlayer()
+        return
+    end if
+    m.manualRetryPending = true
+    stopPlaybackForDialog()
+    if m.video <> invalid
+        m.video.unobserveField("position")
+        m.video.unobserveField("state")
+        m.video.unobserveField("duration")
+        if m.video.isSubtype("StitchVideo") then m.video.unobserveField("QualityChangeRequestFlag")
+        m.video.callFunc("showMessage", "", tr("Trying again…"), 0)
+    end if
+    m.reconnectAttempts = 0
+    m.recoveryAttempts = 0
+    m.sourceTransitionCharges = 0
+    resetLiveRecoveryHealth()
+    m.nativeFallbackTried = false
+    if m.errorHandler <> invalid then m.errorHandler.callFunc("resetErrorState")
+    m.resumePosition = m.retryPosition
+    m.preferredQuality = m.retryQuality
+    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
+    m.PlayVideo.observeField("response", "OnResponse")
+    m.PlayVideo.contentRequested = m.top.contentRequested.getFields()
+    enableRokuDescriptor(m.PlayVideo)
+    m.PlayVideo.functionName = "main"
+    m.PlayVideo.control = "run"
+end sub
+
+' A Try again keeps the live quality that was playing when the error appeared,
+' with that entry's URL and proxy flags, as a quality change would.
+sub applyPreferredQuality()
+    quality = m.preferredQuality
+    m.preferredQuality = invalid
+    if quality = invalid or m.top.content = invalid or m.top.metadata = invalid then return
+    for each entry in m.top.metadata
+        if entry.QualityID = quality
+            m.top.content.setFields(entry)
+            return
+        end if
+    end for
+end sub
+
 sub showTransmuxWarning()
-    m.transmuxButtonIndex = -1
+    stopPlaybackForDialog()
+    closeTransmuxDialog()
     dialog = createObject("roSGNode", "StandardMessageDialog")
-    dialog.title = "Enhanced Broadcasting Stream"
-    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory and CPU while you watch.", "", "This will be on by default in a future version. You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
-    dialog.buttons = ["Turn On and Play", "Go Back", "Try Anyway"]
+    dialog.title = tr("Audio service needed")
+    dialog.message = [tr("This stream combines audio and video in CMAF segments. Roku needs separate tracks."), tr("Configure the optional demux service URL in Settings, or return to Browse and choose a compatible stream."), tr("The service runs directly in Python or in Docker; it does not re-encode your video.")]
+    dialog.buttons = [tr("Back")]
+    applyDialogPalette(dialog)
     dialog.observeField("buttonSelected", "onTransmuxDialogButton")
     dialog.observeField("wasClosed", "onTransmuxDialogClosed")
+    m.transmuxDialog = dialog
     scene = m.top.getScene()
     if scene <> invalid
         scene.dialog = dialog
@@ -941,55 +1688,15 @@ sub showTransmuxWarning()
 end sub
 
 sub onTransmuxDialogButton()
-    scene = m.top.getScene()
-    if scene <> invalid and scene.dialog <> invalid
-        m.transmuxButtonIndex = scene.dialog.buttonSelected
-        scene.dialog.close = true
-    end if
+    if m.disposed or m.transmuxDialog = invalid then return
+    closeTransmuxDialog()
+    exitPlayer()
 end sub
 
 sub onTransmuxDialogClosed()
-    scene = m.top.getScene()
-    if scene <> invalid
-        scene.dialog = invalid
-    end if
-    if m.transmuxButtonIndex = 0
-        enableSplitterAndReload()
-    else if m.transmuxButtonIndex = 2
-        playContent()
-    else
-        exitPlayer()
-    end if
-end sub
-
-sub enableSplitterAndReload()
-    set_user_setting("proxy.builtin", "true")
-    startBuiltinSplitter()
-    m.splitter = m.global.demuxServer
-    m.splitter.observeField("ready", "onSplitterChanged")
-    m.splitter.observeField("state", "onSplitterChanged")
-    onSplitterChanged()
-end sub
-
-' Reloads the stream once the splitter is listening, or reports that it failed to start.
-sub onSplitterChanged()
-    if m.splitter = invalid then return
-    ready = m.splitter.ready = true
-    if not ready and m.splitter.state <> "stop" then return
-    m.splitter.unobserveField("ready")
-    m.splitter.unobserveField("state")
-    m.splitter = invalid
-    if not ready
-        showErrorDialog("Enhanced Broadcasting", "The built-in proxy couldn't start. Restart Stitch and try again.")
-        return
-    end if
-    contentRequested = m.PlayVideo.contentRequested
-    m.PlayVideo = destroyTask(m.PlayVideo, "response")
-    m.PlayVideo = CreateObject("roSGNode", "GetTwitchContent")
-    m.PlayVideo.observeField("response", "OnResponse")
-    m.PlayVideo.contentRequested = contentRequested
-    m.PlayVideo.functionName = "main"
-    m.PlayVideo.control = "run"
+    if m.transmuxDialog = invalid then return
+    closeTransmuxDialog()
+    exitPlayer()
 end sub
 
 sub onDurationChanged()
@@ -1000,16 +1707,228 @@ end sub
 
 sub onVideoBack()
     ' Called when CustomVideo's back field is true
-    m.allowBreak = true
-    exitPlayer()
+    ignored = requestBack()
 end sub
 
 sub showTemporaryMessage(message as string)
-    ' For now, we'll skip temporary messages since we can't call external functions on Video nodes
-    ' The error handling still works with the showErrorDialog function
+    if m.video <> invalid then m.video.callFunc("showMessage", "", message, 5)
     ? getLogTimestamp(); " [VideoPlayer] Status: "; message
 end sub
 
 sub dismissTemporaryMessage()
-    ' No-op for now
+    if m.video <> invalid then m.video.callFunc("hideMessage")
+end sub
+
+function tryNativePlaybackFallback() as boolean
+    if m.top.content = invalid or not m.top.content.isProxied or m.nativeFallbackTried then return false
+    m.nativeFallbackTried = true
+    if m.top.metadata = invalid or m.recoveryAttempts >= m.maxRecoveryAttempts then return false
+    for index = 1 to m.top.metadata.Count() - 1
+        entry = m.top.metadata[index]
+        if not entry.isProxied and not entry.isTransmux
+            m.recoveryAttempts++
+            showTemporaryMessage(tr("Audio service unavailable. Switching to a compatible quality…"))
+            m.video.qualityChangeRequest = index
+            onQualityChangeRequested()
+            return true
+        end if
+    end for
+    return false
+end function
+
+sub stopPlaybackForDialog()
+    closeChannelActions(false)
+    m.liveReconnect = invalid
+    pauseTwitchEngagement()
+    cancelBookmarkWait()
+    resetLiveRecoveryHealth()
+    m.PlayVideo = destroyTask(m.PlayVideo, "response")
+    cleanupReconnectTask()
+    ignored = stopRokuPlayback()
+    if m.video <> invalid then m.video.control = "stop"
+    if m.watchdogTimer <> invalid then m.watchdogTimer.control = "stop"
+    if m.bufferCheckTimer <> invalid
+        m.bufferCheckTimer.control = "stop"
+        m.bufferCheckTimer.unobserveField("fire")
+        m.bufferCheckTimer = invalid
+    end if
+    if m.retryTimer <> invalid
+        m.retryTimer.control = "stop"
+        m.retryTimer.unobserveField("fire")
+        m.retryTimer = invalid
+    end if
+    if m.reconnectTimer <> invalid
+        m.reconnectTimer.control = "stop"
+        m.reconnectTimer.unobserveField("fire")
+        m.reconnectTimer = invalid
+    end if
+end sub
+
+sub showChatUnavailableNotice()
+    if m.infoDialog <> invalid then return
+    dialog = CreateObject("roSGNode", "StandardMessageDialog")
+    dialog.title = tr("Chat is unavailable for this video")
+    dialog.message = [tr("Stitch currently supports chat during live streams. Chat replay is unavailable for VODs and clips. Your video will continue playing.")]
+    dialog.buttons = [tr("Continue watching")]
+    applyDialogPalette(dialog)
+    dialog.observeField("buttonSelected", "dismissChatNotice")
+    dialog.observeField("wasClosed", "dismissChatNotice")
+    m.infoDialog = dialog
+    scene = m.top.GetScene()
+    if scene <> invalid then scene.dialog = dialog
+end sub
+
+sub dismissChatNotice()
+    if m.infoDialog <> invalid
+        m.infoDialog.unobserveField("buttonSelected")
+        m.infoDialog.unobserveField("wasClosed")
+    end if
+    scene = m.top.GetScene()
+    if scene <> invalid then scene.dialog = invalid
+    m.infoDialog = invalid
+    if m.video <> invalid then m.video.SetFocus(true)
+end sub
+
+sub onDestroy()
+    resetContentAdvisory()
+    stopAdMetadata()
+    if m.disposed then return
+    m.disposed = true
+    m.pendingChannel = invalid
+    m.pendingChannelSignIn = false
+    m.channelFollowCache = invalid
+    stopTwitchEngagement()
+    m.isExiting = true
+    cancelBookmarkWait()
+    destroyRokuPlayback()
+    stopLowLatencyRelay()
+    m.bookmarksTask = destroyTask(m.bookmarksTask, "response")
+    stopPlaybackForDialog()
+    if m.watchdogTimer <> invalid then m.watchdogTimer.unobserveField("fire")
+    if m.chatWindow <> invalid
+        m.chatWindow.unobserveField("visible")
+        m.chatWindow.callFunc("stopJobs")
+        m.chatWindow.callFunc("onDestroy")
+    end if
+    if m.video <> invalid
+        m.video.callFunc("onDestroy")
+        m.video.unobserveField("channelActionsRequested")
+        m.video.unobserveField("toggleChat")
+        m.video.unobserveField("position")
+        m.video.unobserveField("state")
+        m.video.unobserveField("duration")
+        if m.video.IsSubtype("StitchVideo")
+            m.video.unobserveField("QualityChangeRequestFlag")
+        else
+            m.video.unobserveField("back")
+        end if
+    end if
+    closeOwnedPlayerDialogs()
+    m.errorHandler = invalid
+end sub
+
+' One worker belongs to the selected live channel, independently of the video
+' wrapper, quality, relay and chat transport. No worker exists when disabled.
+sub startTwitchEngagement()
+    if m.disposed or m.isExiting or m.video = invalid then return
+    if m.top.contentRequested = invalid or m.top.contentRequested.contentType <> "LIVE" then return
+    watchEnabled = get_user_setting("playback.watchCredit", "false") = "true" and get_setting("active_user", "$default$") <> "$default$"
+    chatEnabled = get_user_setting("chat.enabled", "true") = "true" and not m.chatAutoPaused
+    hypeEnabled = chatEnabled and get_user_setting("chat.hypeTrain", "false") = "true" and m.chatWindow <> invalid and m.chatWindow.visible
+    pinsEnabled = chatEnabled and get_user_setting("chat.pinnedMessages", "false") = "true" and m.chatWindow <> invalid and m.chatWindow.visible
+    if not watchEnabled and not hypeEnabled and not pinsEnabled
+        stopTwitchEngagement()
+        return
+    end if
+    if m.engagementTask <> invalid
+        if m.engagementTask.watchEnabled <> watchEnabled or m.engagementTask.control = "stop" then stopTwitchEngagement()
+    end if
+    if m.engagementTask = invalid
+        m.engagementOwner = createObject("roDeviceInfo").getRandomUUID()
+        m.engagementClock = createObject("roTimespan")
+        m.engagementSequence = 0
+        m.engagementTask = createObject("roSGNode", "TwitchEngagementTask")
+        if m.engagementTask = invalid
+            m.engagementOwner = ""
+            m.engagementClock = invalid
+            return
+        end if
+        m.top.appendChild(m.engagementTask)
+        m.engagementTask.owner = m.engagementOwner
+        m.engagementTask.channel = m.top.contentRequested.streamerLogin
+        m.engagementTask.channelId = m.top.contentRequested.streamerId
+        m.engagementTask.watchEnabled = watchEnabled
+        m.engagementTask.hypeEnabled = hypeEnabled
+        m.engagementTask.pinsEnabled = pinsEnabled
+        m.engagementTask.observeField("response", "onTwitchEngagementResponse")
+        publishTwitchPlayback()
+        m.engagementTask.control = "run"
+    else
+        m.engagementTask.hypeEnabled = hypeEnabled
+        m.engagementTask.pinsEnabled = pinsEnabled
+    end if
+end sub
+
+sub publishTwitchPlayback()
+    if m.engagementTask = invalid or m.engagementClock = invalid then return
+    position = invalid
+    playing = false
+    if m.video <> invalid
+        position = m.video.position
+        playing = m.video.state = "playing" and not m.engagementPaused and not m.isExiting and m.top.visible and not m.disposed
+    end if
+    m.engagementSequence++
+    m.engagementTask.sample = { sequence: m.engagementSequence, generation: m.engagementGeneration, timeMs: m.engagementClock.totalMilliseconds(), position: position, playing: playing }
+end sub
+
+sub pauseTwitchEngagement()
+    m.engagementPaused = true
+    publishTwitchPlayback()
+end sub
+
+sub onTwitchEngagementResponse(event = invalid as dynamic)
+    if m.disposed or m.engagementTask = invalid or m.engagementOwner = "" then return
+    if event <> invalid
+        if not event.getRoSGNode().isSameNode(m.engagementTask) then return
+    end if
+    response = m.engagementTask.response
+    if response = invalid or response.owner <> m.engagementOwner then return
+    m.top.engagementStatus = response
+    if m.chatWindow <> invalid
+        m.chatWindow.hypeTrain = response.hypeTrain
+        m.chatWindow.pinnedMessage = response.pinnedMessage
+    end if
+end sub
+
+sub stopTwitchEngagement()
+    m.engagementOwner = ""
+    if m.engagementTask <> invalid
+        task = m.engagementTask
+        task.stopRequested = true
+        m.engagementTask = destroyTask(task, "response")
+        m.top.removeChild(task)
+    end if
+    m.engagementClock = invalid
+    m.top.engagementStatus = invalid
+    if m.chatWindow <> invalid
+        m.chatWindow.hypeTrain = invalid
+        m.chatWindow.pinnedMessage = invalid
+    end if
+end sub
+
+sub closeOwnedPlayerDialogs()
+    closeChannelActions(false)
+    scene = m.top.GetScene()
+    for each dialog in [m.errorDialog, m.infoDialog, m.transmuxDialog]
+        if dialog <> invalid
+            dialog.unobserveField("buttonSelected")
+            dialog.unobserveField("wasClosed")
+            if scene <> invalid and scene.dialog <> invalid
+                if scene.dialog.IsSameNode(dialog) then scene.dialog = invalid
+            end if
+        end if
+    end for
+    m.errorDialog = invalid
+    m.infoDialog = invalid
+    m.transmuxDialog = invalid
 end sub

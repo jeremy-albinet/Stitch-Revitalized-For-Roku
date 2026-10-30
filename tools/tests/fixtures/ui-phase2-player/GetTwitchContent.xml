@@ -1,0 +1,14 @@
+<!-- Offline boundary for the playback content task: the production interface
+     without a worker or network. Each instance counts itself on the global
+     node so the fixture can count content requests; responses are supplied
+     by the fixture. -->
+<component name="GetTwitchContent" extends="Group">
+    <interface>
+        <field id="contentRequested" type="assocarray" />
+        <field id="response" type="node" alwaysNotify="true" />
+        <field id="metadata" type="array" />
+        <field id="functionName" type="string" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/GetTwitchContentBoundary.brs" />
+</component>

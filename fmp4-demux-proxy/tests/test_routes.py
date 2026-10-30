@@ -9,49 +9,51 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from fmp4_demux_proxy.app import create_app
-from tests._fixtures import make_init_segment, make_media_segment
+from tests._fixtures import make_init_segment, make_split_media_segment
 from tests.conftest import make_test_config
 
 
 @pytest.fixture
 async def upstream() -> TestServer:
     app = web.Application()
-    app["master"] = b""
-    app["variant"] = b""
-    app["init"] = b""
-    app["media"] = b""
-    app["status"] = {"/master": 200, "/variant": 200, "/init.mp4": 200, "/seg-1.m4s": 200}
+    app["state"] = {}
+    app["state"]["master"] = b""
+    app["state"]["variant"] = b"#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\ns.ts\n"
+    app["state"]["init"] = make_init_segment([(1, b"soun"), (2, b"vide")])
+    app["state"]["media"] = b""
+    app["state"]["status"] = {"/master": 200, "/variant": 200, "/init.mp4": 200, "/seg-1.m4s": 200}
 
     async def master_h(request: web.Request) -> web.Response:
-        status = request.app["status"]["/master"]
+        status = request.app["state"]["status"]["/master"]
         if status != 200:
             return web.Response(status=status)
         return web.Response(
-            body=request.app["master"], content_type="application/vnd.apple.mpegurl"
+            body=request.app["state"]["master"], content_type="application/vnd.apple.mpegurl"
         )
 
     async def variant_h(request: web.Request) -> web.Response:
-        status = request.app["status"]["/variant"]
+        status = request.app["state"]["status"]["/variant"]
         if status != 200:
             return web.Response(status=status)
         return web.Response(
-            body=request.app["variant"], content_type="application/vnd.apple.mpegurl"
+            body=request.app["state"]["variant"], content_type="application/vnd.apple.mpegurl"
         )
 
     async def init_h(request: web.Request) -> web.Response:
-        status = request.app["status"]["/init.mp4"]
+        status = request.app["state"]["status"]["/init.mp4"]
         if status != 200:
             return web.Response(status=status)
-        return web.Response(body=request.app["init"], content_type="video/mp4")
+        return web.Response(body=request.app["state"]["init"], content_type="video/mp4")
 
     async def media_h(request: web.Request) -> web.Response:
-        status = request.app["status"]["/seg-1.m4s"]
+        status = request.app["state"]["status"]["/seg-1.m4s"]
         if status != 200:
             return web.Response(status=status)
-        return web.Response(body=request.app["media"], content_type="video/mp4")
+        return web.Response(body=request.app["state"]["media"], content_type="video/mp4")
 
     app.router.add_get("/master", master_h)
     app.router.add_get("/variant", variant_h)
+    app.router.add_get("/variant.m3u8", variant_h)
     app.router.add_get("/init.mp4", init_h)
     app.router.add_get("/seg-1.m4s", media_h)
 
@@ -83,8 +85,8 @@ class TestM3U8Route:
     async def test_upstream_500_returns_502(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
-        upstream.app["status"]["/master"] = 500
-        upstream.app["master"] = b"ignored"
+        upstream.app["state"]["status"]["/master"] = 500
+        upstream.app["state"]["master"] = b"ignored"
         upstream_url = str(upstream.make_url("/master"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
         assert resp.status == 502
@@ -99,7 +101,7 @@ class TestM3U8Route:
             '#EXT-X-STREAM-INF:BANDWIDTH=3000000,CODECS="hev1.1.6.L150.B0"\n'
             f"{variant_url}\n"
         ).encode()
-        upstream.app["master"] = master_body
+        upstream.app["state"]["master"] = master_body
 
         upstream_url = str(upstream.make_url("/master"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
@@ -127,7 +129,7 @@ class TestM3U8Route:
             "#EXTINF:2.000,\n"
             f"{seg_url}\n"
         ).encode()
-        upstream.app["variant"] = variant_body
+        upstream.app["state"]["variant"] = variant_body
 
         upstream_url = str(upstream.make_url("/variant"))
         hints_qs = "&codecs=hvc1.1.2.L120.90.0.0.0.0.0,mp4a.40.2&bw=6000000&res=1920x1080"
@@ -138,7 +140,7 @@ class TestM3U8Route:
         assert "BANDWIDTH=6000000" in body
         assert "RESOLUTION=1920x1080" in body
 
-    async def test_variant_without_hints_falls_back_to_default_codec(
+    async def test_variant_without_hints_omits_unknown_codec(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
         init_url = str(upstream.make_url("/init.mp4"))
@@ -151,13 +153,13 @@ class TestM3U8Route:
             "#EXTINF:2.000,\n"
             f"{seg_url}\n"
         ).encode()
-        upstream.app["variant"] = variant_body
+        upstream.app["state"]["variant"] = variant_body
 
         upstream_url = str(upstream.make_url("/variant"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
         assert resp.status == 200
         body = await resp.text()
-        assert 'CODECS="avc1.64001f,mp4a.40.2"' in body
+        assert "CODECS=" not in body
 
     async def test_variant_rewrites_segment_and_init(
         self, proxy_client: TestClient, upstream: TestServer
@@ -173,7 +175,7 @@ class TestM3U8Route:
             "#EXTINF:2.000,\n"
             f"{seg_url}\n"
         ).encode()
-        upstream.app["variant"] = variant_body
+        upstream.app["state"]["variant"] = variant_body
 
         upstream_url = str(upstream.make_url("/variant"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}&track=video")
@@ -201,7 +203,7 @@ class TestSegmentRoute:
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
         init_bytes = make_init_segment(traks=[(1, b"soun"), (2, b"vide")])
-        upstream.app["init"] = init_bytes
+        upstream.app["state"]["init"] = init_bytes
 
         upstream_url = str(upstream.make_url("/init.mp4"))
         resp = await proxy_client.get(f"/s?u={quote(upstream_url, safe='')}&k=init&track=video")
@@ -219,54 +221,37 @@ class TestSegmentRoute:
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
         init_bytes = make_init_segment(traks=[(1, b"soun"), (2, b"vide")])
-        upstream.app["init"] = init_bytes
+        upstream.app["state"]["init"] = init_bytes
         init_url = str(upstream.make_url("/init.mp4"))
         init_resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
         assert init_resp.status == 200
         await init_resp.read()
 
-        media_bytes = make_media_segment(sequence=1, trafs=[1, 2])
-        upstream.app["media"] = media_bytes
+        media_bytes = make_split_media_segment(1, b"video", b"audio", 2, 1)
+        upstream.app["state"]["media"] = media_bytes
         seg_url = str(upstream.make_url("/seg-1.m4s"))
-        seg_resp = await proxy_client.get(f"/s?u={quote(seg_url, safe='')}&k=media&track=video")
+        seg_resp = await proxy_client.get(
+            f"/s?u={quote(seg_url, safe='')}&k=media&track=video&i={quote(init_url, safe='')}"
+        )
         assert seg_resp.status == 200
         body = await seg_resp.read()
         assert len(body) < len(media_bytes)
 
-    async def test_mpeg_ts_segment_passes_through_despite_cached_map(
+    async def test_media_without_init_reference_fails_closed(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
-        init_bytes = make_init_segment(traks=[(1, b"soun"), (2, b"vide")])
-        upstream.app["init"] = init_bytes
-        init_url = str(upstream.make_url("/init.mp4"))
-        init_resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
-        assert init_resp.status == 200
-        await init_resp.read()
-
-        ts_bytes = (b"\x47\x40\x00\x13" + b"\x00" * 184) * 3
-        upstream.app["media"] = ts_bytes
+        media_bytes = make_split_media_segment(1, b"video", b"audio", 2, 1)
+        upstream.app["state"]["media"] = media_bytes
         seg_url = str(upstream.make_url("/seg-1.m4s"))
         resp = await proxy_client.get(f"/s?u={quote(seg_url, safe='')}&k=media&track=video")
-        assert resp.status == 200
-        assert resp.content_type == "video/mp2t"
+        assert resp.status == 400
         body = await resp.read()
-        assert body == ts_bytes
-
-    async def test_media_without_cached_map_passes_through(
-        self, proxy_client: TestClient, upstream: TestServer
-    ) -> None:
-        media_bytes = make_media_segment(sequence=1, trafs=[1, 2])
-        upstream.app["media"] = media_bytes
-        seg_url = str(upstream.make_url("/seg-1.m4s"))
-        resp = await proxy_client.get(f"/s?u={quote(seg_url, safe='')}&k=media&track=video")
-        assert resp.status == 200
-        body = await resp.read()
-        assert body == media_bytes
+        assert body != media_bytes
 
     async def test_upstream_failure_returns_502(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
-        upstream.app["status"]["/init.mp4"] = 404
+        upstream.app["state"]["status"]["/init.mp4"] = 404
         init_url = str(upstream.make_url("/init.mp4"))
         resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
         assert resp.status == 502
@@ -277,7 +262,7 @@ class TestSegmentRoute:
         # Bytes that look like an fMP4 box but are truncated / not a valid moov.
         # Triggers fmp4.Fmp4Error in extract_track_map; handler must turn that
         # into a 502 rather than letting it bubble to a 500.
-        upstream.app["init"] = b"\x00\x00\x00\x08ftypisom"
+        upstream.app["state"]["init"] = b"\x00\x00\x00\x08ftypisom"
         init_url = str(upstream.make_url("/init.mp4"))
         resp = await proxy_client.get(f"/s?u={quote(init_url, safe='')}&k=init&track=video")
         assert resp.status == 502
@@ -287,13 +272,13 @@ class TestSegmentRoute:
     async def test_failed_fetch_does_not_leak_lock(
         self, proxy_client: TestClient, upstream: TestServer
     ) -> None:
-        from fmp4_demux_proxy.routes.segment_route import SEGMENT_LOCKS_KEY
+        from fmp4_demux_proxy.routes.segment_route import STORE_KEY
 
         app = proxy_client.app
         assert app is not None
-        locks = app[SEGMENT_LOCKS_KEY]
+        locks = app[STORE_KEY].pending
 
-        upstream.app["status"]["/init.mp4"] = 500
+        upstream.app["state"]["status"]["/init.mp4"] = 500
         init_url = str(upstream.make_url("/init.mp4"))
 
         # Three failed fetches for the same URL must not accumulate lock entries.
@@ -336,17 +321,9 @@ class TestUpstreamAllowlist:
     ) -> None:
         # proxy_client is built with upstream_host_allowlist=() → no restriction;
         # scheme is still enforced, so the localhost test upstream must succeed.
-        upstream.app["master"] = b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000\nvariant.m3u8\n"
+        upstream.app["state"]["master"] = (
+            b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000\nvariant.m3u8\n"
+        )
         upstream_url = str(upstream.make_url("/master"))
         resp = await proxy_client.get(f"/m3u8?u={quote(upstream_url, safe='')}")
         assert resp.status == 200
-
-
-def test_cache_key_ignores_twitch_s1_prefix() -> None:
-    from fmp4_demux_proxy.routes.segment_route import _cache_key
-
-    host = "https://64ec2c66edb9.j.cloudfront.hls.ttvnw.net"
-    init = _cache_key(f"{host}/v1/segment/abc.mp4?dna=x")
-    assert _cache_key(f"{host}/s1/v1/segment/def.mp4?dna=x") == init
-    assert _cache_key(f"{host}/s12/v1/segment/def.mp4") == init
-    assert _cache_key(f"{host}/seg/v1/segment/def.mp4") != init

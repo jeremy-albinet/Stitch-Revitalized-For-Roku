@@ -3,22 +3,34 @@
 <component name="StitchVideo" extends="Video">
 
     <interface>
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <function name="onDestroy" />
+        <function name="setChannelActionsOpen" />
+        <function name="showMessage" />
+        <function name="hideMessage" />
+        <function name="beginAdCountdown" />
+        <function name="setAdMetadata" />
+        <function name="clearAdCountdown" />
         <field id="thumbnailInfo" type="assocarray" />
         <field id="videoBookmarks" type="assocarray" />
         <field id="back" type="bool" value="false" />
         <field id="toggleChat" type="bool" value="false" />
+        <field id="channelAvailable" type="boolean" value="false" onChange="onChannelAvailableChange" />
+        <field id="channelActionsRequested" type="boolean" value="false" alwaysNotify="true" />
         <field id="chatIsVisible" type="bool" />
+        <field id="chatOverlayMode" type="bool" value="false" onChange="onChatVisibilityChange" />
         <field id="streamLayoutMode" type="Integer" value="-1" />
         <field id="busySpinner" type="bool" />
         <field id="channelAvatar" type="string" alias="avatar.uri" />
         <field id="channelUsername" type="string" alias="channelUsername.text" />
-        <field id="videoTitle" type="string" alias="videoTitle.text" />
-        <field id="QualityChangeRequestFlag" type="bool" value="false" />
+        <field id="videoTitle" type="string" onChange="onVideoTitleChange" />
+        <field id="viewersCount" type="integer" value="-1" onChange="onViewersCountChange" />
+        <field id="QualityChangeRequestFlag" type="bool" value="false" alwaysNotify="true" />
         <field id="QualityChangeRequest" type="Integer" />
         <field id="streamDurationSeconds" type="Integer" value="0" />
         <field id="currentProgressBarState" type="Integer" value="1" />
         <field id="video_id" type="string" />
-        <field id="video_type" type="string" />
+        <field id="video_type" type="string" onChange="onViewersCountChange" />
         <field id="qualityOptions" type="array" />
         <field id="selectedQuality" type="string" value="" />
         <!-- Set to roDateTime.AsSeconds() right before issuing an app-initiated
@@ -31,106 +43,123 @@
              recovery paths (watchdog reconnect, error-driven retryPlayback) so
              the player doesn't immediately re-anchor at the live edge after a
              stall — which would shrink buffer headroom and feed the next stall.
-             User-initiated paths (first open, re-open from home/channel page,
-             quality change) leave this false so they get the low-latency seek. -->
-        <field id="suppressStartupSeek" type="bool" value="false" />
+             VideoPlayer now always suppresses it: the seek measured further
+             behind live than Roku's own start. -->
+        <field id="suppressStartupSeek" type="bool" value="true" />
+        <!-- True while this wrapper plays with lower live latency. -->
+        <field id="lowLatency" type="bool" value="false" />
 
     </interface>
-    
-    <!-- rest of your XML stays the same -->
+
     <script type="text/brightscript" uri="StitchVideo.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdClock.brs" />
     <children>
-        <!-- your existing children stay the same -->
-        <!-- Modern Control Overlay for Live Streams -->
-        <Group id="controlOverlay" translation="[0,940]">
-            <!-- Background Gradient -->
-            <Rectangle width="1920" height="140" color="0x000000E6" />
-            <MaskGroup maskuri="pkg:/images/vertical-mask.png" masksize="[1920,60]" translation="[0,0]">
-                <Rectangle width="1920" height="60" color="0x000000AA" />
+        <AdCountdown id="adCountdown" />
+        <!-- Live controls. Widths and x positions follow the video area
+             (1280, or 960 beside chat) and are set in layoutOverlay(). -->
+        <Group id="controlOverlay" translation="[0,458]">
+            <MaskGroup id="scrimFade" maskuri="pkg:/images/vertical-mask.png" masksize="[1280,48]">
+                <Rectangle id="scrimFadeFill" width="1280" height="48" color="0x0E0E10D9" />
             </MaskGroup>
-            
-            <!-- Progress Bar Section -->
-            <Group translation="[60,5]">
-                <!-- Progress Bar (Full Twitch Purple for Live) -->
-                <Rectangle id="progressBarBase" color="0x404040FF" width="1800" height="4" translation="[0,65]" />
-                <Rectangle id="progressBarProgress" color="0x9146FFFF" width="1800" height="4" translation="[0,65]" />
-            </Group>
-            
-            <!-- Control Buttons (Live Stream Layout) -->
-            <Group translation="[0,85]">
-                <!-- Back Button (far left) -->
-                <Group id="backGroup" translation="[520,0]" focusable="true">
-                    <Rectangle id="backBg" color="0x404040AA" width="50" height="40" />
-                    <Rectangle id="backFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
-                    <SimpleLabel translation="[18,12]" text="←" color="0xFFFFFFFF" fontSize="18" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                </Group>
-                
-                <!-- Chat Toggle Button -->
-                <Group id="chatGroup" translation="[860,0]">
-                    <Rectangle id="chatBg" color="0x404040AA" width="50" height="40" />
-                    <Rectangle id="chatFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
-                    <Poster id="messagesButton" uri="pkg:/images/messages.png" width="20" height="20" translation="[15,10]" />
-                </Group>
-                
-                <!-- Play/Pause Button (center between chat and quality) -->
-                <Group id="playPauseGroup" translation="[930,0]" focusable="true">
-                    <Rectangle id="playPauseBg" color="0x404040AA" width="60" height="40" />
-                    <Rectangle id="playPauseFocus" color="0x9146FFFF" width="60" height="40" visible="false" />
-                    <Poster id="controlButton" uri="pkg:/images/pause.png" width="20" height="20" translation="[20,10]" />
-                </Group>
-                
-                <!-- Quality Button -->
-                <Group id="qualityGroup" translation="[1010,0]">
-                    <Rectangle id="qualityBg" color="0x404040AA" width="50" height="40" />
-                    <Rectangle id="qualityFocus" color="0x9146FFFF" width="50" height="40" visible="false" />
-                    <Poster id="qualitySelectButton" uri="pkg:/images/icons/sliders.png" width="20" height="20" translation="[15,10]" />
-                </Group>
-            </Group>
-            
-            <!-- Video Info -->
-            <Group translation="[60,10]">
-                <CirclePoster id="avatar" width="35" height="35" translation="[0,0]" />
-                <SimpleLabel id="channelUsername" translation="[45,5]" text="Channel Name" color="0xFFFFFFFF" fontSize="14" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-                <EmojiLabel id="videoTitle" height="20" maxWidth="800" horizAlign="left" color="0xB3B3B3FF" translation="[45,25]">
-                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="12" />
-                </EmojiLabel>
-            </Group>
-            
-            <!-- Live Indicator (Bottom Left - only visible with overlay) -->
-            <Group id="liveIndicator" translation="[60,100]">
-                <Rectangle color="0xFF0000FF" width="50" height="20" />
-                <SimpleLabel translation="[12,3]" text="LIVE" color="0xFFFFFFFF" fontSize="12" fontUri="pkg:/fonts/Archivo-Bold.otf" />
-            </Group>
-            
+            <Rectangle id="scrim" width="1280" height="214" translation="[0,48]" color="0x0E0E10D9" />
+            <Label id="controlsHint" translation="[48,232]" width="1184" height="26" horizAlign="center" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            </Label>
 
+            <Group id="infoRow" translation="[48,32]">
+                <CirclePoster id="avatar" width="48" height="48" translation="[0,0]" />
+                <Group id="liveIndicator" translation="[64,3]">
+                    <Poster id="liveBadge" uri="pkg:/images/twitch-redesign/round4.9.png" blendColor="0xEB0400FF" width="56" height="26" />
+                    <Label id="liveLabel" color="0xFFFFFFFF" width="56" height="26" horizAlign="center" vertAlign="center">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="16" />
+                    </Label>
+                </Group>
+                <SimpleLabel id="channelUsername" translation="[132,0]" text="" color="0xEFEFF1FF" fontSize="24" fontUri="pkg:/fonts/Archivo-Bold.otf" />
+                <!-- EmojiLabel is positioned by the vertical center of its line
+                     (vertAlign center), so y=48 keeps the 28 px line at 34-62. -->
+                <EmojiLabel id="videoTitle" height="28" maxWidth="900" horizAlign="left" color="0xADADB8FF" translation="[64,48]">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+                </EmojiLabel>
+                <Label id="viewerCount" visible="false" width="160" height="28" translation="[1024,34]" horizAlign="right" vertAlign="center" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                </Label>
+                <Poster id="categoryArt" visible="false" width="84" height="112" loadWidth="168" loadHeight="224" loadDisplayMode="scaleToFit" translation="[64,64]" />
+                <Label id="streamCategory" visible="false" width="868" height="24" translation="[64,80]" color="0xADADB8FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                </Label>
+                <Label id="liveUptime" visible="false" width="228" height="24" translation="[956,80]" horizAlign="right" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+                </Label>
+            </Group>
+            <!-- Shown only while this session uses the low-latency experiment. -->
+            <Label id="latencyTag" visible="false" width="360" height="26" translation="[872,35]" horizAlign="right" vertAlign="center" color="0xFFD37AFF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+
+            <!-- Focus caption: names the focused button above it. -->
+            <Group id="caption" visible="false" translation="[0,140]">
+                <Poster id="captionPlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="160" height="30" />
+                <Label id="captionLabel" width="160" height="30" horizAlign="center" vertAlign="center" color="0xEFEFF1FF">
+                    <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+                </Label>
+            </Group>
+
+            <!-- Back · Chat · Play/Pause · Quality, one contiguous group. -->
+            <Group id="controls" translation="[494,178]">
+                <Group id="backGroup" translation="[0,0]">
+                    <Poster id="backBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="backFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Label width="64" height="48" horizAlign="center" vertAlign="center" text="←" color="0xFFFFFFFF">
+                        <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+                    </Label>
+                </Group>
+                <Group id="chatGroup" translation="[76,0]">
+                    <Poster id="chatBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="chatFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster id="messagesButton" uri="pkg:/images/messages.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="playPauseGroup" translation="[152,0]">
+                    <Poster id="playPauseBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="playPauseFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster id="controlButton" uri="pkg:/images/pause.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="qualityGroup" translation="[228,0]">
+                    <Poster id="qualityBg" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="qualityFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Poster id="qualitySelectButton" uri="pkg:/images/icons/sliders.png" width="28" height="28" loadDisplayMode="scaleToFit" translation="[18,10]" />
+                </Group>
+                <Group id="channelGroup" translation="[304,0]" visible="false">
+                    <Poster uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x26262CFF" width="64" height="48" />
+                    <Poster id="channelFocus" uri="pkg:/images/twitch-redesign/focus-round6.9.png" width="64" height="48" visible="false" />
+                    <Group translation="[18,10]">
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[0,11]" blendColor="0xFFFFFFFF" />
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[11,11]" blendColor="0xFFFFFFFF" />
+                        <Poster uri="pkg:/images/profile-mask-540-white.png" width="6" height="6" loadWidth="6" loadHeight="6" loadDisplayMode="scaleToFit" translation="[22,11]" blendColor="0xFFFFFFFF" />
+                    </Group>
+                </Group>
+            </Group>
         </Group>
-        
-        <!-- Quality Dialog -->
-        <StandardMessageDialog id="QualityDialog" visible="false" />
-        
+
         <!-- Loading Overlay -->
-        <Group id="loadingOverlay" translation="[960,540]" visible="true">
-            <!-- Vertical layout container -->
-            <LayoutGroup 
+        <Group id="loadingOverlay" translation="[640,360]" visible="true">
+            <LayoutGroup
                 layoutDirection="vert"
                 horizAlignment="center"
                 vertAlignment="center"
-                itemSpacings="[15]">
-                
-                <!-- Spinner -->
-                <BusySpinner 
+                itemSpacings="[16]">
+                <BusySpinner
                     id="loadingSpinner"
                     uri="pkg:/images/spinner.png"
                     spinInterval="1" />
-                
-                <!-- Text -->
-                <SimpleLabel 
-                    text="Loading stream..."
-                    color="0xFFFFFFFF"
-                    fontSize="18"
+                <SimpleLabel
+                    id="loadingText"
+                    text=""
+                    color="0xEFEFF1FF"
+                    fontSize="22"
                     fontUri="pkg:/fonts/Archivo-Regular.otf" />
             </LayoutGroup>
         </Group>

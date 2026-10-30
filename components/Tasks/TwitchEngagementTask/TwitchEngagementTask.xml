@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="TwitchEngagementTask" extends="Task">
+    <interface>
+        <field id="owner" type="string" />
+        <field id="channel" type="string" />
+        <field id="channelId" type="string" />
+        <field id="watchEnabled" type="boolean" value="false" />
+        <field id="hypeEnabled" type="boolean" value="false" />
+        <field id="pinsEnabled" type="boolean" value="false" />
+        <field id="sample" type="assocarray" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <field id="response" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="TwitchEngagementTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchEngagement.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+</component>

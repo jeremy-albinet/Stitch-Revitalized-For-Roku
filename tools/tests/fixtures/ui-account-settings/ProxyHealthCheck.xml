@@ -1,0 +1,14 @@
+<!-- No worker or HTTP. Actual Settings request/observer/cleanup handlers run. -->
+<component name="ProxyHealthCheck" extends="Group">
+    <interface>
+        <field id="proxyUrl" type="string" />
+        <field id="result" type="assocarray" alwaysNotify="true" />
+        <field id="control" type="string" value="stop" />
+        <field id="functionName" type="string" />
+        <function name="fixtureRunCheck" />
+    </interface>
+    <script uri="pkg:/components/Tasks/ProxyHealthCheck/ProxyHealthCheck.brs" />
+    <script uri="pkg:/source/utils/playbackHls.brs" />
+    <script uri="proxy-task-probe.brs" />
+    <script uri="http-boundary.brs" />
+</component>

@@ -1,6 +1,7 @@
 {
     "rootDir": "./",
     "stagingDir": "./out/.staging",
+    "outFile": "./out/Stitch-Revitalized-For-Roku.zip",
     "sourceMap": false,
     "retainStagingDir": true,
     "files": [

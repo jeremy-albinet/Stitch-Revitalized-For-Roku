@@ -1,364 +1,288 @@
 sub init()
     m.top.functionName = "main"
-    m.delay = 29
 end sub
 
-sub loginToChat(tcpListen)
-    tcpListen.SendStr("CAP REQ :twitch.tv/tags twitch.tv/commands" + Chr(13) + Chr(10))
-    user_auth_token = get_user_setting("access_token")
-    m.loggedInUsername = get_user_setting("login")
-    if m.loggedInUsername <> invalid and m.loggedInUsername <> "" and user_auth_token <> invalid and user_auth_token <> ""
-        tcpListen.SendStr("PASS oauth:" + user_auth_token + Chr(13) + Chr(10))
-        tcpListen.SendStr("USER " + m.loggedInUsername + " 8 * :" + m.loggedInUsername + Chr(13) + Chr(10))
-        tcpListen.SendStr("NICK " + m.loggedInUsername + Chr(13) + Chr(10))
-    else
-        tcpListen.SendStr("PASS SCHMOOPIIE" + Chr(13) + Chr(10))
-        tcpListen.SendStr("NICK justinfan32006" + Chr(13) + Chr(10))
+function openChatTransport() as dynamic
+    ' OS 16 added roWebSocket. Older devices keep anonymous, read-only TCP.
+    websocket = invalid
+    try
+        ' The compiler's component catalog predates OS 16; lookup stays runtime gated.
+        websocketType = "roWebSocket"
+        websocket = createObject(websocketType)
+    catch e
+    end try
+    if websocket <> invalid
+        try
+            websocket.setMessagePort(m.port)
+            websocket.setCertificatesFile("common:/certs/ca-bundle.crt")
+            websocket.enablePeerVerification(true)
+            websocket.enableHostVerification(true)
+            websocket.setAutoPingReply(true)
+            websocket.setUrl("wss://irc-ws.chat.twitch.tv:443")
+            if websocket.open(8000)
+                return { socket: websocket, secure: true }
+            end if
+        catch e
+        end try
+        websocket.close()
     end if
-end sub
+    if m.top.stopRequested then return invalid
+    socket = createObject("roStreamSocket")
+    address = createObject("roSocketAddress")
+    address.setAddress("irc.chat.twitch.tv:6667")
+    socket.setMessagePort(m.port)
+    socket.setSendToAddress(address)
+    socket.notifyReadable(true)
+    socket.notifyWritable(true)
+    socket.connect()
+    deadline = createObject("roTimespan")
+    while deadline.totalMilliseconds() < 8000 and not m.top.stopRequested
+        ' Some Roku OS versions keep isConnected() false after a successful TCP
+        ' handshake. Writable readiness starts our bounded login/welcome checks.
+        if socket.isWritable() and socket.eOK()
+            socket.notifyWritable(false)
+            return { socket: socket, secure: false }
+        end if
+        if not socket.eOK() then exit while
+        wait(100, m.port)
+    end while
+    socket.close()
+    return invalid
+end function
 
-function reconnectToChat(tcpListen, addr) as object
-    tcpListen.Close()
-    tcpListen = createObject("roStreamSocket")
-    tcpListen.SetSendToAddress(addr)
-    tcpListen.notifyReadable(true)
-    tcpListen.Connect()
-    loginToChat(tcpListen)
-    tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
-    return tcpListen
+function sendChatLine(transport as object, line as string) as boolean
+    if line.instr(chr(13)) >= 0 or line.instr(chr(10)) >= 0 then return false
+    text = line + chr(13) + chr(10)
+    if transport.secure
+        return transport.socket.send(text, 1000) <> invalid
+    end if
+    ' Partial nonblocking writes must not truncate CAP, login, JOIN or PONG.
+    pending = createObject("roByteArray")
+    pending.fromAsciiString(text)
+    offset = 0
+    deadline = createObject("roTimespan")
+    while offset < pending.count() and deadline.totalMilliseconds() < 1000 and not m.top.stopRequested
+        if transport.socket.isWritable()
+            written = transport.socket.send(pending, offset, pending.count() - offset)
+            if written > 0 then offset += written
+            if not transport.socket.eOK() then return false
+        end if
+        if offset < pending.count() then sleep(10)
+    end while
+    return offset = pending.count()
+end function
+
+function loginToChat(transport as object) as boolean
+    username = ""
+    token = ""
+    ' Never even read account credentials for the plaintext transport.
+    if transport.secure and not m.anonymousOnly
+        username = get_user_setting("login", "")
+        token = get_user_setting("access_token", "")
+    end if
+    nickname = "justinfan" + stri(10000 + rnd(90000)).trim()
+    lines = ircLoginLines(lcase(m.top.channel), transport.secure, lcase(username), token, nickname)
+    if lines.count() = 0 then return false
+    for each line in lines
+        if not sendChatLine(transport, line) then return false
+    end for
+    return true
 end function
 
 sub main()
-    if m.top.channel <> ""
-        receivedNewMessage = false
-        tcpListen = createObject("roStreamSocket")
-        addr = createObject("roSocketAddress")
-        addr.SetAddress("irc.chat.twitch.tv:6667")
-        tcpListen.SetSendToAddress(addr)
-        tcpListen.notifyReadable(true)
-        tcpListen.Connect()
-        loginToChat(tcpListen)
-        tcpListen.eOK()
-        tcpListen.IsReadable()
-        tcpListen.IsWritable()
-        tcpListen.IsException()
-        tcpListen.eSuccess()
-        tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
-        queue = createObject("roArray", 300, true)
-        waitingComment = ""
-        waitingCommentAge = 0
-        sendWaitingMessage = true
-        while true
-            get = ""
-            received = ""
-            '? "tcpListen isConnected " tcpListen.IsConnected()
-            if tcpListen.GetCountRcvBuf() > 0
-                while not get = Chr(10)
-                    get = tcpListen.ReceiveStr(1)
-                    '? "receive Status " tcpListen.Status()
-                    received += get
-                end while
+    if m.top.channel = "" then return
+    m.port = createObject("roMessagePort")
+    m.anonymousOnly = false
+    ' Sequence numbers span reconnects so the renderer never reapplies or skips one.
+    m.moderationSeq = 0
+    m.moderationLog = []
+    failures = 0
+    while not m.top.stopRequested and failures < 6
+        m.top.connectionState = "connecting"
+        m.connectionLifetime = invalid
+        transport = openChatTransport()
+        if transport <> invalid
+            if loginToChat(transport)
+                runChatConnection(transport)
             end if
-            if tcpListen.GetCountRcvBuf() = 0 and tcpListen.IsReadable()
-                tcpListen = reconnectToChat(tcpListen, addr)
+            transport.socket.close()
+            transport = invalid
+            if m.connectionLifetime <> invalid and m.connectionLifetime.totalMilliseconds() >= 60000
+                failures = 0
             end if
-            if not received = ""
-                if Left(received, 4) = "PING"
-                    tcpListen.SendStr("PONG :tmi.twitch.tv" + Chr(13) + Chr(10))
-                else
-                    queue.unshift(received)
-                    receivedNewMessage = true
-                end if
-            end if
-            if m.top.readyForNextComment and queue.count() > 0
-                ' Check if delay is complete using irc timestamp
-                oldestComment = queue.peek()
-                _parsedMessage = MessageParser(oldestComment)
-                if _parsedMessage?.command?.command <> invalid
-                    command = _parsedMessage.command.command
-                    if command <> "PRIVMSG" and command <> "USERNOTICE" and command <> "USERSTATE"
-                        ' ? "Chat Command: "; FormatJson(_parsedMessage, 256)
-                    end if
-                    if command = "USERNOTICE" or command = "USERSTATE"
-                        sleep(5)
-                    else if command = "RECONNECT"
-                        ? getLogTimestamp(); " [ChatJob] Server requested reconnect, reconnecting..."
-                        tcpListen = reconnectToChat(tcpListen, addr)
-                        queue.clear()
-                    else if command = "CLEARMSG" or command = "CLEARCHAT"
-                        ' Discard moderation events — no display_name/message for the renderer
-                        queue.pop()
-                    end if
-                end if
-                if queue.count() = 0
-                    ' Skip timestamp processing after RECONNECT cleared the queue
-                    m.top.readyForNextComment = true
-                end if
-                if queue.count() > 0
-                    currentTimestamp = CreateObject("roDateTime").AsSeconds()
-                    if _parsedMessage?.tags?.tmi_sent_ts <> invalid
-                        commentTimeStamp = Val(_parsedMessage.tags.tmi_sent_ts.left(10), 10)
-                        commentAge = currentTimestamp - commentTimeStamp
-                        if m.top.forceLive = true
-                            sendWaitingMessage = false
-                            m.top.nextCommentObj = MessageParser(queue.pop())
-                        else if commentAge > m.delay ' measured in seconds
-                            m.top.nextCommentObj = MessageParser(queue.pop())
-                        end if
-                        if sendWaitingMessage <> invalid
-                            if sendWaitingMessage = true
-                                if commentAge >= m.delay
-                                    sendWaitingMessage = false
-                                    ' m.top.nextCommentObj = MessageParser("display-name=System;user-type= :test!test@test.tmi.twitch.tv PRIVMSG #test :ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream || ReSyncing Chat To Stream  ")
-                                else
-                                    if queue[0] <> invalid
-                                        if receivedNewMessage
-                                            m.top.nextCommentObj = MessageParser(queue[0])
-                                            receivedNewMessage = false
-                                        end if
-                                    end if
-                                end if
-                            end if
-                        end if
-                    else
-                        ' This will discard anything in the queue that doesn't have "tmi-sent-ts"
-                        queue.pop()
-                    end if
-                end if
-            end if
+        end if
+        if m.top.stopRequested then exit while
+        failures++
+        if failures >= 6 then exit while
+        m.top.connectionState = "reconnecting"
+        backoff = 1000 * (2 ^ (failures - 1))
+        if backoff > 30000 then backoff = 30000
+        deadline = createObject("roTimespan")
+        while deadline.totalMilliseconds() < backoff and not m.top.stopRequested
+            wait(200, m.port)
         end while
+    end while
+    if m.top.stopRequested
+        m.top.connectionState = "stopped"
+    else
+        m.top.connectionState = "unavailable"
     end if
 end sub
 
-
-function MessageParser(message)
-    try
-        parsedMessage = {
-            tags: {},
-            source: {},
-            command: {},
-            parameters: ""
-        }
-        rawTagsComponent = invalid
-        rawSourceComponent = invalid
-        rawCommandComponent = invalid
-        rawParametersComponent = invalid
-
-        idx = 0
-
-        if message.mid(idx, 1) = "@"
-            endIdx = message.Instr(" ")
-            rawTagsComponent = message.mid(1, endIdx)
-            idx = endIdx + 1
-        end if
-
-        if message.mid(idx, 1) = ":"
-            idx += 1
-            endIdx = message.Instr(idx, " ")
-            rawSourceComponent = message.mid(idx, endIdx)
-            idx = endIdx + 1
-        end if
-
-        endIdx = message.InStr(idx, ":")
-        if endIdx = -1
-            endIdx = message.len()
-        end if
-
-        rawCommandComponent = message.mid(idx, endIdx).trim()
-
-        if endIdx <> message.len()
-            idx = endIdx + 1
-            rawParametersComponent = message.mid(idx)
-        end if
-
-        parsedMessage.command = parseCommand(rawCommandComponent)
-
-        if parsedMessage.command <> invalid
-            if rawTagsComponent <> invalid
-                parsedMessage.tags = parseTags(rawTagsComponent)
-            end if
-            parsedMessage.source = parseSource(rawSourceComponent)
-            if rawParametersComponent <> invalid
-                parsedMessage.parameters = rawParametersComponent.trim()
-            end if
-            if rawParametersComponent <> invalid
-                if rawParametersComponent.mid(0, 1) = "!"
-                    parsedMessage.command = parseParameters(rawParametersComponent, parsedMessage.command)
+sub runChatConnection(transport as object)
+    bufferState = { buffer: "", discarding: false }
+    queue = []
+    m.top.workload = invalid
+    workWindow = createObject("roTimespan")
+    parseClock = createObject("roTimespan")
+    receiveMs = 0
+    parseMs = 0
+    inputEvents = 0
+    highWindows = 0
+    m.connectionLifetime = createObject("roTimespan")
+    lastActivity = createObject("roTimespan")
+    lastDelivery = createObject("roTimespan")
+    welcomed = false
+    updateDeliveryState("waiting")
+    while not m.top.stopRequested
+        event = wait(100, m.port)
+        parseClock.mark()
+        chunk = ""
+        if transport.secure
+            if type(event) = "roWebSocketEvent" and event.getSocketId() = transport.socket.getSocketId()
+                eventType = event.getType()
+                if eventType = 2 or eventType = 3 then return
+                if eventType = 5
+                    chunk = ircWebSocketText(event.getInfo())
+                    if chunk = invalid then return
                 end if
             end if
         else
-            return invalid
+            if transport.socket.getCountRcvBuf() > 0 or transport.socket.isReadable()
+                chunk = transport.socket.receiveStr(4096)
+                ' Readiness can remain set after draining a packet. Only an empty
+                ' successful receive is EOF; EAGAIN still allows later messages.
+                if chunk = "" and transport.socket.eSuccess() then return
+            end if
+            if not transport.socket.eOK() then return
         end if
-        return parsedMessage
-    catch e
-        ? "Error Parsing Chat Message"
-        return invalid
-    end try
+        if chunk <> ""
+            if chunk.len() > 65536 then return
+            receiveMs += parseClock.totalMilliseconds()
+            lastActivity.mark()
+            parseClock.mark()
+            consumed = ircConsumeChunk(bufferState, chunk)
+            bufferState = { buffer: consumed.buffer, discarding: consumed.discarding }
+            for each line in consumed.lines
+                message = ircParseMessage(line, queue.count() < 250)
+                if message = invalid then continue for
+                command = message.command.command
+                if command = "PING"
+                    parseMs += parseClock.totalMilliseconds()
+                    if not sendChatLine(transport, "PONG :" + message.parameters) then return
+                    parseClock.mark()
+                else if command = "RECONNECT"
+                    return
+                else if command = "001" or command = "ROOMSTATE"
+                    welcomed = true
+                    if m.top.connectionState <> "connected" then m.top.connectionState = "connected"
+                else if command = "NOTICE"
+                    if message.parameters.instr("authentication failed") >= 0 or message.parameters.instr("Improperly formatted auth") >= 0
+                        m.anonymousOnly = true
+                        return
+                    end if
+                else if command = "PRIVMSG" or command = "USERNOTICE"
+                    ' Retain pending messages until their delay elapses. Dropping the oldest
+                    ' on a busy channel would keep every message perpetually too young.
+                    if queue.count() < 250
+                        message.identity = ircMessageIdentity(message)
+                        queue.push({ comment: message, receivedAt: createObject("roTimespan") })
+                    end if
+                else if command = "CLEARMSG" or command = "CLEARCHAT"
+                    moderation = ircModerationEvent(message)
+                    if moderation <> invalid then publishModeration(queue, moderation)
+                end if
+            end for
+            parseMs += parseClock.totalMilliseconds()
+            inputEvents += consumed.lines.count()
+        end if
+        workElapsed = workWindow.totalMilliseconds()
+        if workElapsed >= 5000
+            ' Elapsed receive/dispatch work excludes socket waits and Sync holds.
+            busyMs = receiveMs + parseMs
+            if workElapsed <= 10000 and busyMs * 4 >= workElapsed and inputEvents * 100 >= workElapsed
+                if highWindows < 2 then highWindows++
+            else
+                highWindows = 0
+            end if
+            m.top.workload = { observedAt: createObject("roDateTime").asSeconds(), windowMs: workElapsed, busyMs: busyMs, receiveMs: receiveMs, parseMs: parseMs, events: inputEvents, highWindows: highWindows }
+            workWindow.mark()
+            receiveMs = 0
+            parseMs = 0
+            inputEvents = 0
+        end if
+        ' A missing welcome or dead connection gets a finite retry rather than a frozen panel.
+        if not welcomed and m.connectionLifetime.totalMilliseconds() > 15000 then return
+        ' Allow keepalive delivery jitter while retaining finite dead-connection recovery.
+        if lastActivity.totalMilliseconds() > 360000 then return
+        deliveryState = "waiting"
+        if queue.count() > 0
+            oldest = queue[0]
+            delay = ircBoundedDelay(m.top.delaySeconds, m.top.forceLive)
+            nowSeconds = createObject("roDateTime").asSeconds()
+            age = queuedChatAge(oldest, nowSeconds)
+            if age < delay then deliveryState = "syncing"
+            updateDeliveryState(deliveryState)
+            if m.top.readyForNextComment and lastDelivery.totalMilliseconds() >= 250 and age >= delay
+                ' Bound render work and catch up within the eligible prefix only.
+                ' Messages still waiting for video sync must keep their receipt age.
+                eligible = 0
+                for each pending in queue
+                    if queuedChatAge(pending, nowSeconds) < delay then exit for
+                    eligible++
+                end for
+                while eligible > 4
+                    queue.shift()
+                    eligible--
+                end while
+                nextComment = queue.shift()
+                lastDelivery.mark()
+                ' The renderer checks moderation newer than this stamp while the comment is in flight.
+                nextComment.comment.moderationSeq = m.moderationSeq
+                m.top.readyForNextComment = false
+                m.top.nextCommentObj = nextComment.comment
+            end if
+        else
+            updateDeliveryState(deliveryState)
+        end if
+    end while
+end sub
+
+function queuedChatAge(entry as object, nowSeconds as integer) as float
+    age = entry.receivedAt.totalMilliseconds() / 1000.0
+    ircTimestamp = entry.comment.tags.tmi_sent_ts
+    if ircTimestamp <> invalid and ircIsDigits(ircTimestamp) and ircTimestamp.len() >= 10
+        sentAt = ircTimestamp.left(10).toInt()
+        serverAge = nowSeconds - sentAt
+        ' Ignore implausible server/device clock differences; receipt age is bounded.
+        if serverAge >= 0 and serverAge <= 120 then age = serverAge
+    end if
+    return age
 end function
 
-function parseTags(tags)
-    tagsToIgnore = {
-        "client-nonce": invalid,
-        "flags": invalid
-    }
-    dictParsedtags = {}
-    parsedTags = tags.split(";")
-    for each tag in parsedTags
-        parsedTag = tag.split("=")
-        if parsedTag[1] <> invalid and parsedTag[1] <> ""
-            tagValue = parsedTag[1]
-        else
-            tagValue = invalid
-        end if
-        if parsedTag[0] = "badges" or parsedTag[0] = "badge-info"
-            if tagValue <> invalid
-                dict = []
-                badges = tagValue.split(",")
-                for each pair in badges
-                    ' badgeParts = pair.split("/")
-                    dict.push(pair)
-                    ' dict[badgeParts[0]] = badgeParts[1]
-                end for
-                dictParsedtags[parsedTag[0].replace("-", "_")] = dict
-            else
-                dictParsedtags[parsedTag[0].replace("-", "_")] = invalid
-            end if
-        else if parsedTag[0] = "emotes"
-            if tagValue <> invalid
-                dictEmotes = {}
-                emotes = tagValue.split("/")
-                for each emote in emotes
-                    emoteParts = emote.split(":")
-                    textPositions = []
-                    positions = emoteParts[1].split(",")
-                    for each position in positions
-                        positionParts = position.split("-")
-                        textPositions.push({
-                            startPosition: positionParts[0],
-                            endPosition: positionParts[1]
-                        })
-                    end for
-                    dictEmotes[emoteParts[0]] = textPositions
-                end for
-                dictParsedtags[parsedTag[0].replace("-", "_")] = dictEmotes
-            else
-                dictParsedtags[parsedTag[0].replace("-", "_")] = invalid
-            end if
-        else if parsedTag[0] = "emote-sets"
-            if tagValue <> invalid
-                emoteSetIds = tagValue.split(",")
-                dictParsedtags[parsedTag[0].replace("-", "_")] = emoteSetIds
-            end if
-        else
-            if tagsToIgnore.DoesExist(parsedTag[0])
-            else
-                if tagValue <> invalid
-                    dictParsedtags[parsedTag[0].replace("-", "_")] = tagValue
-                end if
-            end if
-        end if
+sub updateDeliveryState(state as string)
+    if m.top.deliveryState <> state then m.top.deliveryState = state
+end sub
+
+' Moderation bypasses the stream delay and the comment handshake. The bounded
+' recent window is republished whole so a coalesced field update loses nothing.
+sub publishModeration(queue as object, event as object)
+    for index = queue.count() - 1 to 0 step -1
+        if ircModerationMatches(queue[index].comment.identity, event) then queue.delete(index)
     end for
-    return dictParsedtags
-end function
-
-function parseParameters(rawParameterscomponent, command)
-    idx = 0
-    commandParts = rawParameterscomponent.mid((idx + 1)).trim()
-    paramsidx = commandParts.InStr(" ")
-    if paramsidx = -1
-        command.botCommand = commandParts.mid(0)
-    else
-        command.botCommand = commandParts.mid(0, paramsidx)
-        command.botCommandParams = commandParts.mid(paramsidx).trim()
-    end if
-    return command
-end function
-
-function parseSource(rawSourceComponent)
-    if rawSourceComponent <> invalid
-        sourceParts = rawSourceComponent.split("!")
-        if sourceParts.count() = 2
-            nick = sourceParts[0]
-            host = sourceParts[1]
-        else
-            nick = invalid
-            host = sourceParts[0]
-        end if
-        return {
-            nick: nick,
-            host: host.trim()
-        }
-    else
-        return invalid
-    end if
-end function
-
-
-
-function parseCommand(rawCommandComponent)
-    parsedCommand = invalid
-    commandParts = rawCommandComponent.split(" ")
-    if commandParts[0] = "JOIN" or commandParts[0] = "PART" or commandParts[0] = "NOTICE" or commandParts[0] = "HOSTTARGET" or commandParts[0] = "PRIVMSG"
-        parsedCommand = {
-            command: commandParts[0],
-            channel: commandParts[1]
-        }
-    else if commandParts[0] = "USERNOTICE"
-        ' User Subscribed Event
-        parsedCommand = {
-            command: commandParts[0],
-            channel: commandParts[1]
-        }
-    else if commandParts[0] = "PING"
-        parsedCommand = {
-            command: commandParts[0]
-        }
-    else if commandParts[0] = "CAP"
-        capRequestEnabled = false
-        if commandParts[2] = "ACK"
-            capRequestEnabled = true
-        end if
-        parsedCommand = {
-            command: commandParts[0],
-            isCapRequestEnabled: capRequestEnabled
-        }
-    else if commandParts[0] = "GLOBALUSERSTATE"
-        parsedCommand = {
-            command: commandParts[0]
-        }
-    else if commandParts[0] = "USERSTATE" or commandParts[0] = "ROOMSTATE"
-        parsedCommand = {
-            command: commandParts[0],
-            channel: commandParts[1]
-        }
-    else if commandParts[0] = "RECONNECT"
-        ? "The Twitch IRC server is about to terminate the connection for maintenance."
-        parsedCommand = {
-            command: commandParts[0]
-        }
-    else if commandParts[0] = "CLEARMSG" or commandParts[0] = "CLEARCHAT"
-        ' ? "Twitch is requesting a message to be cleared"; formatJSON(commandParts, 256)
-        parsedCommand = {
-            command: commandParts[0],
-            channel: commandParts[1]
-        }
-    else if commandParts[0] = "WHISPER"
-        ? "WhisperReceived"; formatJSON(commandParts, 256)
-    else if commandParts[0] = "421"
-        ? "Unsupported IRC command: "; formatJSON(commandParts, 256)
-        return invalid
-    else if commandParts[0] = "001"
-        ' Welcome Message
-        parsedCommand = {
-            command: commandParts[0],
-            channel: commandParts[1]
-        }
-    else if commandParts[0] = "002" or commandParts[0] = "003" or commandParts[0] = "004" or commandParts[0] = "353" or commandParts[0] = "366" or commandParts[0] = "372" or commandParts[0] = "375" or commandParts[0] = "376"
-        ' ? "Numeric Message: "; formatJSON(commandParts, 256)
-        return invalid
-    else
-        ? "Unexpected Command: ";formatJSON(commandParts, 256)
-        return invalid
-    end if
-    return parsedCommand
-end function
+    m.moderationSeq++
+    event.seq = m.moderationSeq
+    m.moderationLog.push(event)
+    if m.moderationLog.count() > 32 then m.moderationLog.shift()
+    m.top.moderation = { seq: m.moderationSeq, events: m.moderationLog }
+end sub

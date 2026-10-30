@@ -1,0 +1,10 @@
+<!-- Dynamic QR URI remains data; no external Poster fetch. -->
+<component name="QrBoundary" extends="Group">
+    <interface>
+        <field id="uri" type="string" />
+        <field id="loadStatus" type="string" alwaysNotify="true" />
+        <field id="width" type="float" />
+        <field id="height" type="float" />
+        <field id="loadDisplayMode" type="string" />
+    </interface>
+</component>

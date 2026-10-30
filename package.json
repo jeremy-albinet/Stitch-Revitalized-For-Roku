@@ -1,41 +1,47 @@
 {
   "name": "@jeremy-albinet/stitch-revitalized-for-roku",
+  "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "build": "bsc --createPackage=false",
     "watch": "npm run build -- --watch",
     "package": "bsc --create-package",
     "lint": "bslint",
+    "audit": "node tools/audit-dependencies.js",
     "lint:fix": "bslint --fix",
-    "fmt": "brighterscript-formatter --write 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
-    "fmt:check": "brighterscript-formatter --check 'source/**/*.{brs,bs}' 'components/**/*.{brs,bs}'",
-    "test": "bsc --project bsconfig.test.json --create-package && node tools/deploy-test.js",
+    "fmt": "brighterscript-formatter --write \"source/**/*.{brs,bs}\" \"components/**/*.{brs,bs}\"",
+    "fmt:check": "brighterscript-formatter --check \"source/**/*.{brs,bs}\" \"components/**/*.{brs,bs}\"",
+    "test": "node tools/run-offline-tests.js && node tools/run-node-tests.js",
+    "test:compile": "node tools/prepare-device-tests.js && bsc --project bsconfig.test.json --create-package",
+    "test:device": "npm run test:compile && node tools/deploy-test.js",
+    "postinstall": "node tools/prepare-source-map-decoder.js",
     "prepare": "husky",
-    "sign": "node scripts/sign-package.js",
-    "audit": "npm audit || audit-ci --config ./audit-ci.jsonc"
+    "sign": "node scripts/sign-package.js"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.1",
-    "@commitlint/config-conventional": "^21.2.3",
-    "@rokucommunity/bslint": "^0.8.43",
-    "audit-ci": "^7.1.0",
-    "brighterscript-formatter": "^1.7.26",
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@rokucommunity/bslint": "^0.8.47",
+    "brighterscript": "0.73.8",
+    "brighterscript-formatter": "^1.8.4",
+    "brs-node": "2.6.2",
     "husky": "^9.1.7",
-    "rooibos-roku": "^5.16.3",
-    "ropm": "^0.11.7"
-  },
-  "dependencies": {
-    "brighterscript": "0.73.7"
+    "rooibos-roku": "^5.17.0",
+    "roku-deploy": "^3.18.4"
   },
   "overrides": {
-    "form-data": "^4.0.5",
-    "qs": "^6.14.1",
-    "tough-cookie": "^4.1.3",
-    "lodash": "4.18.1",
-    "@xml-tools/common": {
-      "lodash": "4.18.1"
+    "source-map-resolve": {
+      "decode-uri-component": "0.5.1"
     },
-    "@xml-tools/ast": {
-      "lodash": "4.18.1"
-    }
+    "lodash": "4.18.1",
+    "ws": "^8.21.1",
+    "js-yaml": "^5.5.0",
+    "brs-node": {
+      "zod": "^4.6.7"
+    },
+    "brace-expansion@1": "^1.1.21",
+    "fast-uri@3": "^3.1.8"
   }
 }

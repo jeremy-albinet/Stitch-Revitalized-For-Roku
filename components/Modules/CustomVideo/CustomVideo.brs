@@ -1,4 +1,12 @@
 sub init()
+    m.disposed = false
+    m.channelActionsOpen = false
+    initAdCountdown()
+    if m.adBadge <> invalid
+        m.adBadge.adLabel = tr("Ad")
+        m.adBadge.numberedAdLabel = tr("Ad {0} of {1}")
+    end if
+    m.top.observeField("content", "onAdContentChanged")
     ' Initialize UI elements
     m.top.enableUI = false
     m.top.enableTrickPlay = false
@@ -6,8 +14,20 @@ sub init()
     ' Control overlay elements
     m.controlOverlay = m.top.findNode("controlOverlay")
     m.controlOverlay.visible = false
+    m.controlsHint = m.top.findNode("controlsHint")
+    m.controlsHint.text = tr("Press Down or Back to hide controls")
+    m.scrim = m.top.findNode("scrim")
+    m.scrimFade = m.top.findNode("scrimFade")
+    m.scrimFadeFill = m.top.findNode("scrimFadeFill")
+    m.infoRow = m.top.findNode("infoRow")
+    m.seekHint = m.top.findNode("seekHint")
+    m.controls = m.top.findNode("controls")
+    m.caption = m.top.findNode("caption")
+    m.captionPlate = m.top.findNode("captionPlate")
+    m.captionLabel = m.top.findNode("captionLabel")
 
     ' Progress bar elements
+    m.progressSection = m.top.findNode("progressSection")
     m.progressBarBase = m.top.findNode("progressBarBase")
     m.progressBarProgress = m.top.findNode("progressBarProgress")
     m.progressBarBuffer = m.top.findNode("progressBarBuffer")
@@ -22,7 +42,10 @@ sub init()
     m.timeTravelGroup = m.top.findNode("timeTravelGroup")
     m.chatGroup = m.top.findNode("chatGroup")
     m.backGroup = m.top.findNode("backGroup")
+    m.channelGroup = m.top.findNode("channelGroup")
+    m.channelFocus = m.top.findNode("channelFocus")
     m.controlButton = m.top.findNode("controlButton")
+    m.buttonGroups = [m.backGroup, m.timeTravelGroup, m.rewindGroup, m.playPauseGroup, m.fastForwardGroup, m.chatGroup, m.channelGroup]
 
     ' Focus backgrounds
     m.playPauseFocus = m.top.findNode("playPauseFocus")
@@ -34,6 +57,7 @@ sub init()
 
     ' Time travel dialog
     m.timeTravelDialog = m.top.findNode("timeTravelDialog")
+    m.timeTravelLength = m.top.findNode("timeTravelLength")
     m.hour0 = m.top.findNode("hour0")
     m.hour1 = m.top.findNode("hour1")
     m.minute0 = m.top.findNode("minute0")
@@ -50,9 +74,11 @@ sub init()
     m.acceptButton = m.top.findNode("acceptButton")
     m.cancelButtonFocus = m.top.findNode("cancelButtonFocus")
     m.acceptButtonFocus = m.top.findNode("acceptButtonFocus")
+    setTimeTravelText()
 
     ' Other elements
     m.thumbnailPreview = m.top.findNode("thumbnailPreview")
+    m.thumbnailPlate = m.top.findNode("thumbnailPlate")
     m.thumbnails = m.top.findNode("thumbnails")
     m.thumbnailImage = m.top.findNode("thumbnailImage")
     m.thumbnailTime = m.top.findNode("thumbnailTime")
@@ -60,11 +86,13 @@ sub init()
     m.loadingOverlay = m.top.findNode("loadingOverlay")
     m.loadingText = m.top.findNode("loadingText")
     m.loadingSpinner = m.top.findNode("loadingSpinner")
+    if m.loadingText <> invalid then m.loadingText.text = tr("Loading video…")
 
     ' Video info
     m.videoTitle = m.top.findNode("videoTitle")
     m.channelUsername = m.top.findNode("channelUsername")
     m.avatar = m.top.findNode("avatar")
+    m.liveBadgeWidth = fitLabelPlate(m.top.findNode("liveLabel"), m.top.findNode("liveBadge"), tr("LIVE"), 16, 56)
 
     ' State variables
     m.currentFocusedButton = 3 ' 0=back, 1=timetravel, 2=rewind, 3=play/pause, 4=fastforward, 5=chat
@@ -73,7 +101,11 @@ sub init()
     m.timeTravelFocusedField = 0 ' 0-5 for time fields, 6-7 for buttons
     m.currentPositionSeconds = 0
     m.currentPositionUpdated = false
+    ' Seek preview: Rewind/Fast-forward and -10/+10 pause the video and move a
+    ' preview position. Play (or OK on Play/Pause) applies it, Back cancels it,
+    ' and either way the video returns to the state it had before the preview.
     m.isSeekMode = false
+    m.preSeekWasPlaying = false
     m.buttonHeld = invalid
     m.scrollInterval = 10
     m.isLiveStream = false
@@ -91,10 +123,15 @@ sub init()
     m.fadeAwayTimer.duration = 5
     m.fadeAwayTimer.control = "stop"
 
+    ' Holding Rewind/Fast-forward accelerates the preview. A press steps 10 s
+    ' at once; only a key still held after holdDelay starts the repeating,
+    ' growing steps, so an ordinary tap is exactly one 10 s step.
+    m.holdDelay = 0.4
+    m.holdRepeat = 0.1
     m.buttonHoldTimer = createObject("roSGNode", "Timer")
     m.buttonHoldTimer.observeField("fire", "onButtonHold")
-    m.buttonHoldTimer.repeat = true
-    m.buttonHoldTimer.duration = 0.1
+    m.buttonHoldTimer.repeat = false
+    m.buttonHoldTimer.duration = m.holdDelay
     m.buttonHoldTimer.control = "stop"
 
     ' Observers
@@ -106,6 +143,7 @@ sub init()
     m.top.observeField("video_type", "onVideoTypeChange")
 
     ' Initialize UI
+    layoutOverlay()
     updateProgressBar()
 
     ' Show loading overlay initially
@@ -114,43 +152,125 @@ sub init()
     ? getLogTimestamp(); " [CustomVideo] Initialized"
 end sub
 
+sub setTimeTravelText()
+    m.top.findNode("timeTravelTitle").text = tr("Jump to time")
+    m.top.findNode("timeTravelHint").text = tr("Enter the time you want to jump to.")
+    m.top.findNode("hoursLabel").text = tr("Hours")
+    m.top.findNode("minutesLabel").text = tr("Minutes")
+    m.top.findNode("secondsLabel").text = tr("Seconds")
+    m.top.findNode("instructionsLabel").text = tr("Use ← → to move between digits and ↑ ↓ to change them.")
+    m.top.findNode("cancelButtonLabel").text = tr("Cancel")
+    m.top.findNode("acceptButtonLabel").text = tr("Jump")
+end sub
+
 sub createMessageOverlay()
     if m.messageOverlay = invalid
-        m.messageOverlay = CreateObject("roSGNode", "Group")
-        m.messageOverlay.visible = false
-
-        messageBg = CreateObject("roSGNode", "Rectangle")
-        messageBg.width = 600
-        messageBg.height = 150
-        messageBg.color = "0x000000CC"
-        messageBg.translation = [660, 465]
-
-        messageTitle = CreateObject("roSGNode", "Label")
-        messageTitle.id = "messageTitle"
-        messageTitle.font = "font:MediumBoldSystemFont"
-        messageTitle.text = ""
-        messageTitle.horizAlign = "center"
-        messageTitle.vertAlign = "center"
-        messageTitle.width = 600
-        messageTitle.height = 50
-        messageTitle.translation = [660, 480]
-
-        messageText = CreateObject("roSGNode", "Label")
-        messageText.id = "messageText"
-        messageText.font = "font:SmallSystemFont"
-        messageText.text = ""
-        messageText.horizAlign = "center"
-        messageText.vertAlign = "center"
-        messageText.width = 600
-        messageText.height = 50
-        messageText.translation = [660, 530]
-
-        m.messageOverlay.appendChild(messageBg)
-        m.messageOverlay.appendChild(messageTitle)
-        m.messageOverlay.appendChild(messageText)
+        m.messageOverlay = createPlayerMessageOverlay()
         m.top.appendChild(m.messageOverlay)
     end if
 end sub
+
+' The video area is 1280 wide, or 960 when chat is shown beside it.
+function videoAreaWidth() as integer
+    if m.top.chatIsVisible = true then return 960
+    return 1280
+end function
+
+sub layoutOverlay()
+    if m.adBadge <> invalid then m.adBadge.videoAreaWidth = videoAreaWidth()
+    width = videoAreaWidth()
+    m.scrim.width = width
+    m.controlsHint.width = width - 96
+    m.scrimFadeFill.width = width
+    m.scrimFade.maskSize = [width, 48]
+    barWidth = width - 96
+    m.progressBarBase.width = barWidth
+    m.timeDuration.translation = [barWidth - 240, 0]
+    m.seekHint.width = barWidth
+    if width < 1280
+        m.videoTitle.maxWidth = 660
+    else
+        m.videoTitle.maxWidth = 900
+    end if
+    if m.loadingOverlay <> invalid then m.loadingOverlay.translation = [Int(width / 2), 360]
+    if m.messageOverlay <> invalid then m.messageOverlay.translation = [Int((width - 640) / 2), 0]
+    layoutControls()
+end sub
+
+' Places the visible buttons side by side as one group centered in the video
+' area, so the hidden seek buttons of a live stream leave no gap.
+sub layoutControls()
+    x = 0
+    for each button in m.buttonGroups
+        if button.visible
+            button.translation = [x, 0]
+            x += 76
+        end if
+    end for
+    groupWidth = x - 12
+    m.controls.translation = [Int((videoAreaWidth() - groupWidth) / 2), 214]
+    updateCaption()
+end sub
+
+function focusedButtonNode() as object
+    if m.isLiveStream
+        return [m.backGroup, m.playPauseGroup, m.chatGroup][m.currentFocusedButton]
+    end if
+    return m.buttonGroups[m.currentFocusedButton]
+end function
+
+sub onChannelAvailableChange()
+    if m.disposed or m.channelGroup = invalid then return
+    m.channelGroup.visible = m.top.channelAvailable and not m.isLiveStream
+    if not m.channelGroup.visible and m.currentFocusedButton = 6 then focusButton(3)
+    layoutControls()
+end sub
+
+function captionForButton() as string
+    node = focusedButtonNode()
+    if node = invalid then return ""
+    if node.isSameNode(m.backGroup)
+        return tr("Exit player")
+    else if node.isSameNode(m.timeTravelGroup)
+        return tr("Jump to time")
+    else if node.isSameNode(m.rewindGroup)
+        return tr("Back 10 seconds")
+    else if node.isSameNode(m.playPauseGroup)
+        if m.isSeekMode then return tr("Jump to {0}").replace("{0}", convertToReadableTimeFormat(m.currentPositionSeconds))
+        if m.top.state = "paused" then return tr("Play")
+        return tr("Pause")
+    else if node.isSameNode(m.fastForwardGroup)
+        return tr("Forward 10 seconds")
+    else if node.isSameNode(m.chatGroup)
+        if not m.isLiveStream then return tr("Chat replay unavailable")
+        if m.top.chatIsVisible = true then return tr("Hide chat")
+        return tr("Show chat")
+    else if node.isSameNode(m.channelGroup)
+        return tr("Channel actions")
+    end if
+    return ""
+end function
+
+' Every focused control names itself in a caption above it.
+sub updateCaption()
+    if m.caption = invalid then return
+    node = focusedButtonNode()
+    if not m.isOverlayVisible or node = invalid
+        m.caption.visible = false
+        return
+    end if
+    plateWidth = fitLabelPlate(m.captionLabel, m.captionPlate, captionForButton(), 24, 96)
+    center = m.controls.translation[0] + node.translation[0] + 32
+    m.caption.translation = [clampToVideoArea(center - Int(plateWidth / 2), plateWidth), 178]
+    m.caption.visible = true
+end sub
+
+function clampToVideoArea(x as integer, width as integer) as integer
+    limit = videoAreaWidth() - 48 - width
+    if x > limit then x = limit
+    if x < 48 then x = 48
+    return x
+end function
 
 sub onVideoTypeChange()
     m.isLiveStream = (m.top.video_type = "LIVE")
@@ -159,9 +279,9 @@ sub onVideoTypeChange()
     ' Update loading text based on video type
     if m.loadingText <> invalid
         if m.isLiveStream
-            m.loadingText.text = "Loading stream..."
+            m.loadingText.text = tr("Loading stream…")
         else
-            m.loadingText.text = "Loading video..."
+            m.loadingText.text = tr("Loading video…")
         end if
     end if
 end sub
@@ -172,7 +292,9 @@ sub updateUIForVideoType()
         m.rewindGroup.visible = false
         m.fastForwardGroup.visible = false
         m.timeTravelGroup.visible = false
-        m.progressDot.visible = false
+        m.progressSection.visible = false
+        m.liveIndicator.visible = true
+        m.channelUsername.translation = [64 + m.liveBadgeWidth + 12, 0]
 
         ' Adjust button focus indices for live streams
         ' 0=back, 1=play/pause, 2=chat
@@ -185,13 +307,16 @@ sub updateUIForVideoType()
         m.rewindGroup.visible = true
         m.fastForwardGroup.visible = true
         m.timeTravelGroup.visible = true
-        m.progressDot.visible = true
+        m.progressSection.visible = true
+        m.liveIndicator.visible = false
+        m.channelUsername.translation = [64, 0]
     end if
+    layoutControls()
 end sub
 
 sub onPositionChange()
-    m.currentPositionSeconds = m.top.position
     if not m.isSeekMode
+        m.currentPositionSeconds = m.top.position
         updateProgressBar()
     end if
 
@@ -206,6 +331,8 @@ sub onPositionChange()
 end sub
 
 sub onVideoStateChange()
+    if m.disposed then return
+    updateAdPresented()
     if m.top.state = "playing"
         m.controlButton.uri = "pkg:/images/pause.png"
         hideLoadingOverlay()
@@ -217,38 +344,29 @@ sub onVideoStateChange()
         showLoadingOverlay()
         if m.loadingText <> invalid
             if m.isLiveStream
-                m.loadingText.text = "Buffering stream..."
+                m.loadingText.text = tr("Buffering stream…")
             else
-                m.loadingText.text = "Buffering video..."
+                m.loadingText.text = tr("Buffering video…")
             end if
         end if
     else if m.top.state = "error"
         hideLoadingOverlay()
         ? getLogTimestamp(); " [CustomVideo] Video error occurred"
         if m.top.errorStr <> invalid and (m.top.errorStr.InStr("970") > -1 or m.top.errorStr.InStr("buffer:loop:demux") > -1)
-            showErrorMessage("Incompatible Video Format", "This video cannot be played on your device")
+            showErrorMessage(tr("Video format not supported"), tr("This video can't be played on this Roku."))
         else
-            showErrorMessage("Stream Error", "Having trouble loading the stream. Retrying...")
+            showErrorMessage(tr("Stream problem"), tr("Having trouble loading the video. Retrying…"))
         end if
     end if
+    if m.currentFocusedButton = 3 or m.isLiveStream then updateCaption()
 
     ' Show live indicator for live streams
-    if m.isLiveStream
-        m.liveIndicator.visible = true
-    else
-        m.liveIndicator.visible = false
-    end if
+    m.liveIndicator.visible = m.isLiveStream
 end sub
 
 sub onChatVisibilityChange()
     ' Adjust layout based on chat visibility
-    if m.top.chatIsVisible
-        m.progressBarBase.width = 1480
-        m.controlOverlay.translation = [0, 940]
-    else
-        m.progressBarBase.width = 1800
-        m.controlOverlay.translation = [0, 940]
-    end if
+    layoutOverlay()
 
     ' Update all progress bar elements to match new width
     updateProgressBar()
@@ -281,22 +399,21 @@ end sub
 
 sub updateProgressBar()
     if m.isLiveStream
-        ' For live streams, show minimal progress info
-        m.timeProgress.text = "LIVE"
-        m.timeDuration.text = "LIVE"
-        m.progressBarProgress.width = m.progressBarBase.width ' Full bar for live
-        m.progressDot.visible = false
+        ' Live streams show the LIVE badge instead of a progress bar.
+        m.timeProgress.text = tr("LIVE")
+        m.timeDuration.text = ""
+        m.progressBarProgress.width = m.progressBarBase.width
     else if m.top.duration > 0 and m.currentPositionSeconds >= 0
         ' Update progress bar for VOD/clips
         progressRatio = m.currentPositionSeconds / m.top.duration
         m.progressBarProgress.width = m.progressBarBase.width * progressRatio
 
-        ' Clamp the progress dot position within bounds
-        dotX = m.progressBarBase.width * progressRatio - 8
+        ' Keep the knob inside the bar
+        dotX = Int(m.progressBarBase.width * progressRatio) - 7
         if dotX < 0 then dotX = 0
-        if dotX > m.progressBarBase.width then dotX = m.progressBarBase.width
+        if dotX > m.progressBarBase.width - 14 then dotX = m.progressBarBase.width - 14
 
-        m.progressDot.translation = [dotX, 59]
+        m.progressDot.translation = [dotX, 26]
         m.progressDot.visible = true
 
         ' Update time displays
@@ -310,10 +427,7 @@ sub showOverlay()
     m.controlOverlay.visible = true
     updateUIForVideoType() ' Ensure UI is correct for video type
     focusButton(m.currentFocusedButton)
-
-    ' Start fade timer
-    m.fadeAwayTimer.control = "stop"
-    m.fadeAwayTimer.control = "start"
+    restartFade()
 end sub
 
 sub hideOverlay()
@@ -321,12 +435,27 @@ sub hideOverlay()
     m.controlOverlay.visible = false
     m.thumbnailPreview.visible = false
     clearAllButtonFocus()
+    updateCaption()
+end sub
+
+sub restartFade()
+    m.fadeAwayTimer.control = "stop"
+    m.fadeAwayTimer.control = "start"
 end sub
 
 sub onFadeAway()
-    if not m.isTimeTravelDialogOpen
-        hideOverlay()
-    end if
+    if m.channelActionsOpen then return
+    ' A pending seek preview or the time dialog keeps the controls on screen.
+    if m.isTimeTravelDialogOpen or m.isSeekMode then return
+    hideOverlay()
+end sub
+
+sub setChannelActionsOpen(open as boolean)
+    if m.disposed then return
+    m.channelActionsOpen = open
+    if open then stopHold()
+    m.fadeAwayTimer.control = "stop"
+    if not open and m.isOverlayVisible then m.fadeAwayTimer.control = "start"
 end sub
 
 sub focusButton(buttonIndex)
@@ -359,8 +488,12 @@ sub focusButton(buttonIndex)
             m.fastForwardFocus.visible = true
         else if buttonIndex = 5 ' Chat
             m.chatFocus.visible = true
+        else if buttonIndex = 6
+            m.channelFocus.visible = true
         end if
     end if
+    updateCaption()
+    if m.isSeekMode then updateSeekHint()
 end sub
 
 sub clearAllButtonFocus()
@@ -370,9 +503,15 @@ sub clearAllButtonFocus()
     m.timeTravelFocus.visible = false
     m.chatFocus.visible = false
     m.backFocus.visible = false
+    m.channelFocus.visible = false
 end sub
 
 sub executeButtonAction()
+    if m.disposed then return
+    if not m.isLiveStream and m.currentFocusedButton = 6 and m.top.channelAvailable
+        m.top.channelActionsRequested = true
+        return
+    end if
     if m.isLiveStream
         ' Live stream button actions
         if m.currentFocusedButton = 0 ' Back
@@ -400,6 +539,7 @@ sub executeButtonAction()
             hideOverlay()
             m.top.control = "stop"
         else if m.currentFocusedButton = 1 ' Time Travel
+            if m.isSeekMode then cancelSeekPreview()
             openTimeTravelDialog()
         else if m.currentFocusedButton = 2 ' Rewind
             seekRelative(-10)
@@ -416,12 +556,7 @@ end sub
 
 sub togglePlayPause()
     if m.isSeekMode and not m.isLiveStream
-        ' Apply seek for VOD/clips
-        m.top.seek = m.currentPositionSeconds
-        m.isSeekMode = false
-        m.currentPositionUpdated = false
-        ' Hide thumbnail preview after seeking
-        m.thumbnailPreview.visible = false
+        applySeekPreview()
     else
         ' Toggle play/pause
         if m.top.state = "paused"
@@ -437,12 +572,9 @@ sub seekRelative(seconds)
         ? getLogTimestamp(); " [CustomVideo] Seeking disabled for live streams"
         return
     end if
+    if m.top.duration <= 0 then return
 
-    if not m.isSeekMode
-        m.currentPositionSeconds = m.top.position
-        m.isSeekMode = true
-        m.top.control = "pause"
-    end if
+    if not m.isSeekMode then beginSeekPreview()
 
     m.currentPositionSeconds += seconds
     if m.currentPositionSeconds < 0
@@ -453,46 +585,134 @@ sub seekRelative(seconds)
 
     updateProgressBar()
     showThumbnailPreview()
+    updateSeekHint()
+end sub
+
+' Starts a preview at the current playback position. The video pauses while
+' the preview moves; the earlier playing/paused state is restored afterwards.
+sub beginSeekPreview()
+    m.currentPositionSeconds = m.top.position
+    m.preSeekWasPlaying = (m.top.state = "playing" or m.top.state = "buffering")
+    m.isSeekMode = true
+    m.top.control = "pause"
+    m.fadeAwayTimer.control = "stop"
+    m.infoRow.visible = false
+    m.seekHint.visible = true
+    m.controlsHint.visible = false
+    m.progressDot.color = knobColor(true)
+    updateCaption()
+end sub
+
+sub applySeekPreview()
+    if not m.isSeekMode then return
+    target = m.currentPositionSeconds
+    resume = m.preSeekWasPlaying
+    endSeekPreview()
+    m.top.seek = target
+    if resume then m.top.control = "resume"
+end sub
+
+sub cancelSeekPreview()
+    if not m.isSeekMode then return
+    resume = m.preSeekWasPlaying
+    endSeekPreview()
+    m.currentPositionSeconds = m.top.position
+    updateProgressBar()
+    if resume then m.top.control = "resume"
+end sub
+
+sub endSeekPreview()
+    stopHold()
+    m.isSeekMode = false
+    m.preSeekWasPlaying = false
+    m.currentPositionUpdated = false
+    m.thumbnailPreview.visible = false
+    m.seekHint.visible = false
+    m.controlsHint.visible = true
+    m.infoRow.visible = true
+    m.progressDot.color = knobColor(false)
+    updateCaption()
+    if m.isOverlayVisible then restartFade()
+end sub
+
+' The knob turns focus purple while a preview position is pending.
+function knobColor(seeking as boolean) as string
+    color = m.global?.constants?.ui?.color
+    if color = invalid then return "0xEFEFF1FF"
+    if seeking then return color.focus
+    return color.text
+end function
+
+sub updateSeekHint()
+    if m.currentFocusedButton = 3 then updateCaption()
+    time = convertToReadableTimeFormat(m.currentPositionSeconds)
+    ' OK applies only from Play/Pause; the remote Play key applies anywhere.
+    if m.currentFocusedButton = 3
+        m.seekHint.text = tr("Press OK or Play to jump to {0}. Press Back to cancel.").replace("{0}", time)
+    else
+        m.seekHint.text = tr("Press Play to jump to {0}. Press Back to cancel.").replace("{0}", time)
+    end if
+end sub
+
+sub startHold(direction as string)
+    m.buttonHeld = direction
+    m.scrollInterval = 10
+    m.buttonHoldTimer.control = "stop"
+    m.buttonHoldTimer.duration = m.holdDelay
+    m.buttonHoldTimer.control = "start"
+end sub
+
+sub stopHold()
+    m.buttonHoldTimer.control = "stop"
+    m.buttonHeld = invalid
+    m.scrollInterval = 10
 end sub
 
 sub showThumbnailPreview()
     if m.isLiveStream
         return ' No thumbnails for live streams
     end if
+    if m.top.duration <= 0 then return
+    info = m.top.thumbnailInfo
+    if info = invalid or info.interval = invalid or info.cols = invalid or info.count = invalid then return
+    if info.interval <= 0 or info.cols <= 0 or info.count <= 0 then return
+    if info.width = invalid or info.height = invalid or info.width <= 0 or info.height <= 0 then return
 
-    if m.top.thumbnailInfo <> invalid and m.top.thumbnailInfo.width <> invalid
-        m.thumbnailPreview.visible = true
-        m.thumbnailTime.text = convertToReadableTimeFormat(m.currentPositionSeconds)
+    m.thumbnailPreview.visible = true
+    m.thumbnailTime.text = convertToReadableTimeFormat(m.currentPositionSeconds)
 
-        ' Guard against divide-by-zero and invalid thumbnail_parts
-        if m.top.thumbnailInfo.thumbnail_parts <> invalid and m.top.thumbnailInfo.thumbnail_parts.Count() > 0
-            ' Calculate thumbnail position
-            thumbnailsPerPart = Int(m.top.thumbnailInfo.count / m.top.thumbnailInfo.thumbnail_parts.Count())
+    ' Show one sprite cell scaled to a 240 px wide frame.
+    scale = 240 / info.width
+    imageHeight = Int(info.height * scale)
+    m.thumbnails.scale = [scale, scale]
+    m.thumbnails.clippingRect = [0, 0, info.width, info.height]
+    m.thumbnailTime.translation = [0, imageHeight + 8]
+    m.thumbnailPlate.height = imageHeight + 42
 
-            ' Additional guard to ensure thumbnailsPerPart is valid
-            if thumbnailsPerPart > 0
-                thumbnailPosOverall = Int(m.currentPositionSeconds / m.top.thumbnailInfo.interval)
-                thumbnailPosCurrent = thumbnailPosOverall mod thumbnailsPerPart
-                thumbnailRow = Int(thumbnailPosCurrent / m.top.thumbnailInfo.cols)
-                thumbnailCol = Int(thumbnailPosCurrent mod m.top.thumbnailInfo.cols)
+    ' Guard against divide-by-zero and invalid thumbnail_parts
+    if info.thumbnail_parts <> invalid and info.thumbnail_parts.Count() > 0
+        thumbnailsPerPart = Int(info.count / info.thumbnail_parts.Count())
 
-                m.thumbnailImage.translation = [-thumbnailCol * m.top.thumbnailInfo.width, -thumbnailRow * m.top.thumbnailInfo.height]
+        if thumbnailsPerPart > 0
+            thumbnailPosOverall = Int(m.currentPositionSeconds / info.interval)
+            thumbnailPosCurrent = thumbnailPosOverall mod thumbnailsPerPart
+            thumbnailRow = Int(thumbnailPosCurrent / info.cols)
+            thumbnailCol = Int(thumbnailPosCurrent mod info.cols)
 
-                ' Check bounds before accessing thumbnail_parts array
-                partIndex = Int(thumbnailPosOverall / thumbnailsPerPart)
-                if m.top.thumbnailInfo.info_url <> invalid and partIndex < m.top.thumbnailInfo.thumbnail_parts.Count() and m.top.thumbnailInfo.thumbnail_parts[partIndex] <> invalid
-                    m.thumbnailImage.uri = m.top.thumbnailInfo.info_url + m.top.thumbnailInfo.thumbnail_parts[partIndex]
-                end if
+            m.thumbnailImage.translation = [-thumbnailCol * info.width, -thumbnailRow * info.height]
+
+            ' Check bounds before accessing thumbnail_parts array
+            partIndex = Int(thumbnailPosOverall / thumbnailsPerPart)
+            if info.info_url <> invalid and partIndex < info.thumbnail_parts.Count() and info.thumbnail_parts[partIndex] <> invalid
+                m.thumbnailImage.uri = info.info_url + info.thumbnail_parts[partIndex]
             end if
         end if
-
-        ' Position thumbnail preview near progress bar
-        progressRatio = m.currentPositionSeconds / m.top.duration
-        thumbnailX = 60 + (m.progressBarBase.width * progressRatio) - 100
-        if thumbnailX < 60 then thumbnailX = 60
-        if thumbnailX > 1660 then thumbnailX = 1660
-        m.thumbnailPreview.translation = [thumbnailX, 760]
     end if
+
+    ' Float the frame above the knob, inside the video area.
+    progressRatio = m.currentPositionSeconds / m.top.duration
+    frameX = clampToVideoArea(48 + Int(m.progressBarBase.width * progressRatio) - 124, 248)
+    m.thumbnailPreview.translation = [frameX, 480 - (imageHeight + 42)]
 end sub
 
 sub openTimeTravelDialog()
@@ -503,6 +723,13 @@ sub openTimeTravelDialog()
 
     m.isTimeTravelDialogOpen = true
     m.timeTravelDialog.visible = true
+    m.timeTravelDialog.translation = [Int((videoAreaWidth() - 600) / 2), 168]
+    ' The digits cannot go past the end, so state the limit up front.
+    if m.top.duration > 0
+        m.timeTravelLength.text = tr("Video length: {0}").replace("{0}", convertToReadableTimeFormat(m.top.duration))
+    else
+        m.timeTravelLength.text = ""
+    end if
     m.timeTravelFocusedField = 0
     focusTimeTravelField(0)
 
@@ -516,6 +743,7 @@ sub closeTimeTravelDialog()
     m.isTimeTravelDialogOpen = false
     m.timeTravelDialog.visible = false
     clearTimeTravelFocus()
+    if m.isOverlayVisible then restartFade()
 end sub
 
 sub focusTimeTravelField(fieldIndex)
@@ -614,18 +842,19 @@ sub changeTimeTravelValue(direction)
     end if
 end sub
 
+' Fires once holdDelay after a Rewind/Fast-forward press that is still held,
+' then every holdRepeat while it stays held, each step 5 s larger.
 sub onButtonHold()
-    if m.isLiveStream
-        return ' No seeking for live streams
-    end if
-
+    if m.disposed or m.isLiveStream or m.buttonHeld = invalid then return
     if m.buttonHeld = "left"
         seekRelative(-m.scrollInterval)
-        m.scrollInterval += 5
     else if m.buttonHeld = "right"
         seekRelative(m.scrollInterval)
-        m.scrollInterval += 5
     end if
+    m.scrollInterval += 5
+    if m.buttonHeld = invalid then return
+    m.buttonHoldTimer.duration = m.holdRepeat
+    m.buttonHoldTimer.control = "start"
 end sub
 
 function convertToReadableTimeFormat(time) as string
@@ -672,9 +901,7 @@ sub saveVideoBookmark()
         end if
 
         if get_user_setting("id", invalid) <> invalid
-            if m.bookmarkTask <> invalid
-                m.bookmarkTask = invalid
-            end if
+            m.bookmarkTask = destroyTask(m.bookmarkTask, "response")
             m.bookmarkTask = createObject("roSGNode", "TwitchApiTask")
             m.bookmarkTask.functionname = "updateUserViewedVideo"
             m.bookmarkTask.request = {
@@ -698,27 +925,13 @@ end sub
 
 sub showMessage(title as string, message as string, duration as float)
     createMessageOverlay()
-    if m.messageOverlay <> invalid
-        titleNode = m.messageOverlay.findNode("messageTitle")
-        if titleNode <> invalid
-            titleNode.text = title
-            titleNode.visible = (title <> "")
-        end if
-        messageNode = m.messageOverlay.findNode("messageText")
-        if messageNode <> invalid
-            messageNode.text = message
-            if title = ""
-                messageNode.translation = [660, 515]
-            else
-                messageNode.translation = [660, 530]
-            end if
-        end if
-    end if
-
+    m.messageOverlay.translation = [Int((videoAreaWidth() - 640) / 2), 0]
+    setPlayerMessage(m.messageOverlay, title, message)
     m.messageOverlay.visible = true
 
     if m.messageTimer <> invalid
         m.messageTimer.control = "stop"
+        m.messageTimer.unobserveField("fire")
         m.messageTimer = invalid
     end if
 
@@ -737,6 +950,7 @@ sub hideMessage()
     end if
     if m.messageTimer <> invalid
         m.messageTimer.control = "stop"
+        m.messageTimer.unobserveField("fire")
         m.messageTimer = invalid
     end if
 end sub
@@ -765,14 +979,13 @@ sub hideLoadingOverlay()
 end sub
 
 function onKeyEvent(key, press) as boolean
+    if m.disposed then return false
+    if m.channelActionsOpen then return false
     ? getLogTimestamp(); " [CustomVideo] KeyEvent: "; key; " "; press
 
     if press
         ' Reset fade timer on any key press
-        if m.isOverlayVisible
-            m.fadeAwayTimer.control = "stop"
-            m.fadeAwayTimer.control = "start"
-        end if
+        if m.isOverlayVisible then restartFade()
 
         if m.isTimeTravelDialogOpen
             return handleTimeTravelKeys(key)
@@ -780,25 +993,27 @@ function onKeyEvent(key, press) as boolean
             return handleMainKeys(key)
         end if
     else
-        ' Handle key release
-        if key = "rewind" or key = "fastforward"
-            m.buttonHeld = invalid
-            m.buttonHoldTimer.control = "stop"
-            m.scrollInterval = 10
-            if m.isSeekMode
-                m.thumbnailPreview.visible = false
-            end if
-        end if
+        ' Releasing Rewind/Fast-forward ends the hold; the preview stays
+        ' until Play applies it or Back cancels it.
+        if key = "rewind" or key = "fastforward" then stopHold()
     end if
 
     return false
 end function
 
 function handleMainKeys(key) as boolean
-    if key = "up" or key = "OK" or key = "play"
-        if not m.isOverlayVisible
+    if not m.isOverlayVisible
+        if key = "play"
+            ' The remote Play key acts on its first press and reveals the state.
+            showOverlay()
+            togglePlayPause()
+            return true
+        else if key = "up" or key = "OK"
             showOverlay()
             return true
+        else if (key = "rewind" or key = "fastforward") and not m.isLiveStream
+            ' Show the seek preview, then use the shared hold/seek handling below.
+            showOverlay()
         end if
     end if
 
@@ -819,7 +1034,9 @@ function handleMainKeys(key) as boolean
             if m.currentFocusedButton > 0
                 focusButton(m.currentFocusedButton - 1)
             else
-                focusButton(5) ' Wrap to chat button
+                lastButton = 5
+                if m.top.channelAvailable then lastButton = 6
+                focusButton(lastButton)
             end if
         end if
         return true
@@ -833,14 +1050,23 @@ function handleMainKeys(key) as boolean
             end if
         else
             ' Normal navigation
-            if m.currentFocusedButton < 5
+            lastButton = 5
+            if m.top.channelAvailable then lastButton = 6
+            if m.currentFocusedButton < lastButton
                 focusButton(m.currentFocusedButton + 1)
             else
                 focusButton(0) ' Wrap to back button
             end if
         end if
         return true
+    else if key = "back" and m.isSeekMode
+        ' Back cancels a pending preview and keeps the controls on screen.
+        cancelSeekPreview()
+        return true
     else if key = "down" or key = "back"
+        ' Hiding the controls also drops a pending preview, so no paused
+        ' video is left with an invisible, unapplied seek.
+        cancelSeekPreview()
         hideOverlay()
         return true
     else if key = "OK"
@@ -849,18 +1075,18 @@ function handleMainKeys(key) as boolean
     else if key = "play"
         togglePlayPause()
         return true
-    else if key = "rewind"
+    else if key = "rewind" or key = "fastforward"
         if not m.isLiveStream
-            m.buttonHeld = "left"
-            m.buttonHoldTimer.control = "start"
-            seekRelative(-10)
-        end if
-        return true
-    else if key = "fastforward"
-        if not m.isLiveStream
-            m.buttonHeld = "right"
-            m.buttonHoldTimer.control = "start"
-            seekRelative(10)
+            direction = "right"
+            if key = "rewind" then direction = "left"
+            ' A repeated press of the key already held is the same hold.
+            if m.buttonHeld = direction then return true
+            startHold(direction)
+            if key = "rewind"
+                seekRelative(-10)
+            else
+                seekRelative(10)
+            end if
         end if
         return true
     end if
@@ -907,6 +1133,11 @@ function handleTimeTravelKeys(key) as boolean
 end function
 
 sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    destroyAdCountdown()
+    m.top.unobserveField("content")
+    m.bookmarkTask = destroyTask(m.bookmarkTask, "response")
     if m.fadeAwayTimer <> invalid
         m.fadeAwayTimer.control = "stop"
         m.fadeAwayTimer.unobserveField("fire")
@@ -915,6 +1146,7 @@ sub onDestroy()
         m.buttonHoldTimer.control = "stop"
         m.buttonHoldTimer.unobserveField("fire")
     end if
+    m.buttonHeld = invalid
     if m.messageTimer <> invalid
         m.messageTimer.control = "stop"
         m.messageTimer.unobserveField("fire")
@@ -925,4 +1157,11 @@ sub onDestroy()
     m.top.unobserveField("duration")
     m.top.unobserveField("bufferingStatus")
     m.top.unobserveField("video_type")
+    if m.loadingSpinner <> invalid then m.loadingSpinner.control = "stop"
+    if m.timeTravelDialog <> invalid then m.timeTravelDialog.visible = false
+    m.top.control = "stop"
+end sub
+
+sub onAdContentChanged()
+    ignored = clearAdCountdown(m.adOwner)
 end sub

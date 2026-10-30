@@ -23,6 +23,8 @@
         <function name="resetErrorState" />
         <function name="shouldGiveUp" />
         <function name="getErrorStatistics" />
+        <function name="classifyError" />
+        <function name="getUserFriendlyErrorMessage" />
     </interface>
     
     <script type="text/brightscript" uri="VideoErrorHandler.brs" />

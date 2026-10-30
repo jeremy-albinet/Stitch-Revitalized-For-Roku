@@ -29,7 +29,7 @@ function getGameDirectoryQuery()
             "channelsCount": 40
         }
     })
-    if rsp = invalid
+    if graphQLFieldFailed(rsp, ["game", "streams", "edges"])
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid

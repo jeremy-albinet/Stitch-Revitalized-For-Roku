@@ -1,69 +1,67 @@
-<component name="Settings" extends="SceneManagerGroup" initialFocus="categoryList">
+<component name="Settings" extends="SceneManagerGroup" initialFocus="settingsMenu">
     <interface>
+        <function name="onDestroy" />
         <field id="finished" type="bool" />
     </interface>
     <children>
-        <Group translation="[10, 96]">
-            <Rectangle width="1920" height="1080" color="0x0e0e10FF" />
-            <!-- Sidebar for categories -->
-            <LabelList
-                id="categoryList"
-                translation="[40, 0]"
-                itemSize="[200, 50]"
-                focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null"
-                vertFocusAnimationStyle="floatingFocus"
-                itemSpacing="[0,5]"
-                focusedColor="0x9147FFFF"
-                />
-            <!-- Main settings list for selected category, now closer to the left and with less spacing -->
-            <LabelList
-                id="settingsMenu"
-                translation="[100, 20]"
-                itemSize="[720, 50]"
-                numRows="10"
-                focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="pkg:/images/focusfootprint_dim.9.png"
-                vertFocusAnimationStyle="floatingFocus"
-                itemSpacing="[0,5]"
-                focusedColor="0x9147FFFF"
-                />
-            <!-- Modern card for setting details, moved left for balance -->
-            <Rectangle
-                id="detailsCard"
-                translation="[900, 20]"
-                width="914"
-                height="780"
-                color="0x18181bFF"
-                opacity="0.95"
-                />
-            <LayoutGroup
-                translation="[930, 40]"
-                id="settingDetail"
-                vertAlignment="top"
-                horizAlignment="left"
-                itemSpacings="[20]"
-                >
-                <ScrollingLabel font="font:LargeSystemFont" id="settingTitle" maxWidth="854" />
-                <Label id="settingDesc" width="854" wrap="true" color="0xC8C8D0FF" />
-                <RadioButtonList id="boolSetting" checkedIconUri="pkg:/images/checkmark.png" focusedCheckedIconUri="pkg:/images/checkmark.png" itemSize="[854, 72]" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus">
-                    <ContentNode role="content">
-                        <ContentNode title="Disabled" />
-                        <ContentNode title="Enabled" />
-                    </ContentNode>
-                </RadioButtonList>
-            </LayoutGroup>
-            <RadioButtonList id="radioSetting" checkedIconUri="pkg:/images/checkmark.png" focusedCheckedIconUri="pkg:/images/checkmark.png" translation="[930, 230]" itemSize="[854, 72]" visible="false" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus" />
-            <Poster
-                id="supportQrPoster"
-                translation="[930, 230]"
-                uri="pkg:/images/qr_buymeacoffee.png"
-                width="240"
-                height="240"
+        <Rectangle id="background" translation="[0,64]" width="1280" height="656" color="0x0E0E10FF" />
+        <Label id="sectionTitle" translation="[110,66]" width="1122" height="26" color="0xADADB8FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+        </Label>
+        <!-- Each row shows the setting name and its current value -->
+        <MarkupList
+            id="settingsMenu"
+            translation="[110,96]"
+            itemComponentName="SettingsListItem"
+            itemSize="[520,60]"
+            itemSpacing="[0,4]"
+            numRows="9"
+            vertFocusAnimationStyle="floatingFocus"
+            focusBitmapUri="pkg:/images/transparent.9.png"
+            focusFootprintBitmapUri="pkg:/images/transparent.9.png" />
+        <Rectangle id="scrollTrack" visible="false" translation="[642,96]" width="4" height="572" color="0x323239FF">
+            <Rectangle id="scrollThumb" width="4" height="24" color="0xBF94FFFF" />
+        </Rectangle>
+        <Label id="scrollPosition" visible="false" translation="[110,680]" width="520" height="26" horizAlign="right" color="0xADADB8FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+        </Label>
+        <Poster id="detailsCard" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" translation="[662,96]" width="570" height="592" />
+        <LayoutGroup
+            id="settingDetail"
+            translation="[694,128]"
+            layoutDirection="vert"
+            vertAlignment="top"
+            horizAlignment="left"
+            itemSpacings="[16]">
+            <Label id="settingTag" visible="false" color="0xFFD37AFF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+            </Label>
+            <Label id="settingTitle" width="506" wrap="true" maxLines="2" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="28" />
+            </Label>
+            <Label id="settingDesc" width="506" wrap="true" maxLines="8" lineSpacing="6" color="0xADADB8FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+            </Label>
+            <Poster id="supportQrPoster" visible="false" uri="pkg:/images/qr_buymeacoffee.png" width="240" height="240" loadDisplayMode="scaleToFit" />
+            <Label id="settingValue" visible="false" width="506" wrap="true" maxLines="2" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+            </Label>
+            <!-- Off/On or the setting's options; focusable after OK -->
+            <RadioButtonList
+                id="optionList"
                 visible="false"
-                />
-
-        </Group>
+                itemSize="[506,44]"
+                itemSpacing="[0,4]"
+                numRows="6"
+                vertFocusAnimationStyle="floatingFocus"
+                color="0xEFEFF1FF"
+                focusedColor="0xFFFFFFFF"
+                focusBitmapUri="pkg:/images/twitch-redesign/focus-round6.9.png"
+                focusFootprintBitmapUri="pkg:/images/transparent.9.png" />
+        </LayoutGroup>
     </children>
     <script type="text/brightscript" uri="settings.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
 </component>

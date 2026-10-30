@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="ChatAnimationAsset" extends="Task">
+    <interface>
+        <field id="request" type="assocarray" />
+        <field id="response" type="assocarray" alwaysNotify="true" />
+        <field id="stopRequested" type="bool" value="false" />
+    </interface>
+    <script uri="ChatAnimationAsset.brs" type="text/brightscript" />
+    <script uri="pkg:/source/utils/chatAnimationWebp.brs" type="text/brightscript" />
+    <script uri="pkg:/source/utils/chatAnimationGif.brs" type="text/brightscript" />
+    <script uri="ChatGifAtlas.brs" type="text/brightscript" />
+    <script uri="pkg:/source/utils/ircGifs.brs" type="text/brightscript" />
+    <script uri="pkg:/source/utils/ircEmotes.brs" type="text/brightscript" />
+</component>

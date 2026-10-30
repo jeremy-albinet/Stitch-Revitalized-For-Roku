@@ -17,6 +17,8 @@ multi-line text. You can only use EmojiLabel for single lines at a time. -->
     <!-- <script type="text/brightscript" uri="unidecode.brs" /> -->
 
     <interface>
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
         <!-- Set to the text to display. The text will be searched for emoji characters, and those
         characters will be
         replaced with posters referencing the Twemoji character instead.
@@ -66,6 +68,7 @@ multi-line text. You can only use EmojiLabel for single lines at a time. -->
         <function name="getAllComponents" />
     </interface>
     <children>
+        <Timer id="scrollStartTimer" duration="1" repeat="false" />
         <Timer
             id='timer'
             repeat='true' />

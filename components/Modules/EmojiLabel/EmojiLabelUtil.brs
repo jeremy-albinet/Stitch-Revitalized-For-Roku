@@ -39,12 +39,11 @@ function emojiPointName(rawText as string) as string
     if foundZeroWidth
         codePoint = toCodePoint(unicodeSurrogates)
     else
-        ' Remove modifiers for FEOF since there is not a zero width modifier
-        removeModsRegex = createObject("roRegex", "\x{FE0F}", "")
-        trimmedText = removeModsRegex.replace(rawText, "")
+        ' Twemoji removes VS16 only outside ZWJ sequences.
+        trimmedText = rawText.replace(chr(&hFE0F), "")
         unicodeSurrogates = []
-        for i = 0 to rawText.len() - 1
-            unicodeSurrogates.push(asc(rawText.mid(i, 1)))
+        for i = 0 to trimmedText.len() - 1
+            unicodeSurrogates.push(asc(trimmedText.mid(i, 1)))
         end for
 
         codePoint = toCodePoint(unicodeSurrogates)
@@ -83,7 +82,69 @@ end function
 ' Parameter: size: The size for the emoji. Default is "72x72"
 ' Returns: Returns valid URI to retreive the specified emoji from the Twemoji project.
 function toURI(pointName as string, size = "72x72" as string) as string
-    template = "https://twemoji.maxcdn.com/v/latest/{size}/{point}.png"
+    template = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.3/assets/{size}/{point}.png"
 
     return template.replace("{size}", size).replace("{point}", pointName)
+end function
+
+' Shared by Chat and EmojiLabel; compile once per component, never per word.
+function emojiPattern() as dynamic
+    if m.emojiRegex = invalid and m.emojiRegexFailed <> true
+        try
+            m.emojiRegex = CreateObject("roRegex", emojiRegexSource(), "m")
+        catch e
+            m.emojiRegex = invalid
+        end try
+        if m.emojiRegex = invalid then m.emojiRegexFailed = true
+    end if
+    return m.emojiRegex
+end function
+
+' Leave ordinary scripts and accents untouched. Only the versioned Twemoji
+' pattern selects images; offsets into IRC text have already been consumed.
+function emojiTextRuns(text as string) as object
+    runs = []
+    pattern = emojiPattern()
+    matches = []
+    if pattern <> invalid
+        try
+            matches = pattern.matchAll(text)
+        catch e
+            matches = []
+        end try
+    end if
+    for each match in matches
+        raw = match[0]
+        loc = text.instr(raw)
+        if loc >= 0 and raw <> ""
+            if loc > 0 then runs.push({ text: text.left(loc), uri: "" })
+            runs.push({ text: raw, uri: emojiPointName(raw) })
+            text = text.mid(loc + raw.len())
+        end if
+    end for
+    if text <> "" then runs.push({ text: text, uri: "" })
+    return runs
+end function
+
+' Archivo supports these small textual fallbacks, unlike the original emoji.
+function emojiFallback(text as string) as string
+    if text.instr(chr(&h2764)) >= 0 then return "<3"
+    return "[emoji]"
+end function
+
+' Iterate whole code points on both native Roku and UTF-16 simulator strings.
+function emojiCharacters(text as string) as object
+    chars = []
+    index = 0
+    while index < text.len()
+        size = 1
+        value = asc(text.mid(index, 1))
+        if value >= &hD800 and value <= &hDBFF and index + 1 < text.len()
+            low = asc(text.mid(index + 1, 1))
+            if low >= &hDC00 and low <= &hDFFF then size = 2
+        end if
+        chars.push(text.mid(index, size))
+        index += size
+    end while
+    return chars
 end function

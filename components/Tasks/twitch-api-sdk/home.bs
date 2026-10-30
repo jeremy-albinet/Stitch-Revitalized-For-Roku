@@ -8,11 +8,16 @@ function getHomePageQuery() as object
             "requestID": getRandomUUID()
         }
     })
-    if rsp <> invalid
+    ' Sign-in can use currentUser even when shelves fail. Browse explicitly
+    ' requires shelves so an account result cannot hide its section failure.
+    currentUser = invalid
+    if not graphQLFieldFailed(rsp, ["currentUser"]) then currentUser = rsp.data.currentUser
+    usableUser = type(currentUser) = "roAssociativeArray" and m.top.request?.requireShelves <> true
+    if usableUser or not graphQLFieldFailed(rsp, ["shelves", "edges"])
         m.top.response = {
             shelves: api.twitch.home.extractShelves(rsp),
             errors: rsp?.errors ?? [],
-            currentUser: rsp?.data?.currentUser
+            currentUser: currentUser
         }
     else
         m.top.response = invalid
@@ -22,6 +27,8 @@ function getHomePageQuery() as object
 end function
 
 function getFollowingPageQuery() as object
+    ' Signed-in requests show the viewer's follows; anonymous ones show shelves.
+    signedIn = get_user_setting("access_token") <> invalid
     rsp = TwitchGraphQLRequest({
         query: ReadAsciiFile("pkg:/source/graphql/FollowingPage_Query.gql"),
         variables: {
@@ -36,7 +43,12 @@ function getFollowingPageQuery() as object
             "requestID": getRandomUUID()
         }
     })
-    if rsp <> invalid
+    if signedIn
+        failed = graphQLFieldFailed(rsp, ["user", "followedLiveUsers", "edges"]) or graphQLFieldFailed(rsp, ["user", "follows", "edges"])
+    else
+        failed = graphQLFieldFailed(rsp, ["shelves", "edges"])
+    end if
+    if not failed
         m.top.response = {
             shelves: api.twitch.home.extractShelves(rsp),
             liveFollows: api.twitch.home.extractLiveFollows(rsp),
@@ -199,7 +211,7 @@ end namespace
 
 function getRecommendedSections() as object
     rsp = TwitchGraphQLRequest({
-        operationName: "Shelves",
+        "operationName": "Shelves",
         variables: {
             "imageWidth": 50,
             "itemsPerRow": 3,
@@ -216,9 +228,9 @@ function getRecommendedSections() as object
             "verbose": false
         },
         extensions: {
-            persistedQuery: {
+            "persistedQuery": {
                 version: 1,
-                sha256Hash: "b6f0c72c747457b73107f6aa00bd6a5bb294539d2de5398646e949c863662543"
+                "sha256Hash": "b6f0c72c747457b73107f6aa00bd6a5bb294539d2de5398646e949c863662543"
             }
         }
     })

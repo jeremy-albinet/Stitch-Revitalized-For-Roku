@@ -10,34 +10,34 @@ namespace tests
         @it("returns correct size for LIVE with row label")
         sub liveWithLabel()
             config = getRowConfig("LIVE", true)
-            m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
         end sub
 
         @it("returns correct size for LIVE without row label")
         sub liveNoLabel()
             config = getRowConfig("LIVE", false)
-            m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 280)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 235)
         end sub
 
         @it("returns correct size for VOD with row label")
         sub vodWithLabel()
             config = getRowConfig("VOD", true)
-            m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
         end sub
 
         @it("returns tall row height for LIVE with label")
         sub liveTallWithLabel()
             config = getRowConfig("LIVE", true, true)
-            m.assertEqual(config.rowHeight, 340)
+            m.assertEqual(config.rowHeight, 295)
         end sub
 
         @it("returns tall row height for LIVE without label")
         sub liveTallNoLabel()
             config = getRowConfig("LIVE", false, true)
-            m.assertEqual(config.rowHeight, 300)
+            m.assertEqual(config.rowHeight, 255)
         end sub
 
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -48,14 +48,14 @@ namespace tests
         sub gameWithLabel()
             config = getRowConfig("GAME", true)
             m.assertEqual(config.itemSize, [188, 250])
-            m.assertEqual(config.rowHeight, 325)
+            m.assertEqual(config.rowHeight, 355)
         end sub
 
         @it("returns correct size for GAME without row label")
         sub gameNoLabel()
             config = getRowConfig("GAME", false)
             m.assertEqual(config.itemSize, [188, 250])
-            m.assertEqual(config.rowHeight, 305)
+            m.assertEqual(config.rowHeight, 315)
         end sub
 
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -83,8 +83,8 @@ namespace tests
         @it("returns LIVE/VOD config for CLIP content type")
         sub clipType()
             config = getRowConfig("CLIP", true)
-            m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.itemSize, [320, 180])
+            m.assertEqual(config.rowHeight, 275)
         end sub
 
         @it("returns invalid for unknown content type")

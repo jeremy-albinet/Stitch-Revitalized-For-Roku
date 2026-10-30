@@ -2,11 +2,15 @@
 
 <component name="HeroScene" extends="SceneManagerScene">
   <interface>
+    <function name="onDestroy" />
+    <field id="supportsDisposal" type="boolean" value="true" />
     <field id="ready" type="boolean" value="false" />
     <field id="exitApp" type="boolean" value="false" />
     <field id="forcePress" type="boolean" value="false" />
+    <field id="localPlaybackSession" type="node" />
   </interface>
   <children>
+    <RokuDemuxSession id="rokuPlaybackSession" />
     <!-- RowList on HeroScene -->
     <MenuBar
       id="MenuBar"
@@ -19,6 +23,12 @@
       focusable="true"
       translation="[0,64]"
     />
+    <!-- First-launch device identity recovery; shown only while no page is open -->
+    <StatusPanel
+      id="startupStatus"
+      focusable="true"
+      translation="[110,200]"
+    />
   </children>
   <script type="text/brightscript" uri="heroScene.brs" />
   <script type="text/brightscript" uri="pkg:/source/changelog.brs" />
@@ -26,4 +36,5 @@
   <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/sceneFactory.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/lifecycle.brs" />
 </component>

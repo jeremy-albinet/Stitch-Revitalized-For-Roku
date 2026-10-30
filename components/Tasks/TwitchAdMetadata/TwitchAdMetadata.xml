@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="TwitchAdMetadata" extends="Task">
+    <interface>
+        <field id="owner" type="string" />
+        <field id="source" type="string" />
+        <field id="sourceKind" type="string" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <field id="response" type="assocarray" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdClock.brs" />
+    <script type="text/brightscript" uri="TwitchAdMetadata.brs" />
+</component>

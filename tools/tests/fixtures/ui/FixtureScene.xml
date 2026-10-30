@@ -1,0 +1,10 @@
+<component name="FixtureScene" extends="Scene">
+    <interface><function name="fixtureRoute" /></interface>
+    <script uri="scene.brs" />
+    <script uri="HeroActual.brs" />
+    <script uri="pkg:/source/constants.brs" />
+    <script uri="pkg:/source/utils/misc.brs" />
+    <script uri="pkg:/source/utils/sceneFactory.brs" />
+    <script uri="pkg:/source/utils/lifecycle.brs" />
+    <script uri="pkg:/source/utils/config.brs" />
+</component>

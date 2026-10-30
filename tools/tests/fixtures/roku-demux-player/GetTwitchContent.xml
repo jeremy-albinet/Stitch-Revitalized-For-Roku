@@ -1,0 +1,12 @@
+<!-- Inert content-fetch boundary; responses are fixture inputs, not network. -->
+<component name="GetTwitchContent" extends="Group">
+    <interface>
+        <field id="contentRequested" type="assocarray" />
+        <field id="response" type="node" alwaysNotify="true" />
+        <field id="metadata" type="array" />
+        <field id="enableRokuDemux" type="boolean" value="false" />
+        <field id="functionName" type="string" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+    <script uri="pkg:/components/GetTwitchContentBoundary.brs" />
+</component>

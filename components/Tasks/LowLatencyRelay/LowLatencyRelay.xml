@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="LowLatencyRelay" extends="Task">
+    <interface>
+        <field id="sourceUrl" type="string" />
+        <field id="startCount" type="integer" value="3" />
+        <field id="maxCount" type="integer" value="15" />
+        <field id="stopRequested" type="boolean" value="false" />
+        <!-- { url } once listening, or { failure } -->
+        <field id="status" type="assocarray" />
+        <!-- Twitch ended the stream (its playlist carries EXT-X-ENDLIST). -->
+        <field id="ended" type="boolean" value="false" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils/rokuDemuxCommon.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/lowLatencyPlaylist.brs" />
+    <script type="text/brightscript" uri="LowLatencyRelay.brs" />
+</component>

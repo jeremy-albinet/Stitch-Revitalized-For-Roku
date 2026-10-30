@@ -9,3 +9,4 @@ async def test_health_returns_200_with_status_and_version(client: TestClient) ->
     body = await resp.json()
     assert body["status"] == "ok"
     assert "version" in body
+    assert body["selected_master_version"] == 1

@@ -1,9 +1,18 @@
 sub init()
+    m.disposed = false
     m.top.observeField("focusedChild", "onGetFocus")
     m.rowList = m.top.findNode("browseRowList")
     m.rowList.observeField("itemSelected", "onItemSelected")
     m.rowList.observeField("rowItemFocused", "onItemFocused")
+    initPageStatus()
+    loadBrowse()
+end sub
 
+' Starts one finite request per section, on page load or explicit Try again.
+sub loadBrowse()
+    m.featuredTask = destroyTask(m.featuredTask, "response")
+    m.categoriesTask = destroyTask(m.categoriesTask, "response")
+    m.liveTask = destroyTask(m.liveTask, "response")
     m.categoriesCursor = ""
     m.liveCursor = ""
     m.categoriesMaxed = false
@@ -19,8 +28,14 @@ sub init()
     m.featuredEndIndex = -1
     m.categoriesEndIndex = -1
 
+    ' Page status follows each section's first response only; pagination
+    ' failures keep the rows already shown.
+    m.sectionSettled = { featured: false, categories: false, live: false }
+    m.sectionsFailed = 0
+    setPageStatus("loading", tr("Loading channels and categories…"))
+
     ' Fire all three API tasks in parallel — three sections of one scrollable list
-    m.featuredTask = createApiTask("getHomePageQuery", "onFeaturedResponse")
+    m.featuredTask = createApiTask("getHomePageQuery", "onFeaturedResponse", { requireShelves: true })
     m.categoriesTask = createApiTask("getBrowsePageQuery", "onCategoriesResponse")
     m.liveTask = createApiTask("getBrowsePagePopularQuery", "onLiveResponse")
 end sub
@@ -28,9 +43,16 @@ end sub
 ' ─── Featured section (shelves from getHomePageQuery) ────────────────────────
 
 sub onFeaturedResponse()
+    if m.disposed or m.featuredTask = invalid then return
     rsp = m.featuredTask.response
-    if rsp = invalid then return
-    if rsp.shelves = invalid or rsp.shelves.count() = 0 then return
+    if rsp = invalid
+        settleSection("featured", false)
+        return
+    end if
+    if rsp.shelves = invalid or rsp.shelves.count() = 0
+        settleSection("featured", true)
+        return
+    end if
     contentCollection = createObject("roSGNode", "ContentNode")
     for each shelf in rsp.shelves
         row = createObject("roSGNode", "ContentNode")
@@ -56,14 +78,17 @@ sub onFeaturedResponse()
     if featuredRowCount > 0 and m.categoriesEndIndex >= 0
         m.categoriesEndIndex = m.categoriesEndIndex + featuredRowCount
     end if
+    settleSection("featured", true)
 end sub
 
 ' ─── Categories section (games from getBrowsePageQuery) ──────────────────────
 
 sub onCategoriesResponse()
+    if m.disposed or m.categoriesTask = invalid then return
     rsp = m.categoriesTask.response
     if rsp = invalid
         m.categoriesBuffering = false
+        settleSection("categories", false)
         return
     end if
     if rsp.hasNextPage and rsp.cursor <> ""
@@ -93,10 +118,11 @@ sub onCategoriesResponse()
         insertRows(contentCollection, m.categoriesEndIndex)
         m.categoriesEndIndex = m.categoriesEndIndex + categoriesRowCount
     end if
+    settleSection("categories", true)
 end sub
 
 function buildCategoryRows(games as object) as object
-    itemsPerRow = 8
+    itemsPerRow = 5
     contentCollection = createObject("roSGNode", "ContentNode")
     if games = invalid or games.count() = 0
         return contentCollection
@@ -135,9 +161,11 @@ end sub
 ' ─── Live Channels section (streams from getBrowsePagePopularQuery) ───────────
 
 sub onLiveResponse()
+    if m.disposed or m.liveTask = invalid then return
     rsp = m.liveTask.response
     if rsp = invalid
         m.liveBuffering = false
+        settleSection("live", false)
         return
     end if
     if rsp.hasNextPage and rsp.cursor <> ""
@@ -153,6 +181,40 @@ sub onLiveResponse()
     m.liveBuffering = false
     ' Live always appends at the tail (after Featured + Categories).
     appendRows(contentCollection)
+    settleSection("live", true)
+end sub
+
+' ─── Page status ─────────────────────────────────────────────────────────────
+
+' Records a section's first response. Later pages of the same section are
+' pagination and never change the page status.
+sub settleSection(section as string, succeeded as boolean)
+    if m.sectionSettled[section] = true then return
+    m.sectionSettled[section] = true
+    if not succeeded then m.sectionsFailed += 1
+    updateBrowseStatus()
+end sub
+
+' Any loaded section hides the panel, so partial failures keep what loaded.
+' With nothing loaded, a failure offers Try again; responses that all
+' succeeded without content show the empty message.
+sub updateBrowseStatus()
+    if m.rowList.content <> invalid and m.rowList.content.getChildCount() > 0
+        hidePageStatus()
+        return
+    end if
+    for each section in m.sectionSettled
+        if not m.sectionSettled[section] then return
+    end for
+    if m.sectionsFailed > 0
+        setPageStatus("error", tr("Couldn't load Browse"), tr("Check your internet connection and try again."), ["retry"])
+    else
+        setPageStatus("empty", tr("Nothing to browse right now"), tr("Twitch didn't return any channels or categories. Try again in a moment."), ["retry"])
+    end if
+end sub
+
+sub onStatusAction(actionId as string)
+    if actionId = "retry" then loadBrowse()
 end sub
 
 function buildLiveRows(streams as object) as object
@@ -212,7 +274,7 @@ sub insertRows(contentCollection as object, insertIndex as integer)
         if firstChild <> invalid
             contentType = firstChild.contentType
         end if
-        config = getRowConfig(contentType, hasRowLabel)
+        config = getRowConfig(contentType, hasRowLabel, true)
         if config <> invalid
             rowItemSize.push(config.itemSize)
             rowHeights.push(config.rowHeight)
@@ -264,7 +326,7 @@ sub insertRows(contentCollection as object, insertIndex as integer)
     m.rowList.showRowLabel = newLabels
     m.rowList.rowHeights = newHeights
     m.rowList.numRows = m.rowList.content.getChildCount()
-    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
+    m.rowList.rowLabelColor = m.global.constants.ui.color.text
     m.rowList.visible = true
 end sub
 
@@ -283,7 +345,7 @@ sub appendRows(contentCollection as object)
         if firstChild <> invalid
             contentType = firstChild.contentType
         end if
-        config = getRowConfig(contentType, hasRowLabel)
+        config = getRowConfig(contentType, hasRowLabel, true)
         if config <> invalid
             rowItemSize.push(config.itemSize)
             rowHeights.push(config.rowHeight)
@@ -291,9 +353,13 @@ sub appendRows(contentCollection as object)
     end for
 
     if m.rowList.content <> invalid
-        existingSizes = m.rowList.rowItemSize
-        existingLabels = m.rowList.showRowLabel
-        existingHeights = m.rowList.rowHeights
+        ' SceneGraph field arrays are non-resizable on Roku; append to copies.
+        existingSizes = []
+        existingLabels = []
+        existingHeights = []
+        existingSizes.append(m.rowList.rowItemSize)
+        existingLabels.append(m.rowList.showRowLabel)
+        existingHeights.append(m.rowList.rowHeights)
         existingSizes.append(rowItemSize)
         existingLabels.append(showRowLabel)
         existingHeights.append(rowHeights)
@@ -311,7 +377,7 @@ sub appendRows(contentCollection as object)
     end if
 
     m.rowList.numRows = m.rowList.content.getChildCount()
-    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
+    m.rowList.rowLabelColor = m.global.constants.ui.color.text
     m.rowList.visible = true
 end sub
 
@@ -356,10 +422,14 @@ end sub
 ' ─── Focus ───────────────────────────────────────────────────────────────────
 
 sub onGetFocus()
-    if m.rowList.focusedChild = invalid
-        m.rowList.setFocus(true)
-    else if m.top.focusedChild <> invalid and m.top.focusedChild.id = "browseRowList"
-        m.rowList.focusedChild.setFocus(true)
+    if m.disposed then return
+    ' While the status panel offers actions, it holds page focus.
+    if not focusStatusIfActive()
+        if m.rowList.focusedChild = invalid
+            m.rowList.setFocus(true)
+        else if m.top.focusedChild <> invalid and m.top.focusedChild.id = "browseRowList"
+            m.rowList.focusedChild.setFocus(true)
+        end if
     end if
     updateRowListFocusFeedback()
 end sub
@@ -386,11 +456,15 @@ end function
 ' ─── Cleanup ─────────────────────────────────────────────────────────────────
 
 sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    m.top.lastFocus = invalid
     m.top.unobserveField("focusedChild")
     if m.rowList <> invalid
         m.rowList.unobserveField("itemSelected")
         m.rowList.unobserveField("rowItemFocused")
     end if
+    releasePageStatus()
     m.featuredTask = destroyTask(m.featuredTask, "response")
     m.categoriesTask = destroyTask(m.categoriesTask, "response")
     m.liveTask = destroyTask(m.liveTask, "response")

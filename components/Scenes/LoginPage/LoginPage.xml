@@ -1,45 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 
+<!-- Sign-in (device code) when signed out; Account panel when signed in. -->
 <component name="LoginPage" extends="SceneManagerGroup">
 
     <interface>
+        <function name="onDestroy" />
         <field id="finished" type="bool" />
+        <!-- Set after the user confirms sign-out from the Account panel -->
+        <field id="signedOut" type="bool" alwaysNotify="true" />
         <field id="login" type="string" />
     </interface>
 
     <script type="text/brightscript" uri="LoginPage.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
     <children>
-        <SimpleLabel
-            id="topText"
-            translation="[240,420]"
-            text="LoginPageTopText"
-            color="0xEFEFF1FF"
-            fontSize="28"
-            fontUri="pkg:/fonts/Archivo-Regular.otf" />
-        <SimpleLabel
-            translation="[240,490]"
-            id="code"
-            text=""
-            color="0xEFEFF1FF"
-            fontSize="96"
-            fontUri="pkg:/fonts/Archivo-Bold.otf" />
-        <SimpleLabel
-            id="bottomText"
-            translation="[240,650]"
-            text="LoginPageBottomText"
-            color="0xEFEFF1FF"
-            fontSize="24"
-            fontUri="pkg:/fonts/Archivo-Regular.otf" />
-        <ButtonGroup id="buttonGroup" visible="false" translation="[240,420]" />
-        <Poster
-            id="qrCode"
-            translation="[1300,370]"
-            width="400"
-            height="400"
-            uri="pkg:/images/qr_activate.png"
-            loadDisplayMode="scaleToFit"
-            visible="false" />
+        <Rectangle id="background" width="1280" height="656" translation="[0,64]" color="0x0E0E10FF" />
+        <CirclePoster id="avatar" width="120" height="120" translation="[110,104]" visible="false" />
+        <Label id="title" translation="[110,104]" width="720" color="0xEFEFF1FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="40" />
+        </Label>
+        <Label id="steps" translation="[110,168]" width="680" wrap="true" maxLines="3" lineSpacing="8" color="0xEFEFF1FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+        </Label>
+        <!-- Activation code on a plate; width follows the code -->
+        <Group id="codeGroup" translation="[110,236]" visible="false">
+            <Poster id="codePlate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x1F1F23FF" width="400" height="104" />
+            <Label id="code" translation="[24,24]" color="0xEFEFF1FF">
+                <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="56" />
+            </Label>
+        </Group>
+        <Label id="qrHint" translation="[110,364]" width="680" color="0xEFEFF1FF" visible="false">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="20" />
+        </Label>
+        <Label id="status" translation="[110,404]" width="680" wrap="true" maxLines="2" lineSpacing="6" color="0xADADB8FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
+        <Label id="optional" translation="[110,480]" width="680" wrap="true" maxLines="3" lineSpacing="6" color="0x848494FF">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
+        <!-- 280 px QR on a white plate with a 16 px quiet zone -->
+        <Group id="qrGroup" translation="[864,164]" visible="false">
+            <Rectangle width="312" height="312" color="0xFFFFFFFF" />
+            <Poster
+                id="qrCode"
+                translation="[16,16]"
+                width="280"
+                height="280"
+                uri="pkg:/images/qr_activate.png"
+                loadDisplayMode="scaleToFit" />
+        </Group>
+        <!-- Fonts are assigned in init; see applyActionStyle -->
+        <ButtonGroup
+            id="actions"
+            visible="false"
+            translation="[110,296]"
+            minWidth="320"
+            maxWidth="320"
+            buttonHeight="48"
+            itemSpacings="[12]"
+            iconUri=""
+            focusedIconUri=""
+            textColor="0xEFEFF1FF"
+            focusedTextColor="0xFFFFFFFF"
+            focusBitmapUri="pkg:/images/twitch-redesign/focus-round6.9.png"
+            focusFootprintBitmapUri="pkg:/images/transparent.9.png" />
     </children>
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
 </component>

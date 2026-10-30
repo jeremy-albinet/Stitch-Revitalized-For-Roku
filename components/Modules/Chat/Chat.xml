@@ -3,56 +3,98 @@
 <component name="Chat" extends="Group">
 
     <interface>
-        <field id="backgroundColor" type="string" value="0x000000FF" alias="chatBackground.color, chatPanel.color" />
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <field id="backgroundColor" type="string" value="0x0E0E10FF" onChange="onBackgroundColorChange" />
+        <field id="overlayMode" type="boolean" value="false" onChange="onBackgroundColorChange" />
+        <field id="backgroundOpacity" type="float" value="1" onChange="onBackgroundColorChange" />
         <field id="channel" type="string" onChange="onEnterChannel" alwaysNotify="true" />
-        <field id="channel_id" type="string" />
+        <field id="channel_id" type="string" onChange="onEmoteChannelIdChange" />
         <field id="focusable" type="Boolean" value="true" />
         <field id="control" type="bool" onChange="onVideoChange" value="false" alwaysNotify="true" />
         <field id="doneFocus" type="Boolean" value="false" />
         <field id="clientInfo" type="assocarray" />
         <field id="clientMessage" type="string" value="" />
-        <field id="width" type="integer" value="275" alias="chatPanel.width, chatBackground.width" onchange="updatePanelTranslation" />
-        <field id="height" type="integer" value="1080" alias="chatPanel.height, chatBackground.height" onChange="updatePanelTranslation" />
-        <field id="forceLive" type="bool" value="false" />
-        <field id="translation" type="vector2d" alias="chatPanel.translation" />
+        <field id="width" type="integer" value="275" onchange="updatePanelTranslation" />
+        <field id="height" type="integer" value="720" onChange="updatePanelTranslation" />
+        <field id="forceLive" type="bool" value="false" onChange="onChatTimingChange" />
+        <field id="delaySeconds" type="float" value="0" onChange="onChatTimingChange" />
+        <field id="connectionState" type="string" value="stopped" />
+        <field id="pausedForPerformance" type="boolean" value="false" onChange="onChatPerformancePause" />
+        <field id="hypeTrain" type="assocarray" onChange="onHypeTrainChange" alwaysNotify="true" />
+        <field id="pinnedMessage" type="assocarray" onChange="onPinnedMessageChange" alwaysNotify="true" />
         <field id="fontSize" type="integer" value="14" onChange="updatePanelTranslation" />
         <function name="stopJobs" />
+        <function name="suspendIfOverloaded" />
+        <function name="onDestroy" />
+        <function name="showPinnedMessage" />
     </interface>
 
     <script type="text/brightscript" uri="Chat.brs" />
+    <script type="text/brightscript" uri="ChatAnimations.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
     <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/uiContrast.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/misc.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/ircEmotes.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/ircGifs.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Modules/EmojiLabel/EmojiLabelRegex.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Modules/EmojiLabel/EmojiLabelUtil.brs" />
     <children>
         <MaskGroup
             id="MaskGroup" maskUri="pkg:/images/white-square-mask.png" visible="true">
             <Rectangle
                 id="chatBackground"
                 visible="true"
-                width="1920"
-                height="1080"
+                width="1280"
+                height="720"
                 opacity="1"
                 translation="[0,0]" />
             <Rectangle
                 id="chatPanel"
                 visible="true"
-                width="1920"
-                height="1080"
+                width="1280"
+                height="720"
                 opacity="1"
                 translation="[0,0]" />
         </MaskGroup>
+        <!-- Edge between the video and the chat column -->
+        <Rectangle id="chatDivider" color="0x323239FF" width="2" height="720" />
+        <Label id="chatStatus" translation="[12, 12]" width="251" height="130" wrap="true" numLines="5" visible="false" color="0xEFEFF1FF">
+            <font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
+        </Label>
+        <Rectangle id="hypePanel" visible="false" width="275" height="76" color="0x18181BFF">
+            <Label id="hypeTitle" translation="[12, 6]" width="251" height="26" color="0xBF94FFFF">
+                <font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+            </Label>
+            <Label id="hypeDetail" translation="[12, 33]" width="251" height="22" color="0xEFEFF1FF">
+                <font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            </Label>
+            <Rectangle id="hypeTrack" translation="[12, 64]" width="251" height="4" color="0x323239FF">
+                <Rectangle id="hypeProgress" width="0" height="4" color="0xBF94FFFF" />
+            </Rectangle>
+        </Rectangle>
+        <Rectangle id="pinPanel" visible="false" width="275" height="176" color="0x18181BFF">
+            <Label id="pinTitle" translation="[12, 6]" width="251" height="24" color="0xBF94FFFF">
+                <font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="18" />
+            </Label>
+            <Label id="pinAuthor" visible="false" translation="[12, 32]" width="251" height="22" color="0xEFEFF1FF">
+                <font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="16" />
+            </Label>
+            <Group id="pinAuthorRichText" translation="[12, 32]" clippingRect="[0, 0, 251, 22]" />
+            <Label id="pinText" visible="false" translation="[12, 58]" width="251" height="88" wrap="true" maxLines="4" ellipsisText="…" color="0xEFEFF1FF">
+                <font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            </Label>
+            <Group id="pinRichText" translation="[12, 58]" clippingRect="[0, 0, 251, 88]" />
+            <Label id="pinHint" translation="[12, 152]" width="251" height="20" color="0xADADB8FF">
+                <font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="14" />
+            </Label>
+        </Rectangle>
         <!-- <SimpleLabel
             translation="[0,0]"
             text=""
             color="0xEFEFF1FF"
             fontSize="12"
             fontUri="pkg:/fonts/Archivo-Regular.otf" /> -->
-        <ChatJob
-            id="ChatJob"
-            control="stop"
-        />
-        <EmoteJob
-            id="EmoteJob"
-        />
     </children>
 
 </component>

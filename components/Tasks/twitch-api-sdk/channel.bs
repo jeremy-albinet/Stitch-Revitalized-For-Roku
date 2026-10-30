@@ -1,3 +1,34 @@
+' Optional boundary-layer metadata: failure never changes playback authorization.
+function getContentAdvisoryQuery() as object
+    rsp = TwitchGraphQLRequest({
+        query: "query StitchAudienceAdvisory($login: String!) { user(login: $login) { stream { contentClassificationLabels { id localizedName } } } }",
+        variables: { login: m.top.request.params.login }
+    })
+    result = invalid
+    if not graphQLFieldFailed(rsp, ["user", "stream", "contentClassificationLabels"])
+        raw = rsp?.data?.user?.stream?.contentClassificationLabels
+        if GetInterface(raw, "ifArray") <> invalid
+            names = []
+            seen = {}
+            for each label in raw
+                if GetInterface(label, "ifAssociativeArray") = invalid then continue for
+                if GetInterface(label.id, "ifString") = invalid then continue for
+                id = label.id.Trim()
+                if id = "" or seen.DoesExist(id) then continue for
+                seen[id] = true
+                name = ""
+                if GetInterface(label.localizedName, "ifString") <> invalid then name = label.localizedName.Replace(Chr(10), " ").Replace(Chr(13), " ").Trim().Left(128)
+                names.Push(name)
+                if names.Count() = 8 then exit for
+            end for
+            result = { labels: names }
+        end if
+    end if
+    m.top.response = result
+    m.top.control = TaskControl.STOP
+    return invalid
+end function
+
 function getChannelHomeQuery() as object
     rsp = TwitchGraphQLRequest({
         query: ReadAsciiFile("pkg:/source/graphql/ChannelHome_Query.gql"),
@@ -8,17 +39,21 @@ function getChannelHomeQuery() as object
             "skipPlayToken": false
         }
     })
-    if rsp = invalid
+    if graphQLFieldFailed(rsp, ["channel"])
         m.top.response = invalid
         m.top.control = TaskControl.STOP
         return invalid
     end if
     channel = rsp?.data?.channel
     m.top.response = {
+        streamerId: channel?.id ?? "",
         description: channel?.description ?? "",
         followerCount: channel?.followers?.totalCount ?? 0,
         profileImageUrl: channel?.profileImageUrl,
         isLive: channel?.stream <> invalid,
+        liveTitle: channel?.broadcastSettings?.title ?? "",
+        liveViewersCount: channel?.stream?.viewersCount ?? 0,
+        liveGameDisplayName: channel?.stream?.game?.displayName ?? "",
         videoShelves: channel?.videoShelves?.edges ?? []
     }
     m.top.control = TaskControl.STOP
@@ -28,14 +63,14 @@ end function
 function getChannelShell()
     if m.top.request.params.id = invalid then return invalid
     rsp = TwitchGraphQLRequest({
-        operationName: "ChannelShell",
+        "operationName": "ChannelShell",
         variables: {
             login: m.top.request.params.id
         },
         extensions: {
-            persistedQuery: {
+            "persistedQuery": {
                 version: 1,
-                sha256Hash: "580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe"
+                "sha256Hash": "580ab410bcd0c1ad194224957ae2241e5d252b2c5173d8e0cce9d32d5bb14efe"
             }
         }
     })

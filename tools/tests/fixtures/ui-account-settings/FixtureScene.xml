@@ -1,0 +1,18 @@
+<component name="FixtureScene" extends="Scene">
+    <interface>
+        <function name="fixtureOpen" />
+        <function name="fixtureRead" />
+        <function name="fixtureCleanup" />
+        <function name="fixtureFinalCleanup" />
+        <function name="fixtureMenuSelection" />
+    </interface>
+    <script uri="scene.brs" />
+    <script uri="HeroActual.brs" />
+    <script uri="pkg:/source/constants.brs" />
+    <script uri="pkg:/source/utils/misc.brs" />
+    <script uri="pkg:/source/utils/config.brs" />
+    <script uri="pkg:/source/utils/sceneFactory.brs" />
+    <script uri="pkg:/source/utils/contentBuilder.brs" />
+    <script uri="pkg:/source/utils/lifecycle.brs" />
+    <script uri="pkg:/source/utils/analytics.brs" />
+</component>

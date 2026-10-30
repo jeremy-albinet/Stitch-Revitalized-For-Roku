@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The playback adapter supplies sanitized cues and a proven UTC presentation
+     clock. This component never interprets provider metadata or controls media. -->
+<component name="AdCountdown" extends="Group">
+    <interface>
+        <function name="beginContent" />
+        <function name="setCues" />
+        <function name="updatePresented" />
+        <function name="clear" />
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
+        <!-- Width of the video area: 1280 full screen or 960 beside chat. -->
+        <field id="videoAreaWidth" type="integer" value="1280" onChange="onLayoutChange" />
+        <!-- Already localized by the host. The numbered template uses {0}/{1}. -->
+        <field id="adLabel" type="string" value="Ad" onChange="onCopyChange" />
+        <field id="numberedAdLabel" type="string" value="Ad {0} of {1}" onChange="onCopyChange" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/source/utils/twitchAdCountdown.brs" />
+    <script type="text/brightscript" uri="AdCountdown.brs" />
+    <children>
+        <Poster id="plate" uri="pkg:/images/twitch-redesign/round6.9.png" blendColor="0x18181BEE" width="280" height="40" />
+        <Rectangle id="accent" color="0x9146FFFF" width="4" height="24" translation="[0, 8]" />
+        <Label id="adTitle" color="0xEFEFF1FF" width="140" height="40" translation="[18, 0]" vertAlign="center" wrap="false" maxLines="1" ellipsisText="…">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
+        </Label>
+        <Label id="adTime" color="0xEFEFF1FF" width="96" height="40" translation="[166, 0]" horizAlign="right" vertAlign="center" wrap="false" maxLines="1">
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="22" />
+        </Label>
+    </children>
+</component>

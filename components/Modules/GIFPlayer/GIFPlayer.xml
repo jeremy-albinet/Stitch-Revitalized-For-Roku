@@ -1,6 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <component name='GIFPlayer' extends='Poster'>
     <interface>
+        <function name="onDestroy" />
+        <field id="supportsDisposal" type="boolean" value="true" />
         <!-- <field
             id='spriteSheetUri'
             alias='poster.uri' />
@@ -33,4 +35,5 @@
             value='stop' /> -->
     </interface>
     <script uri="GIFPlayer.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
 </component>

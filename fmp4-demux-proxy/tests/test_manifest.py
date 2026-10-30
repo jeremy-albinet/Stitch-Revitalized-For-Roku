@@ -142,6 +142,7 @@ class TestRewriteMaster:
         out = rewrite(body, BASE_MASTER, config)
         assert "\r\n" in out
         assert out.count("\r\n") == body.count("\r\n")
+        assert "\n" not in out.replace("\r\n", "")
 
     def test_preserves_lf_line_endings(self, config: RewriteConfig) -> None:
         out = rewrite(MASTER_BASIC, BASE_MASTER, config)
@@ -264,10 +265,10 @@ class TestRewriteVariant:
 
 
 class TestSynthesizeMaster:
-    def test_default_codecs_and_bandwidth_when_no_hints(self, config: RewriteConfig) -> None:
+    def test_unknown_codecs_are_omitted_when_no_hints(self, config: RewriteConfig) -> None:
         out = rewrite(VARIANT_BASIC, BASE_VARIANT, config)
         assert "BANDWIDTH=4000000" in out
-        assert 'CODECS="avc1.64001f,mp4a.40.2"' in out
+        assert "CODECS=" not in out
         assert "RESOLUTION=" not in out
         assert "&track=audio" in out
         assert "&track=video" in out
@@ -294,10 +295,10 @@ class TestSynthesizeMaster:
         assert "BANDWIDTH=12583349" in out
         assert "RESOLUTION=3840x2160" in out
 
-    def test_malicious_codecs_rejected_uses_default(self, config: RewriteConfig) -> None:
+    def test_malicious_codecs_rejected_without_guessing(self, config: RewriteConfig) -> None:
         hints = VariantHints(codecs='"injection,EXTRA-TAG')
         out = rewrite(VARIANT_BASIC, BASE_VARIANT, config, hints=hints)
-        assert 'CODECS="avc1.64001f,mp4a.40.2"' in out
+        assert "CODECS=" not in out
         assert "EXTRA-TAG" not in out
 
     def test_malformed_resolution_ignored(self, config: RewriteConfig) -> None:

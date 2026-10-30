@@ -2,6 +2,8 @@
 sub setConstants()
     deviceInfo = CreateObject("roDeviceInfo")
     appInfo = CreateObject("roAppInfo")
+    uiResolutionWidth = deviceInfo.GetUIResolution().width
+    scaleFactor = uiResolutionWidth / 1280
     maxResolution = invalid
     for each res in deviceInfo.GetSupportedGraphicsResolutions()
         if maxResolution <> invalid
@@ -18,6 +20,7 @@ sub setConstants()
     if appInfo.IsDev() then appID = appID + "Dev"
     ' Set Global Constants
     m.global.addFields({
+        compactGrid: false,
         appID: appID,
         appInfo: {
             ID: appInfo.GetID(),
@@ -40,12 +43,9 @@ sub setConstants()
         channel7TVEmotes: {},
         twitchBadges: {},
         constants: {
-            ' Design space is fixed at 1920x1080. GetUIResolution() returns the physical
-            ' plane (1280 on an HD device) and must never feed layout math.
-            screenWidth: 1920,
-            screenHeight: 1080,
-            ' MaskGroup maskSize is in physical pixels, not design units.
-            maskScaleFactor: deviceInfo.GetUIResolution().width / 1920,
+            screenWidth: deviceInfo.GetUIResolution().width,
+            screenHeight: deviceInfo.GetUIResolution().height,
+            maskScaleFactor: scaleFactor,
             defaultIcons: {
                 search: "pkg:/images/iconSearch.png",
                 settings: "pkg:/images/icons/sliders.png",
@@ -334,6 +334,71 @@ sub setConstants()
                 green: "0x00f593FF",
                 blue: "0x1f69ffFF",
                 magenta: "0xc53dffFF"
+            },
+            ' Interface tokens (HD 1280x720 coordinates), from Twitch's dark
+            ' theme. Purple marks focus and selection only (plus the Stitch
+            ' wordmark); red marks LIVE only. XML literals mirror these values.
+            ui: {
+                color: {
+                    canvas: "0x0E0E10FF",
+                    chrome: "0x18181BFF",
+                    surface: "0x1F1F23FF",
+                    raised: "0x26262CFF",
+                    divider: "0x323239FF",
+                    scrim: "0x0E0E10D9",
+                    ' Stat pills over thumbnails (viewers, dates).
+                    overlay: "0x000000B3",
+                    brand: "0x9147FFFF",
+                    text: "0xEFEFF1FF",
+                    textSecondary: "0xADADB8FF",
+                    textTertiary: "0x848494FF",
+                    onAccent: "0xFFFFFFFF",
+                    focus: "0xA970FFFF",
+                    focusFill: "0x9147FFFF",
+                    live: "0xEB0400FF",
+                    error: "0xFF8280FF",
+                    warn: "0xFFD37AFF",
+                    success: "0x00F593FF",
+                    link: "0xBF94FFFF"
+                },
+                font: {
+                    regular: "pkg:/fonts/Archivo-Regular.otf",
+                    bold: "pkg:/fonts/Archivo-Bold.otf"
+                },
+                ' Sizes by role; sentences use 18 or larger.
+                type: {
+                    display: 40,
+                    title: 28,
+                    rowLabel: 24,
+                    headline: 22,
+                    body: 20,
+                    meta: 18,
+                    caption: 16
+                },
+                space: {
+                    xs: 4,
+                    s: 8,
+                    m: 16,
+                    l: 24,
+                    xl: 32,
+                    xxl: 48,
+                    xxxl: 64
+                },
+                layout: {
+                    headerHeight: 64,
+                    railWidth: 78,
+                    contentX: 110,
+                    contentY: 88,
+                    safeLeft: 48,
+                    safeRight: 1232,
+                    safeTop: 32,
+                    safeBottom: 688,
+                    statusY: 200,
+                    statusWidth: 720,
+                    ' Offset of the purple slab behind a focused card.
+                    cardLift: 8,
+                    cardAvatar: 40
+                }
             },
             icons: {
                 arrow_down: "pkg:/images/icons/chevron-down.png",

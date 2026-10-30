@@ -16,7 +16,8 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     app = create_app(config=cfg)
-    web.run_app(app, host="0.0.0.0", port=cfg.port)
+    # Default aiohttp access logs include signed playback URLs in the query string.
+    web.run_app(app, host="0.0.0.0", port=cfg.port, access_log=None, max_line_size=65536)
 
 
 if __name__ == "__main__":

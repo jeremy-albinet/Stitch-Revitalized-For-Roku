@@ -1,4 +1,5 @@
 sub init()
+    m.disposed = false
     m.animator = CreateObject("roSGNode", "Timer")
     m.animator.ObserveField("fire", "displayNextFrame")
     m.animator.repeat = true
@@ -33,6 +34,7 @@ sub finish()
 end sub
 
 sub displayNextFrame()
+    if m.disposed or m.poster = invalid then return
     m.frameIndex++
     if m.frameIndex >= m.frames.count()
         m.frameIndex = 0
@@ -40,4 +42,14 @@ sub displayNextFrame()
 
     m.poster.uri = m.frames[m.frameIndex]
     m.animator.duration = m.frameDelay[m.frameIndex]
+end sub
+
+sub onDestroy()
+    if m.disposed then return
+    m.disposed = true
+    m.animator.control = "stop"
+    m.animator.unobserveField("fire")
+    m.frames = []
+    m.frameDelay = []
+    m.poster = invalid
 end sub

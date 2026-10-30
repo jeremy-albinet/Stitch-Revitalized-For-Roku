@@ -1,0 +1,7 @@
+<!-- Offline boundary for the recently-watched writer: no registry access. -->
+<component name="RW_AddTask" extends="Group">
+    <interface>
+        <field id="entry" type="assocarray" />
+        <field id="control" type="string" value="stop" />
+    </interface>
+</component>
