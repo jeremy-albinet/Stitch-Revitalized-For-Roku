@@ -244,10 +244,10 @@ sub onChatVisibilityChange()
     ' Adjust layout based on chat visibility
     if m.top.chatIsVisible
         m.progressBarBase.width = 1480
-        m.controlOverlay.translation = [0, 940]
+        m.controlOverlay.translation = [0, 920]
     else
         m.progressBarBase.width = 1800
-        m.controlOverlay.translation = [0, 940]
+        m.controlOverlay.translation = [0, 920]
     end if
 
     ' Update all progress bar elements to match new width
