@@ -17,7 +17,7 @@ function getRowConfig(contentType, hasRowLabel as boolean, tallRows = false as b
     if contentType = "LIVE" or contentType = "VOD" or contentType = "CLIP"
         tile = getStreamTile()
         ' Room below the poster for title + subtitle, plus the row label.
-        rowHeight = tile.height + 55
+        rowHeight = tile.height + 60
         if hasRowLabel then rowHeight += 40
         if tallRows then rowHeight += 20
         return { itemSize: [tile.width, tile.height], rowHeight: rowHeight }

@@ -48,7 +48,7 @@
             maxWidth="320"
             color="0xFFFFFFFF"
             translation="[0, 200]">
-            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="20" />
+            <Font role="font" uri="pkg:/fonts/Archivo-Bold.otf" size="24" />
         </EmojiLabel>
         <Label
             id="itemSubtitle"
@@ -57,7 +57,7 @@
             horizAlign="left"
             color="0xFFFFFFFF"
             translation="[0, 210]">
-            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="16" />
+            <Font role="font" uri="pkg:/fonts/Archivo-Regular.otf" size="18" />
         </Label>
         <Poster
             id="viewsRect"
