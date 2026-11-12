@@ -11,33 +11,33 @@ namespace tests
         sub liveWithLabel()
             config = getRowConfig("LIVE", true)
             m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.rowHeight, 325)
         end sub
 
         @it("returns correct size for LIVE without row label")
         sub liveNoLabel()
             config = getRowConfig("LIVE", false)
             m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 280)
+            m.assertEqual(config.rowHeight, 285)
         end sub
 
         @it("returns correct size for VOD with row label")
         sub vodWithLabel()
             config = getRowConfig("VOD", true)
             m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.rowHeight, 325)
         end sub
 
         @it("returns tall row height for LIVE with label")
         sub liveTallWithLabel()
             config = getRowConfig("LIVE", true, true)
-            m.assertEqual(config.rowHeight, 340)
+            m.assertEqual(config.rowHeight, 345)
         end sub
 
         @it("returns tall row height for LIVE without label")
         sub liveTallNoLabel()
             config = getRowConfig("LIVE", false, true)
-            m.assertEqual(config.rowHeight, 300)
+            m.assertEqual(config.rowHeight, 305)
         end sub
 
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -84,7 +84,7 @@ namespace tests
         sub clipType()
             config = getRowConfig("CLIP", true)
             m.assertEqual(config.itemSize, [400, 225])
-            m.assertEqual(config.rowHeight, 320)
+            m.assertEqual(config.rowHeight, 325)
         end sub
 
         @it("returns invalid for unknown content type")

@@ -87,7 +87,7 @@ sub applyStreamLayout()
     m.itemlabel.maxwidth = tile.width
     m.itemlabel.translation = [0, tile.height + 20]
     m.itemSubtitle.width = tile.width
-    m.itemSubtitle.translation = [0, tile.height + 30]
+    m.itemSubtitle.translation = [0, tile.height + 36]
     m.viewsRect.translation = [5, tile.height - 23]
     m.itemViewers.translation = [7, tile.height - 23]
 end sub
