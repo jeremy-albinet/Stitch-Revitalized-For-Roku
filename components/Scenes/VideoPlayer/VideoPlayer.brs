@@ -297,8 +297,23 @@ sub playContent(isRecovery = false as boolean)
         ' Resume VODs/clips where the viewer left off. This must be PlayStart on
         ' the content node, set before the content is assigned: a seek issued
         ' while the player is not yet playing is discarded.
-        if not isLiveContent and m.video.video_id <> "" and m.video.videoBookmarks.DoesExist(m.video.video_id)
-            resumeSeconds = Val(m.video.videoBookmarks[m.video.video_id])
+        '
+        ' On a recovery retry of the same VOD, the position reached in this
+        ' session wins over the persisted bookmark. saveVideoBookmark() only
+        ' pushes to Twitch, so the local copy lags by up to 20s and can be
+        ' hundreds of seconds stale; without this the retry rewinds.
+        if m.lastVodId = invalid
+            m.lastVodId = ""
+            m.lastVodPosition = 0
+        end if
+        if not isLiveContent and m.video.video_id <> ""
+            resumeSeconds = 0
+            if m.video.videoBookmarks.DoesExist(m.video.video_id)
+                resumeSeconds = Val(m.video.videoBookmarks[m.video.video_id])
+            end if
+            if isRecovery and m.lastVodId = m.video.video_id and m.lastVodPosition > resumeSeconds
+                resumeSeconds = m.lastVodPosition
+            end if
             if resumeSeconds > 0
                 contentNodeToPlay.PlayStart = resumeSeconds
             end if
@@ -482,6 +497,11 @@ sub onPositionChanged()
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
         end if
+    else if m.video <> invalid and m.video.video_id <> ""
+        ' VOD/clip: remember where we are so a recovery retry resumes here
+        ' instead of rewinding to the last bookmark pushed to Twitch.
+        m.lastVodId = m.video.video_id
+        m.lastVodPosition = m.video.position
     end if
 
 end sub
