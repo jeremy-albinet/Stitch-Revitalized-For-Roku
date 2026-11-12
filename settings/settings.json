@@ -141,7 +141,7 @@
         "description": "Plays Enhanced Broadcasting streams without a proxy server by splitting them inside the app. Uses a bit more memory and CPU while playing those streams. Ignored when a Proxy URL is set.",
         "settingName": "proxy.builtin",
         "type": "bool",
-        "default": "false"
+        "default": "true"
     },
     {
         "title": "Proxy URL",
