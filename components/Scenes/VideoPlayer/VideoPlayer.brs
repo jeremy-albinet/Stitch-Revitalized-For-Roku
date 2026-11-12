@@ -293,6 +293,17 @@ sub playContent(isRecovery = false as boolean)
         if isLiveContent and isRecovery
             m.video.suppressStartupSeek = true
         end if
+
+        ' Resume VODs/clips where the viewer left off. This must be PlayStart on
+        ' the content node, set before the content is assigned: a seek issued
+        ' while the player is not yet playing is discarded.
+        if not isLiveContent and m.video.video_id <> "" and m.video.videoBookmarks.DoesExist(m.video.video_id)
+            resumeSeconds = Val(m.video.videoBookmarks[m.video.video_id])
+            if resumeSeconds > 0
+                contentNodeToPlay.PlayStart = resumeSeconds
+            end if
+        end if
+
         m.video.content = contentNodeToPlay
 
         if contentNodeToPlay.streamerProfileImageUrl <> invalid
@@ -306,12 +317,6 @@ sub playContent(isRecovery = false as boolean)
         end if
 
         m.video.visible = false ' Make visible after PlayerTask starts if needed
-
-        if m.video.video_id <> invalid and m.top.contentRequested.contentType <> "LIVE"
-            if m.video.videoBookmarks.DoesExist(m.video.video_id)
-                m.video.seek = Val(m.video.videoBookmarks[m.video.video_id])
-            end if
-        end if
 
         m.PlayerTask = CreateObject("roSGNode", "PlayerTask")
         m.PlayerTask.observeField("state", "taskStateChanged")
