@@ -52,15 +52,6 @@
                 </RadioButtonList>
             </LayoutGroup>
             <RadioButtonList id="radioSetting" checkedIconUri="pkg:/images/checkmark.png" focusedCheckedIconUri="pkg:/images/checkmark.png" translation="[930, 230]" itemSize="[854, 72]" visible="false" focusBitmapUri="pkg:/images/focusindicator.9.png" focusFootprintBitmapUri="null" focusedColor="0xFFFFFFFF" vertFocusAnimationStyle="floatingFocus" />
-            <Poster
-                id="supportQrPoster"
-                translation="[930, 230]"
-                uri="pkg:/images/qr_buymeacoffee.png"
-                width="240"
-                height="240"
-                visible="false"
-                />
-
         </Group>
     </children>
     <script type="text/brightscript" uri="settings.brs" />
