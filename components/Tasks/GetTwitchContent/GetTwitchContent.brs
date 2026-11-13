@@ -241,6 +241,16 @@ sub main()
         streams = []
         metadata = []
 
+        lowestSide = 2147483647
+        for each stream_item in stream_objects
+            if stream_item["RESOLUTION"] <> invalid and stream_item["URL"] <> invalid
+                dims = stream_item["RESOLUTION"].split("x")
+                side = Val(dims[0])
+                if Val(dims[1]) < side then side = Val(dims[1])
+                if side < lowestSide then lowestSide = side
+            end if
+        end for
+
         for each stream_item in stream_objects
             if stream_item["RESOLUTION"] <> invalid and stream_item["URL"] <> invalid
                 res = stream_item["RESOLUTION"].split("x")[1]
@@ -262,10 +272,10 @@ sub main()
                 shortSide = Val(res)
                 width = Val(stream_item["RESOLUTION"].split("x")[0])
                 if width < shortSide then shortSide = width
-                if m.global?.supportedgraphicsresolution <> invalid
-                    if shortSide > m.global.supportedgraphicsresolution
-                        ' ? "Res Skip: "; res
-                        continue for
+                if m.global?.maxVideoHeight <> invalid
+                    if shortSide > m.global.maxVideoHeight
+                        ' Never filter out every variant: the lowest one always stays.
+                        if shortSide > lowestSide then continue for
                     end if
                 end if
 
