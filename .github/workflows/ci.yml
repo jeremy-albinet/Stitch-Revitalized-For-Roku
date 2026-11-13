@@ -44,3 +44,31 @@ jobs:
         name: roku-package
         path: out/Stitch-Revitalized-For-Roku.zip
         retention-days: 7
+
+  # Roku's own certification checker (the same rules as the dashboard's Static Analysis step).
+  # Always fetches the latest sca-cmd so new deprecations surface here, not at submission.
+  static-analysis:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Download package
+      uses: actions/download-artifact@v7
+      with:
+        name: roku-package
+
+    - name: Setup Java
+      uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Install Roku Static Analysis (sca-cmd)
+      run: |
+        curl -sSfL -o "$RUNNER_TEMP/sca-cmd.zip" https://devtools.web.roku.com/static-channel-analysis/sca-cmd.zip
+        unzip -q "$RUNNER_TEMP/sca-cmd.zip" -d "$RUNNER_TEMP"
+
+    - name: Run static analysis
+      run: '"$RUNNER_TEMP/sca-cmd/bin/sca-cmd" Stitch-Revitalized-For-Roku.zip --exit error'
