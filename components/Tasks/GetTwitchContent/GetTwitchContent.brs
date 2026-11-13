@@ -182,16 +182,10 @@ sub main()
             end try
         end if
 
-        ' Detect Enhanced Broadcasting (transmux) from master manifest
+        ' TRANSCODESTACK="transmux" only means "no server transcodes" (plain TS too),
+        ' so it is not a verdict. Enhanced Broadcasting is detected from fMP4 below.
         isTransmux = false
         list = finalPlaylistContent.Split(chr(10))
-        for each manifestLine in list
-            if manifestLine.InStr("#EXT-X-TWITCH-INFO:") = 0 and manifestLine.InStr("TRANSCODESTACK=") > -1
-                if manifestLine.InStr("transmux") > -1
-                    isTransmux = true
-                end if
-            end if
-        end for
 
         fps = invalid
         stream_objects = []
@@ -431,8 +425,8 @@ sub main()
             end if
         end if
 
-        ' Detect fMP4 from the variant playlist if not already flagged via master manifest
-        if not isTransmux and content.url <> invalid and content.url <> ""
+        ' Detect fMP4 (Enhanced Broadcasting) from the variant playlist
+        if content.url <> invalid and content.url <> ""
             try
                 variantReq = HttpRequest({
                     url: content.url,
@@ -451,10 +445,7 @@ sub main()
                     retries++
                 end while
                 if variantRsp <> invalid
-                    variantBody = variantRsp.getString()
-                    if variantBody <> invalid and variantBody.InStr("#EXT-X-MAP:") > -1
-                        isTransmux = true
-                    end if
+                    isTransmux = isFmp4Playlist(variantRsp.getString())
                 end if
             catch e
                 captureException(e, "GetTwitchContent/detectTransmux")

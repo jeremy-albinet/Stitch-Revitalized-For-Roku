@@ -504,3 +504,8 @@ function isChainValid(root as dynamic, path as string) as boolean
     end for
     return isValid(node)
 end function
+
+' True when a media playlist carries an fMP4 init segment (Enhanced Broadcasting).
+function isFmp4Playlist(playlist as dynamic) as boolean
+    return playlist <> invalid and playlist.InStr("#EXT-X-MAP:") > -1
+end function
