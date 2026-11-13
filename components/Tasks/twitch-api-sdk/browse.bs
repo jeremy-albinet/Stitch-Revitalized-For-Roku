@@ -86,8 +86,8 @@ namespace api.twitch.browse
     end function
 
     function extractGames(rsp as object) as object
-        edges = rsp?.data?.directoriesWithTags?.edges ?? []
-        hasNextPage = rsp?.data?.directoriesWithTags?.pageInfo?.hasNextPage ?? false
+        edges = rsp?.data?.games?.edges ?? []
+        hasNextPage = rsp?.data?.games?.pageInfo?.hasNextPage ?? false
         games = []
         for each edge in edges
             try

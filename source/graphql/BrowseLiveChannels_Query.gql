@@ -5,7 +5,7 @@ query BrowseLiveChannels_Query(
         ) {
             streams(first: $limit, after: $after, options: {
                 sort: $sort
-                includeRestricted: ["SUB_ONLY_LIVE"]
+                includeRestricted: [SUB_ONLY_LIVE]
             }) {
                 edges {
                     cursor

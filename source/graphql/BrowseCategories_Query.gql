@@ -2,7 +2,7 @@ query BrowseCategories_Query(
             $first: Int!
             $after: Cursor
         ) {
-            directoriesWithTags(first: $first, after: $after) {
+            games(first: $first, after: $after) {
                 edges {
                     cursor
                     node {
