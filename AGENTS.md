@@ -28,6 +28,27 @@ warnings into errors on a published date (e.g. `InitClientCertificates()` blocks
 Run it locally: download https://devtools.web.roku.com/static-channel-analysis/sca-cmd.zip, then
 `sca-cmd/bin/sca-cmd out/Stitch-Revitalized-For-Roku.zip --exit error`.
 
+### Twitch canary
+
+`.github/workflows/twitch-canary.yml` runs `tools/twitch-canary.js` every hour, and on PRs that
+touch `source/graphql/**` or the playback task. The script sends the shipped `.gql` documents
+(and the inline playback queries in `GetTwitchContent.brs`) to Twitch anonymously. It then
+fetches a live and a VOD usher playlist. It prints one `PASS`/`FAIL`/`SKIP` line per check and
+exits non-zero on any failure. It has no dependencies and needs no secrets:
+
+```bash
+node tools/twitch-canary.js
+```
+
+When it goes red:
+1. Re-run it locally. If it passes from home, suspect GitHub's datacenter IPs, not the app.
+2. A `FAIL` with `errors:` usually means Twitch changed its schema. Diff the query against what
+   twitch.tv sends today, then fix the `.gql` file. The canary runs again on that PR.
+3. A playback `FAIL` (token or usher) breaks every stream for every user. Treat it as urgent.
+
+Alerts: GitHub's failed-workflow email. If the `DISCORD_WEBHOOK_URL` secret is set, a failed
+scheduled run also posts the `FAIL` lines to Discord.
+
 > **MANDATORY before every commit**: run `npm run fmt` to auto-format all `.brs`/`.bs` files.
 > The formatter enforces `keywordCase: "lower"`, which lowercases enum member names and other
 > identifiers — do not manually set enum members to UPPERCASE; the formatter will revert them.
