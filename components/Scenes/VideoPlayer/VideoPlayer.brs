@@ -19,6 +19,16 @@ sub handleItemSelected()
 end sub
 
 sub onResponse()
+    ' You pressed Back while it was loading: don't start it behind you.
+    if m.isExiting then return
+    ' No stream from Twitch (it ended, or Twitch didn't answer): back to the page you came from.
+    if m.PlayVideo.response = invalid
+        ? getLogTimestamp(); " [VideoPlayer] No stream from Twitch for "; m.top.contentRequested?.streamerLogin; ", going back"
+        showErrorDialog("Unavailable", "Twitch did not return a stream. It may have ended.")
+        m.allowBreak = true
+        exitPlayer()
+        return
+    end if
     if m.PlayVideo.response <> invalid and m.PlayVideo.response.contentType = "ERROR"
         ' Display error message to user
         errorTitle = "Error while loading this video"
@@ -387,6 +397,7 @@ sub exitPlayer()
     end if
 
     m.PlayerTask = destroyTask(m.PlayerTask, "state")
+    m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
     if m.splitter <> invalid
         m.splitter.unobserveField("ready")
         m.splitter.unobserveField("state")
@@ -437,6 +448,8 @@ sub init()
     m.stallSeconds = 0
     m.reconnectTimer = invalid
     m.retryTimer = invalid
+    m.liveCheckTask = invalid
+    m.restartIfLive = false
     m.playbackInitTime = invalid ' tracks when current playback attempt started
 
     m.watchdogTimer = CreateObject("roSGNode", "Timer")
@@ -754,6 +767,8 @@ sub onWatchdogFire()
 
     ' Position didn't advance since last tick
     m.stallSeconds = m.stallSeconds + 2
+    ' Four seconds frozen: quietly ask Twitch whether the stream is still live.
+    if m.stallSeconds = 4 then checkStillLive(false)
 
     ' Common post-ad freeze: state remains "playing" but position is stuck.
     ' 16s threshold derived from worst-case legitimate near-live freezes:
@@ -770,8 +785,45 @@ sub onWatchdogFire()
     ' i.e. exactly 16 wall-clock seconds.
     if m.stallSeconds >= 16
         ? getLogTimestamp(); " [VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
-        beginLiveReconnect("stall")
+        ' Restarting a stream that has ended loops or kills the app, so ask Twitch first.
+        checkStillLive(true)
     end if
+end sub
+
+' Asks Twitch whether this streamer is still live. Only an explicit "offline" answer
+' ends playback; a failed or empty answer (network blip) is ignored. restartIfLive
+' makes a live/unknown answer start the normal stall reconnect.
+sub checkStillLive(restartIfLive as boolean)
+    if restartIfLive then m.restartIfLive = true
+    if m.liveCheckTask <> invalid then return
+    login = m.top.contentRequested?.streamerLogin
+    if login = invalid or login = ""
+        if m.restartIfLive
+            m.restartIfLive = false
+            beginLiveReconnect("stall")
+        end if
+        return
+    end if
+    m.liveCheckTask = createApiTask("getLiveStatusForLogins", "onLiveCheck", { params: { logins: [login] } })
+end sub
+
+sub onLiveCheck()
+    if m.liveCheckTask = invalid then return
+    rsp = m.liveCheckTask.response
+    m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
+    restart = m.restartIfLive = true
+    m.restartIfLive = false
+    if m.isExiting then return
+    login = LCase(m.top.contentRequested.streamerLogin)
+    if rsp <> invalid and rsp.DoesExist(login) and rsp[login] = false
+        ? getLogTimestamp(); " [VideoPlayer] Twitch says "; login; " is offline, going back"
+        showErrorDialog("Stream ended", m.top.contentRequested.streamerLogin + " is no longer live.")
+        m.allowBreak = true
+        exitPlayer()
+        return
+    end if
+    ' Live, or Twitch did not answer: restart as usual, unless the picture moved again meanwhile.
+    if restart and m.stallSeconds >= 16 then beginLiveReconnect("stall")
 end sub
 
 sub beginLiveReconnect(reason as string)
@@ -840,6 +892,7 @@ sub onLiveReconnectResponse()
 
     if m.reconnectTask = invalid or m.reconnectTask.response = invalid
         cleanupReconnectTask()
+        checkStillLive(false)
         beginLiveReconnect("refresh_failed")
         return
     end if
