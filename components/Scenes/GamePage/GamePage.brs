@@ -18,9 +18,6 @@ function buildContentNodeFromShelves(streams)
     contentCollection = createObject("RoSGNode", "ContentNode")
     row = createObject("RoSGNode", "ContentNode")
     for i = 0 to (streams.count() - 1) step 1
-        if i mod itemsPerRow = 0
-            row = createObject("RoSGNode", "ContentNode")
-        end if
         stream = streams[i]
         if stream = invalid or stream.node = invalid or stream.node.broadcaster = invalid then continue for
         row.title = ""
@@ -43,8 +40,13 @@ function buildContentNodeFromShelves(streams)
         row.appendChild(rowItem)
         if row.getChildCount() = itemsPerRow
             contentCollection.appendChild(row)
+            row = createObject("RoSGNode", "ContentNode")
         end if
     end for
+    ' Keep the last, partly filled row: small categories have fewer streams than one row.
+    if row.getChildCount() > 0
+        contentCollection.appendChild(row)
+    end if
     return contentCollection
 end function
 
