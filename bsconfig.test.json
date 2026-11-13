@@ -1,5 +1,6 @@
 {
     "extends": "bsconfig.json",
+    "outFile": "./out/Stitch-Revitalized-For-Roku.zip",
     "files": [
         "source/**/*",
         "source/tests/**/*.spec.bs",
