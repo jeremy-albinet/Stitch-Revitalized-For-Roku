@@ -447,6 +447,7 @@ sub init()
     m.maxReconnectAttempts = 6
     m.reconnectCooldownSec = 45
     m.lastReconnectSuccessSec = 0
+    m.sameLinkRestartSec = 0 ' when we last restarted on the current stream link
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectTimer = invalid
@@ -920,6 +921,24 @@ sub doLiveReconnect()
     ' Clean up any prior reconnect task before creating a new one
     cleanupReconnectTask()
 
+    ' A new Twitch link counts as a new viewer and replays the ads, which then
+    ' freeze again. So first restart on the link we already have (live-edge
+    ' PlayStart is re-applied by playContent). If that froze again within
+    ' 2 minutes, or the link errored, fetch a new one below.
+    nowSec = CreateObject("roDateTime").AsSeconds()
+    if nowSec - m.sameLinkRestartSec > 120
+        m.sameLinkRestartSec = nowSec
+        ? getLogTimestamp(); " [VideoPlayer] Restarting on the same stream link"
+        m.allowBreak = false
+        exitPlayer()
+        m.allowBreak = true
+        playContent(true)
+        m.lastReconnectSuccessSec = nowSec ' cooldown, same as a new-link restart
+        if m.watchdogTimer <> invalid then m.watchdogTimer.control = "start"
+        return
+    end if
+    ? getLogTimestamp(); " [VideoPlayer] Same link froze again within 2 minutes, asking Twitch for a new link"
+
     ' Re-fetch playlist/auth via GetTwitchContent
     m.reconnectTask = CreateObject("roSGNode", "GetTwitchContent")
     m.reconnectTask.observeField("response", "onLiveReconnectResponse")
@@ -959,6 +978,7 @@ sub onLiveReconnectResponse()
     ' Reset stall tracking
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
+    m.sameLinkRestartSec = 0 ' fresh link: the next freeze gets a same-link restart again
 
     ' Restart playback in-place without exiting the scene. isRecovery=true
     ' so the new StitchVideo skips its startup live-edge seek — re-anchoring
@@ -995,6 +1015,12 @@ end sub
 sub refreshAuthAndRetry()
     ' TODO: Implement auth refresh logic
     ' For now, just retry
+    if m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
+        ' The token on this link is no longer accepted: restarting on it cannot work.
+        m.sameLinkRestartSec = CreateObject("roDateTime").AsSeconds()
+        beginLiveReconnect("auth")
+        return
+    end if
     retryPlayback()
 end sub
 
