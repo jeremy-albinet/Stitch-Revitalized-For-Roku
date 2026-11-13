@@ -93,6 +93,8 @@ end sub
 sub initChat()
     if not m.top.chatStarted
         m.top.chatStarted = true
+        ' Setting channel starts ChatJob and EmoteJob, so leave it unset when chat is off.
+        if not isChatEnabled() then return
         m.chatWindow.channel_id = m.top.contentRequested.streamerId
         m.chatWindow.channel = m.top.contentRequested.streamerLogin
         if get_user_setting("ChatOption", "true") = "true"
@@ -458,9 +460,32 @@ sub init()
     m.watchdogTimer.observeField("fire", "onWatchdogFire")
 end sub
 
+function isChatEnabled() as boolean
+    return get_user_setting("chat.enabled", "true") <> "false"
+end function
+
+sub showChatOffNotice()
+    dialog = CreateObject("roSGNode", "Dialog")
+    dialog.title = tr("Chat is off")
+    dialog.message = tr("Chat is turned off in Settings.")
+    dialog.buttons = [tr("OK")]
+    dialog.observeField("buttonSelected", "onChatOffNoticeDismissed")
+    m.top.getScene().dialog = dialog
+end sub
+
+sub onChatOffNoticeDismissed()
+    scene = m.top.getScene()
+    if scene <> invalid
+        if scene.dialog <> invalid then scene.dialog.unobserveField("buttonSelected")
+        scene.dialog = invalid
+    end if
+end sub
+
 sub onToggleChat()
     if m.video.toggleChat = true ' Check the field on the video component
-        if m.chatWindow <> invalid
+        if not isChatEnabled()
+            showChatOffNotice()
+        else if m.chatWindow <> invalid
             m.chatWindow.visible = not m.chatWindow.visible
             m.video.chatIsVisible = m.chatWindow.visible ' Update video component's knowledge
         end if

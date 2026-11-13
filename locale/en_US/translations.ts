@@ -58,6 +58,22 @@
             <translation>LIVE</translation>
         </message>
         <message>
+            <source>Enable Chat</source>
+            <translation>Enable Chat</translation>
+        </message>
+        <message>
+            <source>Turn chat off to skip the chat connection and emote loading while watching. Takes effect the next time a stream opens.</source>
+            <translation>Turn chat off to skip the chat connection and emote loading while watching. Takes effect the next time a stream opens.</translation>
+        </message>
+        <message>
+            <source>Chat is off</source>
+            <translation>Chat is off</translation>
+        </message>
+        <message>
+            <source>Chat is turned off in Settings.</source>
+            <translation>Chat is turned off in Settings.</translation>
+        </message>
+        <message>
             <source>Chat On-By-Default</source>
             <translation>Chat On-By-Default</translation>
         </message>
