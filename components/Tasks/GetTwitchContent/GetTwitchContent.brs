@@ -258,8 +258,12 @@ sub main()
                     value = stream_item["VIDEO"]
                 end if
 
+                ' Vertical streams (like 720x1280) are checked by their shorter side.
+                shortSide = Val(res)
+                width = Val(stream_item["RESOLUTION"].split("x")[0])
+                if width < shortSide then shortSide = width
                 if m.global?.supportedgraphicsresolution <> invalid
-                    if Val(res) > m.global.supportedgraphicsresolution
+                    if shortSide > m.global.supportedgraphicsresolution
                         ' ? "Res Skip: "; res
                         continue for
                     end if
