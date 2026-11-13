@@ -59,7 +59,12 @@ function buildContentNodeFromShelves(rsp)
     if rsp.isLive
         row = createObject("RoSGNode", "ContentNode")
         row.title = "Live Stream"
-        rowItem = m.top.contentRequested
+        ' A copy: appending contentRequested itself would move it out of the page's own field
+        rowItem = m.top.contentRequested.clone(false)
+        rowItem.contentType = "LIVE"
+        rowItem.contentTitle = rsp.liveTitle
+        rowItem.gameDisplayName = rsp.liveGame
+        if rsp.livePreviewImageUrl <> invalid then rowItem.previewImageURL = rsp.livePreviewImageUrl
         row.appendChild(rowItem)
         contentCollection.appendChild(row)
     end if
