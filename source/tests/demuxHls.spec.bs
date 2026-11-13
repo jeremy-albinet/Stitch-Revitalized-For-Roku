@@ -1,0 +1,254 @@
+import "pkg:/components/Tasks/DemuxServer/DemuxHls.brs"
+
+namespace tests
+
+    @suite("DemuxHls")
+    class DemuxHlsTests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("parseQuery / queryValue")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("decodes values and keeps '=' inside a value")
+        sub parseQuery_decodes()
+            q = parseQuery("/m3u8?u=http%3A%2F%2Fa%2Fb&track=video&x=a=b")
+            m.assertEqual(q.u, "http://a/b")
+            m.assertEqual(q.track, "video")
+            m.assertEqual(q.x, "a=b")
+        end sub
+
+        @it("returns an empty AA without a query string and skips pairs with no '='")
+        sub parseQuery_empty()
+            m.assertEqual(parseQuery("/m3u8").Count(), 0)
+            m.assertEqual(parseQuery("/m3u8?novalue&k=v").Count(), 1)
+        end sub
+
+        @it("queryValue returns an empty string for a missing key")
+        sub queryValue_missing()
+            m.assertEqual(queryValue({ a: "1" }, "a"), "1")
+            m.assertEqual(queryValue({ a: "1" }, "b"), "")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("classifyManifest")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("classifies a master playlist by STREAM-INF")
+        sub classify_master()
+            m.assertEqual(classifyManifest("#EXTM3U" + chr(10) + "#EXT-X-STREAM-INF:BANDWIDTH=1" + chr(10) + "a.m3u8"), "master")
+        end sub
+
+        @it("classifies a playlist with only EXT-X-MEDIA as master")
+        sub classify_mediaOnly()
+            m.assertEqual(classifyManifest("#EXTM3U" + chr(10) + "#EXT-X-MEDIA:TYPE=AUDIO,URI=" + chr(34) + "a.m3u8" + chr(34)), "master")
+        end sub
+
+        @it("classifies EXTINF, MAP and prefetch playlists as variant, even next to EXT-X-MEDIA")
+        sub classify_variant()
+            m.assertEqual(classifyManifest("#EXTM3U" + chr(10) + "#EXTINF:2.0," + chr(10) + "s.mp4"), "variant")
+            m.assertEqual(classifyManifest("#EXT-X-TWITCH-PREFETCH:http://a/s.mp4"), "variant")
+            m.assertEqual(classifyManifest("#EXT-X-MEDIA:TYPE=AUDIO" + chr(10) + "#EXT-X-TARGETDURATION:2"), "variant")
+        end sub
+
+        @it("classifies empty or tag-less input as unknown")
+        sub classify_unknown()
+            m.assertEqual(classifyManifest(""), "unknown")
+            m.assertEqual(classifyManifest("#EXTM3U" + chr(10) + "#EXT-X-VERSION:3"), "unknown")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("resolveUrl")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns absolute URLs untouched, case-insensitively")
+        sub resolve_absolute()
+            m.assertEqual(resolveUrl("https://h.tv/a/p.m3u8", "http://o.tv/x.mp4"), "http://o.tv/x.mp4")
+            m.assertEqual(resolveUrl("https://h.tv/a/p.m3u8", "HTTPS://o.tv/x.mp4"), "HTTPS://o.tv/x.mp4")
+        end sub
+
+        @it("resolves a relative reference against the playlist directory and drops the query")
+        sub resolve_relative()
+            m.assertEqual(resolveUrl("https://h.tv/a/b/p.m3u8?tok=1/2", "seg.mp4"), "https://h.tv/a/b/seg.mp4")
+        end sub
+
+        @it("resolves root-relative and protocol-relative references")
+        sub resolve_rootAndScheme()
+            m.assertEqual(resolveUrl("https://h.tv/a/b/p.m3u8", "/x/seg.mp4"), "https://h.tv/x/seg.mp4")
+            m.assertEqual(resolveUrl("https://h.tv/a/b/p.m3u8", "//cdn.tv/s.mp4"), "https://cdn.tv/s.mp4")
+        end sub
+
+        @it("handles a base with no path and a base that is not a URL")
+        sub resolve_edges()
+            m.assertEqual(resolveUrl("https://h.tv", "s.mp4"), "https://h.tv/s.mp4")
+            m.assertEqual(resolveUrl("not a url", "s.mp4"), "s.mp4")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("proxyUrl / hostOf / uriAttr / tagAttr")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("builds /m3u8 and /s URLs, with optional track")
+        sub proxyUrl_shapes()
+            m.assertEqual(proxyUrl("http://p:1", "m3u8", "http://a/b?x=1", ""), "http://p:1/m3u8?u=http%3A%2F%2Fa%2Fb%3Fx%3D1")
+            m.assertEqual(proxyUrl("http://p:1", "media", "http://a/b", "video"), "http://p:1/s?u=http%3A%2F%2Fa%2Fb&k=media&track=video")
+        end sub
+
+        @it("hostOf strips scheme, path, query, fragment and backslash tricks")
+        sub hostOf_cases()
+            m.assertEqual(hostOf("https://usher.ttvnw.net:443/a?b"), "usher.ttvnw.net:443")
+            m.assertEqual(hostOf("https://a.tv?x=1"), "a.tv")
+            m.assertEqual(hostOf("https://evil.tv" + chr(92) + "@good.tv/p"), "evil.tv")
+            m.assertEqual(hostOf("a.tv/p"), "a.tv")
+        end sub
+
+        @it("uriAttr extracts the quoted URI and returns empty when absent or unterminated")
+        sub uriAttr_cases()
+            q = chr(34)
+            m.assertEqual(uriAttr("#EXT-X-MAP:URI=" + q + "init.mp4" + q + ",BYTERANGE=" + q + "1@0" + q), "init.mp4")
+            m.assertEqual(uriAttr("#EXT-X-MAP:BYTERANGE=1"), "")
+            m.assertEqual(uriAttr("#EXT-X-MAP:URI=" + q + "init.mp4"), "")
+        end sub
+
+        @it("tagAttr reads quoted, unquoted and trailing values")
+        sub tagAttr_cases()
+            q = chr(34)
+            line = "#EXT-X-DATERANGE:ID=" + q + "ad1" + q + ",CLASS=" + q + "twitch-ad" + q + ",DUR=15"
+            m.assertEqual(tagAttr(line, "ID"), "ad1")
+            m.assertEqual(tagAttr(line, "CLASS"), "twitch-ad")
+            m.assertEqual(tagAttr(line, "DUR"), "15")
+            m.assertEqual(tagAttr(line, "NOPE"), "")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("registerMap")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns a stable id per URL and increments for new URLs")
+        sub registerMap_ids()
+            maps = newMapRegistry()
+            m.assertEqual(registerMap(maps, "http://a/i1.mp4"), "1")
+            m.assertEqual(registerMap(maps, "http://a/i1.mp4"), "1")
+            m.assertEqual(registerMap(maps, "http://b/i2.mp4"), "2")
+            m.assertEqual(maps.notes.Count(), 1)
+        end sub
+
+        @it("evicts the oldest URL once max is exceeded")
+        sub registerMap_evicts()
+            maps = newMapRegistry()
+            maps.max = 2
+            registerMap(maps, "http://a/1")
+            registerMap(maps, "http://a/2")
+            registerMap(maps, "http://a/3")
+            m.assertEqual(maps.byUrl.Count(), 2)
+            m.assertEqual(maps.byId.Count(), 2)
+            m.assertFalse(maps.byUrl.DoesExist("http://a/1"))
+            m.assertEqual(maps.byId["3"], "http://a/3")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("synthesizeMaster")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("builds an audio+video master from valid hints")
+        sub synth_hints()
+            q = chr(34)
+            lf = chr(10)
+            out = synthesizeMaster("https://h.tv/p.m3u8", "http://p:1", { codecs: "hvc1.1.6.L93.B0,mp4a.40.2", bw: "6000000", res: "1920x1080" })
+            expected = "#EXTM3U" + lf + "#EXT-X-VERSION:6" + lf
+            expected = expected + "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=" + q + "aac" + q + ",NAME=" + q + "Audio" + q
+            expected = expected + ",DEFAULT=YES,AUTOSELECT=YES,URI=" + q + "http://p:1/m3u8?u=https%3A%2F%2Fh.tv%2Fp.m3u8&track=audio" + q + lf
+            expected = expected + "#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,CODECS=" + q + "hvc1.1.6.L93.B0,mp4a.40.2" + q + ",AUDIO=" + q + "aac" + q + lf
+            expected = expected + "http://p:1/m3u8?u=https%3A%2F%2Fh.tv%2Fp.m3u8&track=video" + lf
+            m.assertEqual(out, expected)
+        end sub
+
+        @it("falls back to defaults and rejects unsafe or malformed hints")
+        sub synth_defaults()
+            q = chr(34)
+            out = synthesizeMaster("https://h.tv/p.m3u8", "http://p:1", {})
+            m.assertTrue(out.InStr("BANDWIDTH=4000000,CODECS=" + q + "avc1.64001f,mp4a.40.2" + q) > 0)
+            m.assertTrue(out.InStr("RESOLUTION") < 0)
+            bad = synthesizeMaster("https://h.tv/p.m3u8", "http://p:1", { codecs: "a" + q + ",X=1", bw: "-5", res: "big" })
+            m.assertTrue(bad.InStr("avc1.64001f,mp4a.40.2") > 0)
+            m.assertTrue(bad.InStr("BANDWIDTH=4000000") > 0)
+            m.assertTrue(bad.InStr("RESOLUTION") < 0)
+            m.assertTrue(bad.InStr("X=1") < 0)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("rewriteManifest")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("returns an unknown manifest unchanged")
+        sub rewrite_unknown()
+            body = "#EXTM3U" + chr(10) + "#EXT-X-VERSION:3"
+            m.assertEqual(rewriteManifest(body, "https://h.tv/p.m3u8", "http://p:1", "", {}, newMapRegistry()), body)
+        end sub
+
+        @it("synthesizes a master for a variant requested without a track")
+        sub rewrite_variantNoTrack()
+            body = "#EXTM3U" + chr(10) + "#EXTINF:2.0," + chr(10) + "s.mp4"
+            out = rewriteManifest(body, "https://h.tv/p.m3u8", "http://p:1", "", {}, newMapRegistry())
+            m.assertEqual(out, synthesizeMaster("https://h.tv/p.m3u8", "http://p:1", {}))
+        end sub
+
+        @it("rewrites master variant URLs and EXT-X-MEDIA URIs, resolving relative ones")
+        sub rewrite_master()
+            q = chr(34)
+            lf = chr(10)
+            body = "#EXTM3U" + lf + "#EXT-X-MEDIA:TYPE=AUDIO,URI=" + q + "a/i.m3u8" + q + ",NAME=" + q + "x" + q + lf
+            body = body + "#EXT-X-STREAM-INF:BANDWIDTH=1" + lf + "chunked/i.m3u8" + lf
+            out = rewriteManifest(body, "https://h.tv/v/p.m3u8", "http://p:1", "", {}, newMapRegistry())
+            expected = "#EXTM3U" + lf + "#EXT-X-MEDIA:TYPE=AUDIO,URI=" + q + "http://p:1/m3u8?u=https%3A%2F%2Fh.tv%2Fv%2Fa%2Fi.m3u8" + q + ",NAME=" + q + "x" + q + lf
+            expected = expected + "#EXT-X-STREAM-INF:BANDWIDTH=1" + lf + "http://p:1/m3u8?u=https%3A%2F%2Fh.tv%2Fv%2Fchunked%2Fi.m3u8" + lf
+            m.assertEqual(out, expected)
+        end sub
+
+        @it("rewrites MAP and segments, tagging each segment with its map id, and strips CR")
+        sub rewrite_media()
+            q = chr(34)
+            lf = chr(10)
+            cr = chr(13)
+            body = "#EXTM3U" + cr + lf + "# a comment" + cr + lf + "#EXT-X-MAP:URI=" + q + "init.mp4" + q + cr + lf
+            body = body + "#EXTINF:2.0," + cr + lf + "s1.mp4" + cr + lf
+            maps = newMapRegistry()
+            out = rewriteManifest(body, "https://h.tv/v/p.m3u8", "http://p:1", "video", {}, maps)
+            expected = "#EXTM3U" + lf + "# a comment" + lf
+            expected = expected + "#EXT-X-MAP:URI=" + q + "http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Finit.mp4&k=init&track=video" + q + lf
+            expected = expected + "#EXTINF:2.0," + lf
+            expected = expected + "http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Fs1.mp4&k=media&track=video&map=1" + lf
+            m.assertEqual(out, expected)
+            m.assertEqual(maps.byId["1"], "https://h.tv/v/init.mp4")
+        end sub
+
+        @it("rewrites PART, PRELOAD-HINT (map vs part), RENDITION-REPORT and PREFETCH")
+        sub rewrite_lowLatency()
+            q = chr(34)
+            lf = chr(10)
+            body = "#EXT-X-MAP:URI=" + q + "i.mp4" + q + lf
+            body = body + "#EXT-X-PART:DURATION=0.5,URI=" + q + "p1.mp4" + q + lf
+            body = body + "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=" + q + "p2.mp4" + q + lf
+            body = body + "#EXT-X-PRELOAD-HINT:TYPE=MAP,URI=" + q + "i2.mp4" + q + lf
+            body = body + "#EXT-X-RENDITION-REPORT:URI=" + q + "../o/p.m3u8" + q + lf
+            body = body + "#EXT-X-TWITCH-PREFETCH:https://h.tv/v/pf.mp4"
+            lines = rewriteManifest(body, "https://h.tv/v/p.m3u8", "http://p:1", "audio", {}, newMapRegistry()).Split(lf)
+            m.assertEqual(lines[1], "#EXT-X-PART:DURATION=0.5,URI=" + q + "http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Fp1.mp4&k=part&track=audio&map=1" + q)
+            m.assertEqual(lines[2], "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=" + q + "http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Fp2.mp4&k=part&track=audio&map=1" + q)
+            m.assertEqual(lines[3], "#EXT-X-PRELOAD-HINT:TYPE=MAP,URI=" + q + "http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Fi2.mp4&k=init&track=audio" + q)
+            m.assertTrue(lines[4].InStr("http://p:1/m3u8?u=") > 0)
+            m.assertTrue(lines[4].InStr("track=") < 0)
+            m.assertEqual(lines[5], "#EXT-X-TWITCH-PREFETCH:http://p:1/s?u=https%3A%2F%2Fh.tv%2Fv%2Fpf.mp4&k=prefetch&track=audio&map=1")
+        end sub
+
+        @it("records a diagnostic note once for a segment with no map")
+        sub rewrite_noMapNote()
+            body = "#EXTM3U" + chr(10) + "#EXTINF:2.0," + chr(10) + "s1.mp4"
+            maps = newMapRegistry()
+            rewriteManifest(body, "https://h.tv/v/p.m3u8", "http://p:1", "video", {}, maps)
+            rewriteManifest(body, "https://h.tv/v/p.m3u8", "http://p:1", "video", {}, maps)
+            m.assertEqual(maps.notes.Count(), 1)
+        end sub
+
+    end class
+
+end namespace
