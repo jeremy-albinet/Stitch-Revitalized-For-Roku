@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- On-device Enhanced Broadcasting demuxer (fmp4-demux-proxy port). -->
+<!-- On-device Enhanced Broadcasting demuxer (fmp4-demux-proxy port), plus the live-list ad-break fix. -->
 <component name="DemuxServer" extends="Task">
     <interface>
         <field id="port" type="integer" value="5757" />

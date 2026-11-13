@@ -505,12 +505,52 @@ sub main()
                     proxyQualityEntry(entry, proxyUrl, variantHints)
                 end for
             end if
+        else if m.top.contentRequested.contentType = "LIVE"
+            keepAdBreakCount(content, metadata)
         end if
 
         m.top.metadata = metadata
     end if
 
     m.top.response = content
+end sub
+
+' Plain live lists go through the built-in server when it runs: it keeps the ad break count Twitch drops,
+' which otherwise freezes Roku after ads. Pieces still come straight from Twitch.
+sub keepAdBreakCount(content as object, metadata as object)
+    server = m.global.demuxServer
+    if server = invalid or server.ready <> true then return
+    base = "http://127.0.0.1:" + server.port.toStr() + "/live?u="
+    ? "[fmp4-demux] live list through the built-in server"
+    if content.url <> invalid and content.url <> "" then content.url = base + content.url.EncodeUriComponent()
+    if content.StreamUrls <> invalid
+        urls = []
+        for each streamUrl in content.StreamUrls
+            urls.push(base + streamUrl.EncodeUriComponent())
+        end for
+        content.StreamUrls = urls
+    end if
+    content.ForwardQueryStringParams = false
+    for each entry in metadata
+        if entry.StreamUrls <> invalid
+            urls = []
+            for each streamUrl in entry.StreamUrls
+                urls.push(base + streamUrl.EncodeUriComponent())
+            end for
+            entry.StreamUrls = urls
+        end if
+        if entry.Streams <> invalid
+            streams = []
+            for each stream in entry.Streams
+                copy = {}
+                copy.Append(stream)
+                copy.url = base + stream.url.EncodeUriComponent()
+                streams.push(copy)
+            end for
+            entry.Streams = streams
+        end if
+        entry.ForwardQueryStringParams = false
+    end for
 end sub
 
 ' Proxies one quality option; shared Streams entries are copied, not changed in place.
