@@ -43,7 +43,8 @@ sub sendAppOpenedEvents()
 
     appOpenProps = {
         device_model: deviceModel,
-        roku_os_version: rokuOsVersion
+        roku_os_version: rokuOsVersion,
+        ui_locale: deviceInfo.GetCurrentLocale()
     }
     if priorCrashReason <> invalid and priorCrashReason <> ""
         appOpenProps.prior_exit_reason = priorCrashReason
