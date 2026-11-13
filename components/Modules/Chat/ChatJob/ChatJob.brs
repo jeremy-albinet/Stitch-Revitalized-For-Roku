@@ -45,10 +45,15 @@ sub main()
         tcpListen.eSuccess()
         tcpListen.SendStr("JOIN #" + m.top.channel + Chr(13) + Chr(10))
         queue = createObject("roArray", 300, true)
+        ' Teardown signal: a port message is read without a rendezvous, unlike a m.top read
+        m.port = createObject("roMessagePort")
+        m.top.observeField("stopRequested", m.port)
         waitingComment = ""
         waitingCommentAge = 0
         sendWaitingMessage = true
-        while true
+        ' A stop sent before the observer existed never reaches the port
+        stopped = m.top.stopRequested
+        while not stopped and m.port.getMessage() = invalid
             get = ""
             received = ""
             '? "tcpListen isConnected " tcpListen.IsConnected()
@@ -127,6 +132,8 @@ sub main()
                 end if
             end if
         end while
+        m.top.unobserveField("stopRequested")
+        tcpListen.Close()
     end if
 end sub
 
