@@ -45,12 +45,23 @@ sub Main(input as dynamic)
     m.scene.observeField("exitApp", m.port)
     m.scene.setFocus(true)
 
+    ' Deep links: launch params (cert 5.1) and roInput while running (cert 5.2)
+    if input <> invalid and input.contentId <> invalid
+        m.scene.deepLink = { contentId: input.contentId, mediaType: input.mediaType }
+    end if
+    m.input = CreateObject("roInput")
+    m.input.setMessagePort(m.port)
+
     while true
         msg = wait(0, m.port)
         msgType = type(msg)
         if msgType = "roSGScreenEvent"
             if msg.isScreenClosed()
                 return
+            end if
+        else if msgType = "roInputEvent"
+            if msg.isInput()
+                m.scene.deepLink = msg.getInfo()
             end if
         else if msgType = "roSGNodeEvent"
             field = msg.getField()
