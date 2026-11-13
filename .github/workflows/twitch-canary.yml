@@ -1,0 +1,44 @@
+name: Twitch Canary
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'source/graphql/**'
+      - 'tools/twitch-canary.js'
+      - 'components/Tasks/GetTwitchContent/GetTwitchContent.brs'
+      - '.github/workflows/twitch-canary.yml'
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '23.x'
+
+    - name: Run Twitch canary
+      shell: bash
+      run: node tools/twitch-canary.js | tee canary.log
+
+    # Optional: set the DISCORD_WEBHOOK_URL secret to get the failing lines in Discord.
+    # Without it, GitHub's failed-workflow email is the alert.
+    - name: Alert Discord
+      if: failure() && github.event_name == 'schedule'
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      run: |
+        [ -n "$DISCORD_WEBHOOK_URL" ] || exit 0
+        lines=$(grep '^FAIL' canary.log | head -c 1700 || true)
+        msg=$(printf 'Twitch canary failed: %s\n```\n%s\n```' "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "${lines:-no FAIL lines, see the run log}")
+        jq -n --arg content "$msg" '{content: $content}' | curl -sSf -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
