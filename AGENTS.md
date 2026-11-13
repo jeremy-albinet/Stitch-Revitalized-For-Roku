@@ -21,7 +21,7 @@ npm run fmt:check    # Check formatting (fails on diff)
 
 CI runs on PRs: `lint` → `fmt:check` → `package`. All three must pass.
 
-A separate `static-analysis` job runs Roku's `sca-cmd` (latest version, Java 21) on the package
+A separate `static-analysis` job runs Roku's `sca-cmd` (latest version, Java 25) on the package
 and fails on any `[ERROR]`. These are the same checks as the dashboard's Static Analysis step, and
 an error there blocks publishing. Warnings do not fail the job, but read them: Roku turns some
 warnings into errors on a published date (e.g. `InitClientCertificates()` blocks from 2027-04-01).
