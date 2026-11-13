@@ -36,11 +36,8 @@ function getLiveStatusForLogins() as object
             key = "u" + i.toStr()
             login = LCase(logins[i])
             userData = rsp.data[key]
-            if userData <> invalid
-                result[login] = userData.stream <> invalid
-            else
-                result[login] = false
-            end if
+            ' A null user (partial GQL error, timeout) is unknown, not offline: leave the key out.
+            if userData <> invalid then result[login] = userData.stream <> invalid
         end for
     end if
 
