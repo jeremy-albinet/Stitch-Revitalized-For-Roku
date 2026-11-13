@@ -5,6 +5,8 @@
         <field id="itemHasFocus" type="bool" value="false" onChange="onFocusToggle" alwaysNotify="true" />
         <!-- Emitted when user confirms a selection (OK key) -->
         <field id="contentSelected" type="node" alwaysNotify="true" />
+        <!-- Emitted when the last channel was removed, so heroScene can take focus back -->
+        <field id="becameEmpty" type="bool" alwaysNotify="true" />
     </interface>
 
     <script type="text/brightscript" uri="pkg:/source/utils/recentlyWatched.brs" />

@@ -13,6 +13,7 @@ sub init()
     m.activeNode = invalid
     m.recentBar = m.top.findNode("recentlyWatchedBar")
     m.recentBar.observeField("contentSelected", "onRecentSelected")
+    m.recentBar.observeField("becameEmpty", "onRecentEmpty")
     m.menu = m.top.findNode("MenuBar")
     m.menu.showSearchIcon = false
     menuOptions = ["Following", "Browse", "Search"]
@@ -441,6 +442,12 @@ sub onBackPressed()
     end if
 end sub
 
+' The last sidebar channel was removed; focus goes back to the tab bar.
+sub onRecentEmpty()
+    m.recentBar.itemHasFocus = false
+    m.menu.setFocus(true)
+end sub
+
 function onKeyEvent(key, press) as boolean
     if not press then return false
     if m.activeNode = invalid then return false
@@ -489,6 +496,7 @@ sub onDestroy()
     end if
     if m.recentBar <> invalid
         m.recentBar.unobserveField("contentSelected")
+        m.recentBar.unobserveField("becameEmpty")
     end if
     if m.menu <> invalid
         m.menu.unobserveField("buttonSelected")

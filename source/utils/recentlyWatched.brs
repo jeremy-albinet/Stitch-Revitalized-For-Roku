@@ -54,6 +54,21 @@ sub RW_Add(entry as object)
     registry_write(RW_RegistryKey(), FormatJson(updated), RW_Section())
 end sub
 
+' Remove one channel (by login) from recently watched history.
+sub RW_Remove(login as string)
+    if login = "" then return
+    kept = []
+    for each item in RW_Load()
+        if item.login = invalid or LCase(item.login) <> LCase(login) then kept.push(item)
+    end for
+    registry_write(RW_RegistryKey(), FormatJson(kept), RW_Section())
+end sub
+
+' Clear the whole recently watched history for the current user.
+sub RW_Clear()
+    registry_delete(RW_RegistryKey(), RW_Section())
+end sub
+
 ' Load recently watched history from the dedicated registry section.
 ' Returns an array of entry AAs, or an empty array if none stored.
 function RW_Load() as object

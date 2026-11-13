@@ -159,5 +159,21 @@
             <source>Proxy not reachable</source>
             <translation>Proxy not reachable</translation>
         </message>
+        <message>
+            <source>Remove from sidebar</source>
+            <translation>Remove from sidebar</translation>
+        </message>
+        <message>
+            <source>Clear all recent</source>
+            <translation>Clear all recent</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Cancel</translation>
+        </message>
+        <message>
+            <source>This clears your recent channels.</source>
+            <translation>This clears your recent channels.</translation>
+        </message>
     </context>
 </TS>
