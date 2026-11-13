@@ -15,7 +15,10 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      
+      with:
+        # Full history and tags, to find the previous final release for the notes.
+        fetch-depth: 0
+
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:
@@ -30,11 +33,33 @@ jobs:
       
     - name: Extract version from tag
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
+      run: |
+        VERSION="${GITHUB_REF_NAME#v}"
+        echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+        # The manifest cannot hold "-rc.N", so a candidate and its final release share one
+        # manifest version. Refuse a tag that does not match it: that is a tag on the wrong commit.
+        MANIFEST="$(sed -n 's/^major_version=//p' manifest).$(sed -n 's/^minor_version=//p' manifest).$(sed -n 's/^build_version=//p' manifest)"
+        if [ "${VERSION%%-*}" != "$MANIFEST" ]; then
+          echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $MANIFEST"
+          exit 1
+        fi
+
+        # vX.Y.Z-rc.N publishes as a pre-release, with notes since the previous tag.
+        # A final release takes its notes from the previous final release, so it lists
+        # everything that went through its candidates.
+        if [[ "$VERSION" == *-rc* ]]; then
+          echo "PRERELEASE=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "PRERELEASE=false" >> "$GITHUB_OUTPUT"
+          echo "PREVIOUS=$(git describe --tags --abbrev=0 --exclude '*-rc*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Create Release
       uses: softprops/action-gh-release@v3
       with:
+        prerelease: ${{ steps.version.outputs.PRERELEASE }}
+        previous_tag: ${{ steps.version.outputs.PREVIOUS }}
         generate_release_notes: true
         files: out/Stitch-Revitalized-For-Roku.zip
         name: Stitch Revitalized v${{ steps.version.outputs.VERSION }}

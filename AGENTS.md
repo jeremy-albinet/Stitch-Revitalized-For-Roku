@@ -336,27 +336,56 @@ When adding a new query function, decide upfront which class it belongs to and f
 step after that is manual, and skipping it is why v2.8.0 and v2.9.0 existed on GitHub for weeks
 while the published channel stayed on v2.7.0.
 
-Full sequence, in order:
+### Release candidates
 
-1. Merge to `main` (rebase; own PRs need `--admin`).
-2. Annotated, signed tag `vX.Y.Z` pushed to `origin` — this triggers the Release workflow.
-3. Confirm the Release workflow succeeded and the GitHub release exists.
-4. `npm run package`, then sideload to the dev stick. **The stick must be the one keyed with the
-   Stitch Dev ID** — a package signed with any other key cannot update the published channel.
+Testers get a release candidate first, and the final version number is only tagged once a
+candidate has held up. A candidate that turns out broken costs an `-rc.N`, not a version number:
+v2.8.0 and v2.9.0 would have been `v2.8.0-rc.1` and `v2.8.0-rc.2`.
+
+- `vX.Y.Z-rc.N` publishes a GitHub **pre-release** with the zip attached, for testers to sideload.
+  Its notes list what changed since the previous tag.
+- `vX.Y.Z` publishes the normal release. Its notes run from the previous final release, so they
+  cover everything that went through the candidates.
+- The manifest has three numbers and cannot hold `-rc.N`. A candidate therefore reports `X.Y.Z` on
+  the device; only the git tag tells candidates apart. The Release workflow fails if a tag does
+  not match the manifest version, which catches a tag on the wrong commit.
+- The final tag goes on **the same commit as the last candidate**. If anything is merged after
+  that candidate, cut another candidate instead.
+
+Promote a candidate to final when the hardware smoke test passed on it, the Twitch canary is
+green, and testers have had it for a few days.
+
+Roku beta channel (optional, for testers without developer mode): upload only a package built
+from a candidate tag, and name that tag in the pre-release notes, so GitHub stays the record of
+what a beta contains. Uploading is manual in the developer dashboard; Roku has no publishing API.
+Roku's documented limits are 20 testers and 120 days per beta app.
+
+### Full sequence, in order
+
+1. Merge to `main` (rebase; own PRs need `--admin`), including the `chore: release X.Y.Z` commit
+   that bumps the manifest.
+2. Annotated, signed tag `vX.Y.Z-rc.1` pushed to `origin` — this triggers the Release workflow.
+   Confirm it succeeded and the pre-release exists, then point testers at it.
+3. A candidate fails: fix on `main`, tag `-rc.2`, and start again from step 2.
+4. `npm run package` from the candidate's commit, then sideload to the dev stick. **The stick must
+   be the one keyed with the Stitch Dev ID** — a package signed with any other key cannot update
+   the published channel.
 5. **Hardware smoke test on the stick. This step is a gate; do not skip it.** Confirm the version
    with `query/apps`. Note the Roku OS version from `query/device-info`; it should be the current
    public release. Then check: app launches, live stream plays, a VOD resumes at its bookmark,
    chat loads, Back exits cleanly. Watch the debug console (port 8085) for `BRIGHTSCRIPT: ERROR`
    throughout. Any failure stops the release. v3.0.0 was submitted without this step.
-6. Sign: `ROKU_HOST=<stick-ip> ROKU_PASSWORD=<pw> npm run sign -- <signing-password>`.
+6. Once the candidate is promoted, push the annotated, signed tag `vX.Y.Z` on that same commit and
+   confirm the GitHub release exists.
+7. Sign: `ROKU_HOST=<stick-ip> ROKU_PASSWORD=<pw> npm run sign -- <signing-password>`.
    Signing only requires the channel to be *installed*, not running.
-7. Rename the output to `Stitch-Revitalized_X.Y.Z.pkg` and keep it.
-8. Upload to the Roku developer dashboard, set minimum firmware to match `manifest`
+8. Rename the output to `Stitch-Revitalized_X.Y.Z.pkg` and keep it.
+9. Upload to the Roku developer dashboard, set minimum firmware to match `manifest`
    `firmware_version`, paste the release notes, and submit for certification.
-9. Certification is a queue. The channel updates only after Roku approves.
+10. Certification is a queue. The channel updates only after Roku approves.
 
-A release is not done until step 9. If asked whether a version "shipped", distinguish between
-tagged, signed, submitted, and published.
+A release is not done until step 10. If asked whether a version "shipped", distinguish between
+candidate, tagged, signed, submitted, and published.
 
 ## Development Principles
 
