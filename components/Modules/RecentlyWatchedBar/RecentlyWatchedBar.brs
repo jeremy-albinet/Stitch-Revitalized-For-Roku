@@ -211,8 +211,10 @@ sub showOptionsDialog()
     data = m.items[m.currentIndex].itemData
     name = data.displayName
     if name = invalid or name = "" then name = data.login
-    m.dialogActions = ["remove", "clearall", "cancel"]
-    openDialog(name, "", [tr("Remove from sidebar"), tr("Clear all recent"), tr("Cancel")], "onOptionsButton")
+    pinLabel = tr("Pin")
+    if data.pinned = true then pinLabel = tr("Unpin")
+    m.dialogActions = ["pin", "remove", "clearall", "cancel"]
+    openDialog(name, "", [pinLabel, tr("Remove from sidebar"), tr("Clear all recent"), tr("Cancel")], "onOptionsButton")
 end sub
 
 sub openDialog(title as string, message as string, buttons as object, callback as string)
@@ -249,12 +251,15 @@ sub onOptionsButton()
     action = "cancel"
     if pressed >= 0 and pressed < m.dialogActions.Count() then action = m.dialogActions[pressed]
 
-    if action = "remove"
+    if action = "pin"
+        closeDialog()
+        togglePinSelected()
+    else if action = "remove"
         closeDialog()
         removeSelected()
     else if action = "clearall"
         ' Cancel comes first so a stray OK keeps the list.
-        openDialog(tr("Clear all recent"), tr("This clears your recent channels."), [tr("Cancel"), tr("OK")], "onClearAllButton")
+        openDialog(tr("Clear all recent"), tr("This clears your recent channels. Pinned channels stay."), [tr("Cancel"), tr("OK")], "onClearAllButton")
     else
         closeDialog()
     end if
@@ -267,6 +272,21 @@ sub onClearAllButton()
     if pressed <> 1 then return
     RW_Clear()
     rebuildKeepingFocus(m.currentIndex)
+end sub
+
+' Pin or unpin the focused channel. A pinned channel moves up, an unpinned one down,
+' so focus follows the channel to its new spot.
+sub togglePinSelected()
+    data = m.items[m.currentIndex].itemData
+    if data.login = invalid then return
+    login = data.login
+    if data.pinned = true then RW_Unpin(login) else RW_Pin(data)
+    newIndex = 0
+    list = RW_Load()
+    for i = 0 to list.Count() - 1
+        if list[i].login = login then newIndex = i
+    end for
+    rebuildKeepingFocus(newIndex)
 end sub
 
 sub removeSelected()

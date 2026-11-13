@@ -1,0 +1,50 @@
+namespace tests
+
+    @suite("RecentlyWatched list logic")
+    class RecentlyWatchedTests extends rooibos.BaseTestSuite
+
+        @describe("list logic")
+
+        @it("ListWithout removes by login, case-insensitive")
+        sub listWithout()
+            list = [{ login: "a" }, { login: "B" }, { login: "c" }]
+            result = RW_ListWithout(list, "b")
+            m.assertEqual(result.Count(), 2)
+            m.assertEqual(result[1].login, "c")
+        end sub
+
+        @it("Combine lists pinned first, flagged, without duplicates in recent")
+        sub combineOrder()
+            pinned = [{ login: "p2" }, { login: "p1" }]
+            recent = [{ login: "r1" }, { login: "p1" }, { login: "r2" }]
+            result = RW_Combine(pinned, recent, 12)
+            m.assertEqual(result.Count(), 4)
+            m.assertEqual(result[0].login, "p2")
+            m.assertTrue(result[0].pinned)
+            m.assertEqual(result[1].login, "p1")
+            m.assertEqual(result[2].login, "r1")
+            m.assertInvalid(result[2].pinned)
+            m.assertEqual(result[3].login, "r2")
+        end sub
+
+        @it("Combine caps recent only, never pinned")
+        sub combineCap()
+            pinned = [{ login: "p1" }, { login: "p2" }, { login: "p3" }]
+            recent = [{ login: "r1" }, { login: "r2" }, { login: "r3" }]
+            result = RW_Combine(pinned, recent, 2)
+            m.assertEqual(result.Count(), 5)
+            m.assertEqual(result[2].login, "p3")
+            m.assertEqual(result[4].login, "r2")
+        end sub
+
+        @it("Combine with only old-style recent history is unchanged")
+        sub combineLegacy()
+            recent = [{ login: "r1" }, { login: "r2" }]
+            result = RW_Combine([], recent, 12)
+            m.assertEqual(result.Count(), 2)
+            m.assertEqual(result[0].login, "r1")
+        end sub
+
+    end class
+
+end namespace

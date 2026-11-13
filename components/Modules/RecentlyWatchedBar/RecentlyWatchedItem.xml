@@ -41,6 +41,15 @@
                 translation="[38, 38]"
                 visible="false"
             />
+            <!-- Pinned marker: small purple dot, top-right of the avatar -->
+            <Poster
+                id="pinDot"
+                uri="pkg:/images/pin_dot.png"
+                width="16"
+                height="16"
+                translation="[38, 0]"
+                visible="false"
+            />
         </Group>
     </children>
 </component>
