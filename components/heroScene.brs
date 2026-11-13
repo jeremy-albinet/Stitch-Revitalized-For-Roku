@@ -44,8 +44,13 @@ sub sendAppOpenedEvents()
     appOpenProps = {
         device_model: deviceModel,
         roku_os_version: rokuOsVersion,
-        ui_locale: deviceInfo.GetCurrentLocale()
+        ui_locale: deviceInfo.GetCurrentLocale(),
+        ui_resolution: deviceInfo.GetUIResolution().name,
+        connection_type: deviceInfo.GetConnectionType(),
+        eb_mode: getEnhancedBroadcastingMode()
     }
+    availableMemoryKb = getAvailableMemoryKb()
+    if availableMemoryKb <> invalid then appOpenProps.available_memory_mb = availableMemoryKb \ 1024
     if priorCrashReason <> invalid and priorCrashReason <> ""
         appOpenProps.prior_exit_reason = priorCrashReason
     end if
@@ -67,6 +72,23 @@ sub sendAppOpenedEvents()
         is_logged_in: isLoggedIn
     })
 end sub
+
+' Mirrors the playback choice in GetTwitchContent: a proxy URL wins over the built-in splitter.
+function getEnhancedBroadcastingMode() as string
+    if get_user_setting("proxy.url", "").trim() <> "" then return "proxy"
+    if get_user_setting("proxy.builtin", "false") = "true" then return "builtin"
+    return "off"
+end function
+
+' Kilobytes available to the channel, or invalid when the firmware lacks roAppMemoryMonitor.
+function getAvailableMemoryKb() as dynamic
+    try
+        monitor = CreateObject("roAppMemoryMonitor")
+        if monitor <> invalid then return monitor.GetChannelAvailableMemory()
+    catch e
+    end try
+    return invalid
+end function
 
 sub cleanUserData()
     active_user = get_setting("active_user", "$default$")
