@@ -5,6 +5,8 @@
     <field id="ready" type="boolean" value="false" />
     <field id="exitApp" type="boolean" value="false" />
     <field id="forcePress" type="boolean" value="false" />
+    <!-- Roku deep link args ({ contentId, mediaType }), from launch params or roInput -->
+    <field id="deepLink" type="assocarray" alwaysNotify="true" onChange="onDeepLink" />
   </interface>
   <children>
     <!-- RowList on HeroScene -->

@@ -320,7 +320,31 @@ sub onRecentSelected()
 
     ' Ensure bar focus state is cleared regardless of which code path triggered this
     m.recentBar.itemHasFocus = false
+    openChannelPage(content)
+end sub
 
+' Roku deep link: contentId is a Twitch channel login. Opens that channel's page.
+sub onDeepLink()
+    args = m.top.deepLink
+    if args = invalid or args.contentId = invalid then return
+    login = LCase(args.contentId.toStr().trim())
+    if login = "" then return
+
+    ' Stop any playing video before navigating, the same way Back would.
+    if m.activeNode <> invalid and m.activeNode.id = "VideoPlayer"
+        m.top.removeChild(m.activeNode)
+        m.activeNode = invalid
+        if m.footprints.Count() > 0 then m.activeNode = m.footprints.pop()
+    end if
+
+    content = CreateObject("roSGNode", "TwitchContentNode")
+    content.contentType = "LIVE"
+    content.streamerLogin = login
+    content.streamerDisplayName = login
+    openChannelPage(content)
+end sub
+
+sub openChannelPage(content as object)
     if m.activeNode <> invalid
         ' Save focus before pushing
         focused = lastFocusedChild(m.activeNode)
