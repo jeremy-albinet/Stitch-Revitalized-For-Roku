@@ -21,6 +21,13 @@
         ]
     },
     {
+        "title": "Enable Chat",
+        "description": "Turn chat off to skip the chat connection and emote loading while watching. Takes effect the next time a stream opens.",
+        "settingName": "chat.enabled",
+        "type": "bool",
+        "default": "true"
+    },
+    {
         "title": "Chat On-By-Default",
         "description": "Determines default state of chat window when opening a stream",
         "settingName": "ChatOption",
