@@ -10,6 +10,7 @@
         <field id="nextCommentObj" type="AssocArray" />
         <field id="clientComment" type="string" />
         <field id="sendMessage" type="string" />
+        <field id="stopRequested" type="bool" value="false" />
         <field id="forceLive" type="bool" value="false" />
     </interface>
 

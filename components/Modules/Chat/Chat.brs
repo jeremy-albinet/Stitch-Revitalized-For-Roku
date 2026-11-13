@@ -56,10 +56,21 @@ end sub
 ' Uses destroyTask() per AGENTS.md: unobserve first so any in-flight
 ' nextCommentObj callback is suppressed before the task thread halts.
 sub stopJobs()
-    m.chat = destroyTask(m.chat, "nextCommentObj")
+    stopChatJob()
     if m.EmoteJob <> invalid
         m.EmoteJob.control = "stop"
         m.EmoteJob = invalid
+    end if
+end sub
+
+' Asks ChatJob to leave its loop and close its socket. Not destroyTask():
+' control = "stop" kills the thread at its next m.top read ("Rendezvous aborted")
+' before it can clean up, so let the task end on its own instead.
+sub stopChatJob()
+    if m.chat <> invalid
+        m.chat.unobserveField("nextCommentObj")
+        m.chat.stopRequested = true
+        m.chat = invalid
     end if
 end sub
 
@@ -328,7 +339,7 @@ sub onNewCommentObj()
 end sub
 
 sub onDestroy()
-    m.chat = destroyTask(m.chat, "nextCommentObj")
+    stopChatJob()
     if m.EmoteJob <> invalid
         m.EmoteJob.control = "stop"
         m.EmoteJob = invalid
