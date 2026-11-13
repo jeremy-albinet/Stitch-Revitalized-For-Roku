@@ -1,0 +1,321 @@
+import "pkg:/components/Tasks/DemuxServer/DemuxMp4.brs"
+
+namespace tests
+
+    @suite("DemuxMp4")
+    class DemuxMp4Tests extends rooibos.BaseTestSuite
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        ' Synthetic box builders
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        private function box(typ as string, payload as object) as object
+            b = CreateObject("roByteArray")
+            pushU32(b, 8 + payload.Count())
+            pushType(b, typ)
+            b.Append(payload)
+            return b
+        end function
+
+        private function cat(parts as object) as object
+            b = CreateObject("roByteArray")
+            for each p in parts
+                b.Append(p)
+            end for
+            return b
+        end function
+
+        private function words(vals as object) as object
+            b = CreateObject("roByteArray")
+            for each v in vals
+                pushU32(b, v)
+            end for
+            return b
+        end function
+
+        private function bytes(first as integer, count as integer) as object
+            b = CreateObject("roByteArray")
+            for i = 0 to count - 1
+                b.Push((first + i) and &hFF)
+            end for
+            return b
+        end function
+
+        ' version 0 tkhd: flags, ctime, mtime, id, reserved. Version 1 has 64-bit times.
+        private function tkhd(version as integer, id as integer) as object
+            if version = 0 then return m.box("tkhd", m.words([0, 0, 0, id, 0]))
+            return m.box("tkhd", m.words([&h01000000, 0, 0, 0, 0, id, 0]))
+        end function
+
+        private function trak(version as integer, id as integer, handler as string) as object
+            hdlr = CreateObject("roByteArray")
+            pushU32(hdlr, 0)
+            pushU32(hdlr, 0)
+            pushType(hdlr, handler)
+            return m.box("trak", m.cat([m.tkhd(version, id), m.box("mdia", m.box("hdlr", hdlr))]))
+        end function
+
+        private function trex(id as integer) as object
+            return m.box("trex", m.words([0, id, 1, 0, 0, 0]))
+        end function
+
+        ' video: id 5 (tkhd v0), audio: id 2 (tkhd v1)
+        private function initSegment() as object
+            moov = m.box("moov", m.cat([m.box("mvhd", m.words([0, 0])), m.trak(0, 5, "vide"), m.trak(1, 2, "soun"), m.box("mvex", m.cat([m.trex(5), m.trex(2)]))]))
+            return m.cat([m.box("ftyp", m.words([&h69736F6D])), moov])
+        end function
+
+        private function trafBox(id as integer, sizes as object, dataOffset as integer) as object
+            trunBody = m.words([&h201, sizes.Count(), dataOffset])
+            trunBody.Append(m.words(sizes))
+            return m.box("traf", m.cat([m.box("tfhd", m.words([0, id])), m.box("trun", trunBody)]))
+        end function
+
+        private function moofBox(videoOffset as integer, audioOffset as integer) as object
+            return m.box("moof", m.cat([m.box("mfhd", m.words([0, 1])), m.trafBox(5, [3, 2], videoOffset), m.trafBox(2, [4], audioOffset)]))
+        end function
+
+        ' styp + emsg + moof(video 5 bytes 0x11.., audio 4 bytes 0xA1..) + mdat
+        private function mediaSegment() as object
+            moofSize = m.moofBox(0, 0).Count()
+            mdatPayload = m.cat([m.bytes(&h11, 5), m.bytes(&hA1, 4)])
+            return m.cat([m.box("styp", m.words([0])), m.box("emsg", m.words([0, 0])), m.moofBox(moofSize + 8, moofSize + 8 + 5), m.box("mdat", mdatPayload)])
+        end function
+
+        private function names(b as object) as object
+            out = []
+            for each bx in listBoxes(b, 0, b.Count())
+                out.Push(bx.name)
+            end for
+            return out
+        end function
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("u32 / putU32")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("round-trips big-endian values")
+        sub u32_roundTrip()
+            b = CreateObject("roByteArray")
+            b.FromHexString("00000000")
+            putU32(b, 0, &h01020304)
+            m.assertEqual(b[0], 1)
+            m.assertEqual(b[3], 4)
+            m.assertEqual(u32(b, 0), &h01020304)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("listBoxes")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("lists consecutive boxes with offset, header, size and name")
+        sub listBoxes_basic()
+            b = m.cat([m.box("ftyp", m.words([1])), m.box("free", m.words([1, 2]))])
+            boxes = listBoxes(b, 0, b.Count())
+            m.assertEqual(boxes.Count(), 2)
+            m.assertEqual(boxes[0].name, "ftyp")
+            m.assertEqual(boxes[0].size, 12)
+            m.assertEqual(boxes[1].name, "free")
+            m.assertEqual(boxes[1].off, 12)
+            m.assertEqual(boxes[1].hdr, 8)
+        end sub
+
+        @it("treats size 0 as extending to the end of the range")
+        sub listBoxes_sizeZero()
+            b = m.box("mdat", m.words([1, 2]))
+            putU32(b, 0, 0)
+            boxes = listBoxes(b, 0, b.Count())
+            m.assertEqual(boxes[0].size, 16)
+        end sub
+
+        @it("reads a 64-bit size header when the high word is zero")
+        sub listBoxes_largeSize()
+            b = CreateObject("roByteArray")
+            pushU32(b, 1)
+            pushType(b, "mdat")
+            pushU32(b, 0)
+            pushU32(b, 20)
+            pushU32(b, 7)
+            boxes = listBoxes(b, 0, b.Count())
+            m.assertEqual(boxes[0].hdr, 16)
+            m.assertEqual(boxes[0].size, 20)
+        end sub
+
+        @it("throws on a 64-bit size above 32 bits")
+        sub listBoxes_tooLarge()
+            b = CreateObject("roByteArray")
+            pushU32(b, 1)
+            pushType(b, "mdat")
+            pushU32(b, 1)
+            pushU32(b, 20)
+            pushU32(b, 7)
+            m.assertTrue(m.throws(b))
+        end sub
+
+        @it("throws on a truncated header and on a size past the end")
+        sub listBoxes_truncated()
+            m.assertTrue(m.throws(m.bytes(1, 6)))
+            b = m.box("free", m.words([1]))
+            putU32(b, 0, 64)
+            m.assertTrue(m.throws(b))
+        end sub
+
+        @it("throws on a size smaller than its own header")
+        sub listBoxes_tinySize()
+            b = m.box("free", m.words([1]))
+            putU32(b, 0, 4)
+            m.assertTrue(m.throws(b))
+        end sub
+
+        private function throws(b as object) as boolean
+            try
+                listBoxes(b, 0, b.Count())
+            catch e
+                return true
+            end try
+            return false
+        end function
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("extractTrackMap")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("maps track ids to video/audio for tkhd v0 and v1")
+        sub trackMap_basic()
+            tm = extractTrackMap(m.initSegment())
+            m.assertEqual(tm["5"], "video")
+            m.assertEqual(tm["2"], "audio")
+            m.assertEqual(tm.Count(), 2)
+        end sub
+
+        @it("labels other handlers 'other' and a trak with no mdia 'other'")
+        sub trackMap_other()
+            noMdia = m.box("trak", m.tkhd(0, 9))
+            b = m.box("moov", m.cat([m.trak(0, 7, "text"), noMdia]))
+            tm = extractTrackMap(b)
+            m.assertEqual(tm["7"], "other")
+            m.assertEqual(tm["9"], "other")
+        end sub
+
+        @it("returns an empty map when there is no moov")
+        sub trackMap_noMoov()
+            m.assertEqual(extractTrackMap(m.box("ftyp", m.words([1]))).Count(), 0)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("splitInit")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("keeps only the audio track and trex, renumbered to 1 (tkhd v1)")
+        sub splitInit_audio()
+            src = m.initSegment()
+            out = splitInit(src, "", extractTrackMap(src), "audio")
+            m.assertEqual(m.names(out), ["ftyp", "moov"])
+            tm = extractTrackMap(out)
+            m.assertEqual(tm.Count(), 1)
+            m.assertEqual(tm["1"], "audio")
+            m.assertEqual(m.trexIds(out), [1])
+        end sub
+
+        @it("keeps only the video track and trex, renumbered to 1 (tkhd v0)")
+        sub splitInit_video()
+            src = m.initSegment()
+            out = splitInit(src, "", extractTrackMap(src), "video")
+            tm = extractTrackMap(out)
+            m.assertEqual(tm.Count(), 1)
+            m.assertEqual(tm["1"], "video")
+            m.assertEqual(m.trexIds(out), [1])
+        end sub
+
+        private function trexIds(b as object) as object
+            ids = []
+            moov = listBoxes(b, 0, b.Count())[1]
+            mvex = findChild(b, moov, "mvex")
+            for each t in listBoxes(b, mvex.off + mvex.hdr, mvex.off + mvex.size)
+                ids.Push(u32(b, t.off + t.hdr + 4))
+            end for
+            return ids
+        end function
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("splitMedia")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("keeps the audio traf and data, drops emsg, and repoints the trun offset")
+        sub splitMedia_audio()
+            src = m.mediaSegment()
+            tm = { "5": "video", "2": "audio" }
+            out = splitMedia(src, "", tm, "audio")
+            m.assertEqual(m.names(out), ["styp", "moof", "mdat"])
+            f = m.fragment(out)
+            m.assertEqual(f.tfhdId, 1)
+            m.assertEqual(f.dataOffset, m.moofOf(out).size + 8)
+            m.assertEqual(f.count, 1)
+            m.assertEqual(f.mdat, "A1A2A3A4")
+        end sub
+
+        @it("keeps the video traf and data, keeps emsg, and repoints the trun offset")
+        sub splitMedia_video()
+            src = m.mediaSegment()
+            tm = { "5": "video", "2": "audio" }
+            out = splitMedia(src, "", tm, "video")
+            m.assertEqual(m.names(out), ["styp", "emsg", "moof", "mdat"])
+            f = m.fragment(out)
+            m.assertEqual(f.tfhdId, 1)
+            m.assertEqual(f.dataOffset, m.moofOf(out).size + 8)
+            m.assertEqual(f.count, 2)
+            m.assertEqual(f.mdat, "1112131415")
+        end sub
+
+        @it("copies moof and mdat verbatim when the wanted track is absent")
+        sub splitMedia_noTrack()
+            src = m.mediaSegment()
+            out = splitMedia(src, "", { "5": "video", "2": "audio" }, "other")
+            m.assertEqual(out.Count(), src.Count() - m.box("emsg", m.words([0, 0])).Count())
+            m.assertEqual(m.names(out), ["styp", "moof", "mdat"])
+        end sub
+
+        private function moofOf(b as object) as object
+            for each bx in listBoxes(b, 0, b.Count())
+                if bx.name = "moof" then return bx
+            end for
+            return invalid
+        end function
+
+        ' Reads back the single traf in the output moof and the mdat payload.
+        private function fragment(b as object) as object
+            moof = m.moofOf(b)
+            traf = findChild(b, moof, "traf")
+            tfhd = findChild(b, traf, "tfhd")
+            trun = findChild(b, traf, "trun")
+            mdat = invalid
+            for each bx in listBoxes(b, 0, b.Count())
+                if bx.name = "mdat" then mdat = bx
+            end for
+            return {
+                tfhdId: u32(b, tfhd.off + tfhd.hdr + 4)
+                dataOffset: u32(b, trun.off + trun.hdr + 8)
+                count: u32(b, trun.off + trun.hdr + 4)
+                mdat: b.ToHexString().Mid((mdat.off + mdat.hdr) * 2, (mdat.size - mdat.hdr) * 2)
+            }
+        end function
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("isMpegTs")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("requires a 0x47 sync byte, and a second one at 188 when long enough")
+        sub isMpegTs_cases()
+            m.assertFalse(isMpegTs(CreateObject("roByteArray")))
+            m.assertFalse(isMpegTs(m.bytes(&h00, 300)))
+            m.assertTrue(isMpegTs(m.bytes(&h47, 10)))
+            ts = m.bytes(0, 300)
+            ts[0] = &h47
+            m.assertFalse(isMpegTs(ts))
+            ts[188] = &h47
+            m.assertTrue(isMpegTs(ts))
+        end sub
+
+    end class
+
+end namespace
