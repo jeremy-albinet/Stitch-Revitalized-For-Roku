@@ -2,16 +2,10 @@
 sub setConstants()
     deviceInfo = CreateObject("roDeviceInfo")
     appInfo = CreateObject("roAppInfo")
-    maxResolution = invalid
-    for each res in deviceInfo.GetSupportedGraphicsResolutions()
-        if maxResolution <> invalid
-            if res.height > maxResolution
-                maxResolution = res.height
-            end if
-        else
-            maxResolution = res.height
-        end if
-    end for
+    ' Video output height (e.g. "1080p60" -> 1080), not the UI graphics plane:
+    ' a 4K stick with a 720p UI still decodes and scales 1080p+ video.
+    maxVideoHeight = Val(deviceInfo.GetVideoMode())
+    if maxVideoHeight <= 0 then maxVideoHeight = invalid
     ' Sideloaded dev builds get a separate registry section so they don't share
     ' login state or settings with the channel-store install.
     appID = "StitchRevitalizedForRoku"
@@ -31,7 +25,7 @@ sub setConstants()
                 build: appInfo.GetValue("build_version")
             }
         },
-        supportedGraphicsResolution: maxResolution,
+        maxVideoHeight: maxVideoHeight,
         emoteCache: {},
         globalTTVEmotes: {},
         channelTTVEmotes: {},
