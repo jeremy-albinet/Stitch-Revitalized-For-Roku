@@ -221,6 +221,7 @@ query ChannelHome_Query(
                 __typename
                 }
                 previewImageURL
+                title
             }
             }
 

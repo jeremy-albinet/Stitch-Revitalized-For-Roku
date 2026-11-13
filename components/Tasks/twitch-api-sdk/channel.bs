@@ -14,11 +14,15 @@ function getChannelHomeQuery() as object
         return invalid
     end if
     channel = rsp?.data?.channel
+    previewTemplate = channel?.stream?.previewImageURL
     m.top.response = {
         description: channel?.description ?? "",
         followerCount: channel?.followers?.totalCount ?? 0,
         profileImageUrl: channel?.profileImageUrl,
         isLive: channel?.stream <> invalid,
+        liveTitle: channel?.stream?.title ?? "",
+        liveGame: channel?.stream?.game?.name ?? "",
+        livePreviewImageUrl: previewTemplate?.replace("{width}", "320")?.replace("{height}", "180"),
         videoShelves: channel?.videoShelves?.edges ?? []
     }
     m.top.control = TaskControl.STOP
