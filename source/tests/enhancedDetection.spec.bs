@@ -1,0 +1,25 @@
+namespace tests
+
+    @suite("Enhanced Broadcasting detection")
+    class EnhancedDetectionTests extends rooibos.BaseTestSuite
+
+        @it("plain TS variant is not Enhanced even when master says transmux")
+        sub plainTs()
+            variant = "#EXTM3U" + chr(10) + "#EXT-X-VERSION:3" + chr(10) + "#EXTINF:2.000,live" + chr(10) + "seg1.ts" + chr(10)
+            m.assertFalse(isFmp4Playlist(variant))
+        end sub
+
+        @it("variant with EXT-X-MAP is Enhanced")
+        sub fmp4()
+            variant = "#EXTM3U" + chr(10) + "#EXT-X-VERSION:6" + chr(10) + "#EXT-X-MAP:URI=" + chr(34) + "init.mp4" + chr(34) + chr(10) + "#EXTINF:2.000,live" + chr(10) + "seg1.m4s" + chr(10)
+            m.assertTrue(isFmp4Playlist(variant))
+        end sub
+
+        @it("missing playlist is not Enhanced")
+        sub missing()
+            m.assertFalse(isFmp4Playlist(invalid))
+        end sub
+
+    end class
+
+end namespace
