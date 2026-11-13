@@ -21,6 +21,13 @@ npm run fmt:check    # Check formatting (fails on diff)
 
 CI runs on PRs: `lint` → `fmt:check` → `package`. All three must pass.
 
+A separate `static-analysis` job runs Roku's `sca-cmd` (latest version, Java 21) on the package
+and fails on any `[ERROR]`. These are the same checks as the dashboard's Static Analysis step, and
+an error there blocks publishing. Warnings do not fail the job, but read them: Roku turns some
+warnings into errors on a published date (e.g. `InitClientCertificates()` blocks from 2027-04-01).
+Run it locally: download https://devtools.web.roku.com/static-channel-analysis/sca-cmd.zip, then
+`sca-cmd/bin/sca-cmd out/Stitch-Revitalized-For-Roku.zip --exit error`.
+
 > **MANDATORY before every commit**: run `npm run fmt` to auto-format all `.brs`/`.bs` files.
 > The formatter enforces `keywordCase: "lower"`, which lowercases enum member names and other
 > identifiers — do not manually set enum members to UPPERCASE; the formatter will revert them.
@@ -45,46 +52,53 @@ source/                    # BrightScript utilities and entry point
     globals.brs            # Simple key-value global state
     http.brs               # HTTP request wrapper
     misc.brs               # Helper functions (isValid, formatting, etc.)
+    analytics.brs          # trackEvent() wrapper over the Analytics task
+    contentBuilder.brs     # getStreamTile() / getRowConfig() — tile sizes, per-row counts
+    recentlyWatched.brs    # Recently-watched list persistence
+    sceneFactory.brs       # build_Following() / build_Browse() / build_Search()
+    taskFactory.brs        # createApiTask() / destroyTask()
+  enums/                   # BrighterScript enums (VideoControl, TaskControl, ...)
+  graphql/                 # .gql query documents, read at runtime with ReadAsciiFile
+  tests/                   # Rooibos specs (*.spec.bs)
+  changelog.brs            # In-app "What's New" entries, keyed by version
 components/                # SceneGraph components (XML + BRS pairs)
   heroScene.brs/.xml       # Main scene (extends SceneManagerScene), manages auth, nav, scene stack
-  SceneManager/            # Scene management framework
-    SceneManager.brs/.xml  # Base scene manager
-    Group/                 # SceneManagerGroup
-    MessageDialog/         # SceneManagerMessageDialog
-    Overhang/              # SceneManagerOverhang
-    Scene/                 # SceneManagerScene (base class for heroScene)
-    Screen/                # SceneManagerScreen
-    Scripts/               # SceneManagerConfig, SceneManagerUtils
+  SceneManager/            # Scene management framework (only these two remain)
+    Group/                 # SceneManagerGroup — base for most scenes
+    Scene/                 # SceneManagerScene — base for heroScene
   Scenes/                  # Full-screen views
     Following/             # Followed streams grid (default home)
-    Discover/              # Browse/discover content
-    LiveChannels/          # Live channel listings
-    Categories/            # Game/category browser
+    Browse/                # Featured + Categories + Live Channels, three stacked sections
     Search/                # Search interface
     Settings/              # User settings screen
     ChannelPage/           # Individual channel view (profile, VODs, clips)
-    GamePage/              # Game/category detail page
+    GamePage/              # Game/category detail page (streams within one category)
     VideoPlayer/           # Video playback scene
     LoginPage/             # OAuth device code login flow
   Modules/                 # Reusable UI components
-    MenuBar/               # Top horizontal menu bar (Following, Discover, LiveChannels, Categories)
-    FollowedStreamsBar/    # Left sidebar showing followed live streams (with SidebarItem)
-    VideoItem/             # Stream/VOD/clip card with thumbnail, labels, badges
+    MenuBar/               # Top horizontal menu bar
+    RecentlyWatchedBar/    # Left sidebar of recently watched channels
+    VideoItem/             # Stream/VOD/clip/game/user card with thumbnail, labels, badges
     Chat/                  # Twitch chat overlay (IRC-based, with ChatJob + EmoteJob)
     CirclePoster/          # Circular avatar component
     EmojiLabel/            # Label with inline emoji rendering via regex
     ChannelMenu/           # Channel action menu overlay
-    StitchVideo/           # Video player wrapper
-    CustomVideo/           # Custom video node extensions
+    StitchVideo/           # Live player wrapper
+    CustomVideo/           # VOD/clip player wrapper (extends Video)
     VideoErrorHandler/     # User-friendly video error messages
     GIFPlayer/             # Animated GIF decoder + player (with GIFAnimator, GIFDecoder)
     TwitchContentNode/     # Extended ContentNode for Twitch data
   Tasks/                   # Task nodes for async work (API calls, content loading)
-    GetTwitchContent/      # Content-fetching task nodes
+    GetTwitchContent/      # Stream manifest/token fetching for playback
     httpRequest/           # Generic HTTP task node
     PlayerTask/            # Video player task node
-    twitch-api-sdk/        # Twitch GraphQL API client (monolithic TwitchApiTask.bs)
-  DeepLinking/             # External launch handling
+    Analytics/             # PostHog event capture
+    DemuxServer/           # Built-in Enhanced Broadcasting splitter (loopback HTTP server)
+    ProxyHealthCheck/      # External fmp4-demux-proxy reachability probe
+    RW_AddTask/            # Appends to the recently-watched list
+    twitch-api-sdk/        # Twitch GraphQL client, split by domain:
+                           #   shared.bs (TwitchGraphQLRequest), auth, browse, channel,
+                           #   follow, game, home, player, search, user
 settings/settings.json     # User-facing settings definitions
 manifest                   # Roku channel metadata (v2.2.0)
 images/                    # UI assets
@@ -121,8 +135,10 @@ All network I/O and expensive work runs in Task nodes. Pattern:
 ### Navigation
 Uses a lightweight scene stack in heroScene (`m.footprints`) for back-navigation.
 Scenes are created via `buildNode(name)` and appended/removed from the scene tree.
-Top-level tab switching is handled by `MenuBar` (horizontal menu: Following, Discover, LiveChannels, Categories) via `onMenuSelection()`.
-`FollowedStreamsBar` provides a left sidebar showing live followed streams for quick channel access.
+Top-level tab switching is handled by `MenuBar` via `onMenuSelection()`. The tabs are built in
+`heroScene.brs` as `["Following", "Browse", "Search"]`, plus a dev-only `"Anonymous"` tab when
+`m.global.appInfo.IsDev`.
+`RecentlyWatchedBar` provides the left sidebar of recently watched channels.
 
 ### State Management
 - `m.global` — read-only global node (constants, emote caches, app info)
@@ -203,9 +219,42 @@ Use optional chaining where available (BrighterScript): `rsp?.status`
 - Task nodes should set `m.top.control = "STOP"` when done
 - Video errors use dedicated `VideoErrorHandler` module with user-friendly messages
 
+### Real-Roku Platform Quirks
+
+These are hardware/firmware behaviours, not simulator gaps. See **Known brs-engine Quirks** for
+simulator-only issues.
+
+**Starting playback at an offset: use `PlayStart`, never `seek`.**
+Assigning `video.seek` while the player is not yet playing is silently discarded. The resume
+position must be set on the content node *before* it is assigned to the player:
+
+```brightscript
+' CORRECT — resume a VOD at 600s
+contentNode.PlayStart = 600
+video.content = contentNode
+
+' WRONG — discarded, playback starts at 0
+video.content = contentNode
+video.seek = 600
+```
+
+`seek` is only valid once the player is actually playing (mid-playback scrubbing, trick play).
+This cost a user-visible regression that survived several releases: replays silently stopped
+resuming because the assignment looked correct and threw no error.
+
+Corollary: anything that re-enters the play path (recovery retries, quality changes) re-applies
+`PlayStart`. If a retry should resume where the viewer actually is rather than at the stored
+bookmark, track the live position and prefer it. See `playContent(isRecovery)` in
+`components/Scenes/VideoPlayer/VideoPlayer.brs`.
+
+**Live edge**: `PlayStart = 2147483647` is the canonical "start at live". Roku clips it to the
+current availability window.
+
 ## Twitch API
 
-- All Twitch communication goes through `TwitchApiTask.bs` via GraphQL
+- All Twitch communication goes through the `TwitchApiTask` node, whose implementation is split
+  by domain across `components/Tasks/twitch-api-sdk/*.bs` (`shared.bs` holds
+  `TwitchGraphQLRequest`)
 - Client ID: `ue6666qo983tsx6so1t0vnawi233wa`
 - Auth: Device code flow → OAuth token stored in registry
 - Base URL: `https://gql.twitch.tv/gql` (POST, JSON body with `query` field)
@@ -224,9 +273,9 @@ The app has two independent auth levels:
 
 **Never assume login is required for playback.** `TwitchGraphQLRequest` in `shared.bs` blocks when `device_code` is missing (first-launch only, very brief window) — not when `access_token` is missing.
 
-### Query Function Contract (TwitchApiTask.bs)
+### Query Function Contract (twitch-api-sdk)
 
-There are two distinct function classes in `TwitchApiTask.bs`. **Never mix them.**
+There are two distinct function classes in the `twitch-api-sdk/*.bs` files. **Never mix them.**
 
 **Raw pass-through** — returns the raw GraphQL response object to the caller. The caller is responsible for deep dot-chain parsing. On failure, set `m.top.response = { "response": invalid }`. Examples: `getHomePageQuery`, `getCategoryQuery`, `getSearchQuery`, and most others.
 
@@ -248,6 +297,46 @@ When adding a new query function, decide upfront which class it belongs to and f
 - Never commit `DEV.md`
 - Do not commit automatically — wait for explicit instruction
 
+### Tagging
+
+`tag.gpgsign` is `true` in this repo, so every tag is signed. Consequences:
+
+- `git tag -f <name> <sha>` fails with `fatal: no tag message?` because signing implies an
+  annotated tag. Always pass `-m` or `-F <file>`.
+- A multi-line `-m` can fail depending on shell quoting. Write the message to a temp file and
+  use `-F`, then delete the file.
+- Stale tags from the upstream Narehood repo can already occupy a version name locally without
+  being on `origin`. Check `git show -s v<X.Y.Z>^{commit}` and `git ls-remote --tags origin`
+  before assuming a tag conflict is yours.
+
+## Releasing to the Roku Channel
+
+**The GitHub release is not the release.** CI stops at publishing a tagged GitHub release. Every
+step after that is manual, and skipping it is why v2.8.0 and v2.9.0 existed on GitHub for weeks
+while the published channel stayed on v2.7.0.
+
+Full sequence, in order:
+
+1. Merge to `main` (rebase; own PRs need `--admin`).
+2. Annotated, signed tag `vX.Y.Z` pushed to `origin` — this triggers the Release workflow.
+3. Confirm the Release workflow succeeded and the GitHub release exists.
+4. `npm run package`, then sideload to the dev stick. **The stick must be the one keyed with the
+   Stitch Dev ID** — a package signed with any other key cannot update the published channel.
+5. **Hardware smoke test on the stick. This step is a gate; do not skip it.** Confirm the version
+   with `query/apps`. Note the Roku OS version from `query/device-info`; it should be the current
+   public release. Then check: app launches, live stream plays, a VOD resumes at its bookmark,
+   chat loads, Back exits cleanly. Watch the debug console (port 8085) for `BRIGHTSCRIPT: ERROR`
+   throughout. Any failure stops the release. v3.0.0 was submitted without this step.
+6. Sign: `ROKU_HOST=<stick-ip> ROKU_PASSWORD=<pw> npm run sign -- <signing-password>`.
+   Signing only requires the channel to be *installed*, not running.
+7. Rename the output to `Stitch-Revitalized_X.Y.Z.pkg` and keep it.
+8. Upload to the Roku developer dashboard, set minimum firmware to match `manifest`
+   `firmware_version`, paste the release notes, and submit for certification.
+9. Certification is a queue. The channel updates only after Roku approves.
+
+A release is not done until step 9. If asked whether a version "shipped", distinguish between
+tagged, signed, submitted, and published.
+
 ## Development Principles
 
 - KISS — keep changes minimal and focused
@@ -263,7 +352,9 @@ When adding a new query function, decide upfront which class it belongs to and f
 |---|---|
 | `source/main.brs` | App entry point |
 | `components/heroScene.brs` | Main scene (auth, nav, menu) |
-| `components/Tasks/twitch-api-sdk/TwitchApiTask.bs` | All Twitch API calls |
+| `components/Tasks/twitch-api-sdk/` | All Twitch API calls, split by domain (`shared.bs`, `auth.bs`, `browse.bs`, `channel.bs`, `follow.bs`, `game.bs`, `home.bs`, `player.bs`, `search.bs`, `user.bs`) |
+| `source/graphql/*.gql` | Query documents loaded at runtime via `ReadAsciiFile` |
+| `source/utils/contentBuilder.brs` | `getStreamTile()` / `getRowConfig()` — single source of truth for tile sizes and per-row counts |
 | `source/utils/config.brs` | Registry read/write helpers |
 | `source/utils/misc.brs` | Shared utility functions |
 | `source/utils/http.brs` | HTTP request wrapper |
@@ -390,9 +481,9 @@ end sub
 ' CORRECT: payload shape test (no helper call needed)
 @it("capture payload has correct shape")
 sub trackEvent_payloadShape()
-    payload = { event: "tab_visited", props: { tab: "Discover" } }
+    payload = { event: "tab_visited", props: { tab: "Browse" } }
     m.assertEqual(payload.event, "tab_visited")
-    m.assertEqual(payload.props.tab, "Discover")
+    m.assertEqual(payload.props.tab, "Browse")
 end sub
 ```
 
@@ -430,6 +521,40 @@ if m.timer <> invalid then m.timer.observeField("fire", "callback")
 
 ---
 
-### Physical TV (only when explicitly requested)
+### Physical Hardware (only when explicitly requested)
 
-Device credentials and all TV deploy/debug/ECP commands are in `DEV.md` (gitignored).
+Device credentials and all deploy/debug/ECP commands are in `DEV.md` (gitignored).
+
+#### Preflight — run these before promising a hardware QA pass
+
+1. **Is the device reachable?** `curl -s http://<ip>:8060/query/device-info`. If nothing answers,
+   SSDP discover rather than assuming the documented IP is current.
+2. **Is ECP drivable?** Check `ecp-setting-mode` in that response. Under `limited`, every
+   `POST /keypress/*` returns **403** and `query/apps` is blocked, so the device cannot be
+   navigated at all. Fix: Settings > System > Advanced system settings > Control by mobile apps
+   > Permissive. Check this *first* — it invalidates an entire QA plan.
+3. **Did the install actually land?** After sideloading, confirm the version:
+   `curl -s http://<ip>:8060/query/apps | grep '"dev"'`. The device keeps serving the previous
+   build until the new one loads, so a QA report against a stale build is a real failure mode.
+4. **Screenshots**: `/pkgs/dev.jpg` on real hardware. `/pkgs/dev.png` 404s; it is simulator-only.
+   An empty file usually means the screenshot needs re-triggering, or the channel is not running.
+
+#### Interpreting hardware failures
+
+- `EXIT_USER_NAV` with no `BRIGHTSCRIPT: ERROR` means something sent Home/Back — a system overlay
+  stealing focus, not an app crash. A "low power" warning on a USB-powered stick causes exactly
+  this, along with reboots and decode failures. Check uptime in `device-info`.
+- **Always run a control before blaming the branch.** Build the previous release tag in a
+  throwaway worktree, sideload it, and see whether it fails identically. If it does, the fault is
+  the device. This takes a few minutes and prevents chasing a phantom regression.
+
+#### Briefing a subagent for hardware QA
+
+- Give it the device IP, the known-good credentials, and state explicitly which device is the
+  target and which to leave alone.
+- Tell it to **re-verify an ambiguous failure before declaring itself blocked.** A single 401 or
+  an empty response is not proof; a previous run reported bad credentials that worked on retry.
+- Require a version gate: do not test until `query/apps` reports the expected version.
+- Require pass/fail per numbered item with the evidence actually observed, and require suspected
+  hardware faults to be reported separately from branch defects.
+- Credentials must never be written to a file, including under `/tmp`.
