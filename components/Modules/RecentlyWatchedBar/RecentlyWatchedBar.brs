@@ -21,6 +21,8 @@ sub init()
     m.max = m.visibleWindow - 1
 
     m.liveStatusTask = invalid
+    m.dialog = invalid
+    m.dialogActions = []
 
     m.top.focusable = true
 
@@ -194,10 +196,109 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
         m.top.contentSelected = content
         return true
+
+    else if key = "options"
+        if m.currentIndex >= m.items.Count() then return false
+        showOptionsDialog()
+        return true
     end if
 
     return false
 end function
+
+' Options menu for the focused channel. Edits local history only; never calls Twitch.
+sub showOptionsDialog()
+    data = m.items[m.currentIndex].itemData
+    name = data.displayName
+    if name = invalid or name = "" then name = data.login
+    m.dialogActions = ["remove", "clearall", "cancel"]
+    openDialog(name, "", [tr("Remove from sidebar"), tr("Clear all recent"), tr("Cancel")], "onOptionsButton")
+end sub
+
+sub openDialog(title as string, message as string, buttons as object, callback as string)
+    closeDialog()
+    m.dialog = CreateObject("roSGNode", "StandardMessageDialog")
+    m.dialog.title = title
+    if message <> "" then m.dialog.message = [message]
+    m.dialog.buttons = buttons
+    m.dialog.observeField("buttonSelected", callback)
+    m.dialog.observeField("wasClosed", "onDialogClosed")
+    m.top.getScene().dialog = m.dialog
+end sub
+
+' Unobserves and closes the open dialog, if any.
+sub closeDialog()
+    if m.dialog = invalid then return
+    m.dialog.unobserveField("buttonSelected")
+    m.dialog.unobserveField("wasClosed")
+    m.dialog.close = true
+    m.dialog = invalid
+end sub
+
+' Back dismissed the dialog.
+sub onDialogClosed()
+    if m.dialog = invalid then return
+    m.dialog.unobserveField("buttonSelected")
+    m.dialog.unobserveField("wasClosed")
+    m.dialog = invalid
+end sub
+
+sub onOptionsButton()
+    if m.dialog = invalid then return
+    pressed = m.dialog.buttonSelected
+    action = "cancel"
+    if pressed >= 0 and pressed < m.dialogActions.Count() then action = m.dialogActions[pressed]
+
+    if action = "remove"
+        closeDialog()
+        removeSelected()
+    else if action = "clearall"
+        ' Cancel comes first so a stray OK keeps the list.
+        openDialog(tr("Clear all recent"), tr("This clears your recent channels."), [tr("Cancel"), tr("OK")], "onClearAllButton")
+    else
+        closeDialog()
+    end if
+end sub
+
+sub onClearAllButton()
+    if m.dialog = invalid then return
+    pressed = m.dialog.buttonSelected
+    closeDialog()
+    if pressed <> 1 then return
+    RW_Clear()
+    rebuildKeepingFocus(m.currentIndex)
+end sub
+
+sub removeSelected()
+    login = m.items[m.currentIndex].itemData.login
+    if login = invalid then return
+    RW_Remove(login)
+    rebuildKeepingFocus(m.currentIndex)
+end sub
+
+' Rebuild the list after an edit and put focus on the same spot (or the last item).
+' Releases focus and emits becameEmpty when nothing is left.
+sub rebuildKeepingFocus(keepIndex as integer)
+    buildItems()
+    count = m.items.Count()
+    if count = 0
+        m.top.itemHasFocus = false
+        m.top.becameEmpty = true
+        return
+    end if
+    if keepIndex >= count then keepIndex = count - 1
+    m.currentIndex = keepIndex
+    ' Scroll so the focused item is the last visible one if it is past the first window
+    m.min = 0
+    if keepIndex > m.visibleWindow - 1 then m.min = keepIndex - m.visibleWindow + 1
+    m.max = m.min + m.visibleWindow - 1
+    for each item in m.items
+        item.translation = [m.itemX, item.translation[1] - m.min * m.itemSpacing]
+    end for
+    updateItemVisibility()
+    m.items[keepIndex].focused = true
+    m.top.setFocus(true)
+end sub
 
 ' Show only items within the visible scroll window, hide above and below.
 sub updateItemVisibility()
@@ -210,6 +311,7 @@ end sub
 
 sub onDestroy()
     m.refreshTimer = destroyTask(m.refreshTimer, "fire")
+    closeDialog()
     m.liveStatusTask = destroyTask(m.liveStatusTask, "response")
     m.top.unobserveField("itemHasFocus")
 end sub
