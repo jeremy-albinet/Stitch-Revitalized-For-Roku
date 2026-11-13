@@ -291,9 +291,12 @@ sub appendRows(contentCollection as object)
     end for
 
     if m.rowList.content <> invalid
-        existingSizes = m.rowList.rowItemSize
-        existingLabels = m.rowList.showRowLabel
-        existingHeights = m.rowList.rowHeights
+        existingSizes = []
+        existingSizes.append(m.rowList.rowItemSize)
+        existingLabels = []
+        existingLabels.append(m.rowList.showRowLabel)
+        existingHeights = []
+        existingHeights.append(m.rowList.rowHeights)
         existingSizes.append(rowItemSize)
         existingLabels.append(showRowLabel)
         existingHeights.append(rowHeights)
