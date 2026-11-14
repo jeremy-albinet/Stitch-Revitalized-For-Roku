@@ -3,8 +3,12 @@ sub init()
     analyticsTask.control = "RUN"
     m.global.addFields({ analyticsTask: analyticsTask })
 
-    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
-    startBuiltinSplitter()
+    ' Remote kill switch: fetched in the background, the app never waits on it.
+    ' The built-in splitter starts once it settles (or fails, within about 3 s).
+    m.global.addFields({ remoteConfig: {} })
+    m.remoteConfigTask = CreateObject("roSGNode", "RemoteConfig")
+    m.remoteConfigTask.observeField("result", "onRemoteConfig")
+    m.remoteConfigTask.control = "run"
 
     m.validateOauthToken = createApiTask("validateOauthToken", "ValidateUserLogin")
     VersionJobs()
@@ -32,6 +36,43 @@ sub init()
     m.footprints = []
 
     sendAppOpenedEvents()
+end sub
+
+sub onRemoteConfig()
+    result = m.remoteConfigTask.result
+    m.remoteConfigTask = destroyTask(m.remoteConfigTask, "result")
+    if result <> invalid and result.ok = true
+        m.global.remoteConfig = result.config
+    end if
+
+    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
+    startBuiltinSplitter()
+
+    message = remoteFlag("message", "")
+    if message <> "" and message <> get_setting("remote.last_message", "") then showRemoteMessage(message)
+end sub
+
+' Small dismissible notice. Skipped (and retried next launch) when another dialog is up.
+sub showRemoteMessage(message as string)
+    scene = m.top.getScene()
+    if scene = invalid or scene.dialog <> invalid then return
+    dialog = createObject("roSGNode", "StandardMessageDialog")
+    dialog.title = "Notice"
+    dialog.message = [message]
+    dialog.buttons = ["OK"]
+    dialog.observeField("buttonSelected", "onRemoteMessageDismissed")
+    dialog.observeField("wasClosed", "onRemoteMessageDismissed")
+    scene.dialog = dialog
+    m.remoteMessageDialog = dialog
+    set_setting("remote.last_message", message)
+end sub
+
+sub onRemoteMessageDismissed()
+    if m.remoteMessageDialog = invalid then return
+    m.remoteMessageDialog.unobserveField("buttonSelected")
+    m.remoteMessageDialog.unobserveField("wasClosed")
+    m.remoteMessageDialog.close = true
+    m.remoteMessageDialog = invalid
 end sub
 
 sub sendAppOpenedEvents()
@@ -77,7 +118,7 @@ end sub
 ' Mirrors the playback choice in GetTwitchContent: a proxy URL wins over the built-in splitter.
 function getEnhancedBroadcastingMode() as string
     if get_user_setting("proxy.url", "").trim() <> "" then return "proxy"
-    if get_user_setting("proxy.builtin", "false") = "true" then return "builtin"
+    if isBuiltinSplitterEnabled() then return "builtin"
     return "off"
 end function
 
@@ -489,6 +530,12 @@ function onKeyEvent(key, press) as boolean
 end function
 
 sub onDestroy()
+    m.remoteConfigTask = destroyTask(m.remoteConfigTask, "result")
+    if m.remoteMessageDialog <> invalid
+        m.remoteMessageDialog.unobserveField("buttonSelected")
+        m.remoteMessageDialog.unobserveField("wasClosed")
+        m.remoteMessageDialog = invalid
+    end if
     if m.changelogDialog <> invalid
         m.changelogDialog.unobserveField("buttonSelected")
         m.changelogDialog.unobserveField("wasClosed")

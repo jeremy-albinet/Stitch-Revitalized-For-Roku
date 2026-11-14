@@ -26,6 +26,7 @@
   <script type="text/brightscript" uri="pkg:/source/changelog.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/config.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/taskFactory.brs" />
+  <script type="text/brightscript" uri="pkg:/source/utils/remoteConfig.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/analytics.brs" />
   <script type="text/brightscript" uri="pkg:/source/utils/sceneFactory.brs" />
 </component>

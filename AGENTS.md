@@ -387,6 +387,27 @@ Roku's documented limits are 20 testers and 120 days per beta app.
 A release is not done until step 10. If asked whether a version "shipped", distinguish between
 candidate, tagged, signed, submitted, and published.
 
+## Remote kill switch
+
+Risky features ship behind a flag in one small JSON file, so a bad release can be neutralised without
+a Roku certification round.
+
+- **File**: `config.json` on the orphan branch `remote-config` of this repo, fetched at launch from
+  `https://raw.githubusercontent.com/jeremy-albinet/Stitch-Revitalized-For-Roku/remote-config/config.json`.
+- **Flip a flag**: edit `config.json` on that branch and push. raw.githubusercontent.com caches for
+  about 5 minutes, and a running app only reads it at the next launch.
+- **Defaults** (used when the fetch fails, times out after 3 s, or the JSON is invalid or the wrong
+  type): `{"version":1,"adFix":true,"builtinSplitter":true,"message":""}`. Unknown fields are ignored.
+- `adFix` (bool): gates the live-playlist ad-break fix. `builtinSplitter` (bool): `false` disables the
+  built-in splitter even when the user turned it on; `true` never forces it on. `message` (string):
+  shown once in a dialog on the home screen, never again for the same text. Change the text to show it again.
+- **Code**: `RemoteConfig` task (`components/Tasks/RemoteConfig/`), `parseRemoteConfig()` and
+  `remoteFlag(name, default)` in `source/utils/remoteConfig.brs`. The result lands in
+  `m.global.remoteConfig`. `remoteFlag` returns the default until it has loaded. The built-in splitter
+  only starts after the fetch settles; do not block the UI on it.
+- New flag: add it to `parseRemoteConfig()`, read it with `remoteFlag()`, keep the default equal to
+  today's behaviour, and update this section and `config.json`.
+
 ## Development Principles
 
 - KISS — keep changes minimal and focused

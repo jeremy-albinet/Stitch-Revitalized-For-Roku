@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="RemoteConfig" extends="Task">
+    <interface>
+        <!-- Set once when the fetch ends: { ok: boolean, config: assocarray } -->
+        <field id="result" type="assocarray" />
+    </interface>
+    <script type="text/brightscript" uri="RemoteConfig.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/http.brs" />
+    <script type="text/brightscript" uri="pkg:/source/utils/remoteConfig.brs" />
+</component>

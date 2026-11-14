@@ -140,9 +140,18 @@ sub NukeRegistry(section = invalid)
 
 end sub
 
-' Starts the built-in Enhanced Broadcasting splitter once, if its setting is on.
+' True when the user turned the built-in splitter on and the remote kill switch
+' has not turned it off. Remote "true" never forces it on.
+function isBuiltinSplitterEnabled() as boolean
+    if get_user_setting("proxy.builtin", "false") <> "true" then return false
+    remote = m.global.remoteConfig
+    if type(remote) = "roAssociativeArray" and remote.builtinSplitter = false then return false
+    return true
+end function
+
+' Starts the built-in Enhanced Broadcasting splitter once, if it is enabled.
 sub startBuiltinSplitter()
-    if get_user_setting("proxy.builtin", "false") <> "true" or m.global.demuxServer <> invalid then return
+    if not isBuiltinSplitterEnabled() or m.global.demuxServer <> invalid then return
     demuxServer = CreateObject("roSGNode", "DemuxServer")
     demuxServer.control = "RUN"
     m.global.addFields({ demuxServer: demuxServer })
