@@ -108,9 +108,6 @@
 
         </Group>
         
-        <!-- Quality Dialog -->
-        <StandardMessageDialog id="QualityDialog" visible="false" />
-        
         <!-- Loading Overlay -->
         <Group id="loadingOverlay" translation="[960,540]" visible="true">
             <!-- Vertical layout container -->
