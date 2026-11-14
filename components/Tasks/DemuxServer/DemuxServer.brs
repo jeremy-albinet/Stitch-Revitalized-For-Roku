@@ -23,6 +23,9 @@ sub runServer()
     m.CRLF = chr(13) + chr(10)
     m.MAX_SEGS = 12
     m.TIMEOUT_MS = 30000
+    ' A live list is re-asked every couple of seconds, so a slow answer is useless: fail it fast.
+    m.LIVE_TIMEOUT_MS = 4000
+    m.lastBeat = -1
     m.ALLOWED_HOSTS = ["ttvnw.net", "twitch.tv", "twitchcdn.net", "cloudfront.net"]
 
     addr = CreateObject("roSocketAddress")
@@ -43,7 +46,15 @@ sub runServer()
     m.top.ready = true
 
     while true
-        msg = wait(5000, m.port)
+        ' Wake every second while a download runs so the short live timeout is kept.
+        waitMs = 5000
+        if m.xfers.Count() > 0 then waitMs = 1000
+        msg = wait(waitMs, m.port)
+        beat = Int(uptime(0))
+        if beat <> m.lastBeat
+            m.lastBeat = beat
+            m.top.beat = beat
+        end if
         t = type(msg)
         if t = "roSocketEvent"
             onSocketEvent(msg)
@@ -180,7 +191,8 @@ sub handleRequest(c as object)
             m.liveUa = ua
             logLine("Live lists asked for by: " + ua)
         end if
-        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: true, ua: ua })
+        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: true, ua: ua, timeoutMs: m.LIVE_TIMEOUT_MS })
+            noteLiveFailure()
             sendSimple(c, 502, "Bad Gateway")
         end if
     else
@@ -225,6 +237,7 @@ sub onUrlEvent(msg as object)
     if code <> 200
         DeleteFile(job.file)
         logLine("Twitch gave " + code.toStr() + " " + msg.GetFailureReason() + " (" + hostOf(job.url) + ")")
+        if job.live = true and (code < 400 or code >= 500) then noteLiveFailure()
         failJob(job)
         return
     end if
@@ -240,18 +253,26 @@ sub onUrlEvent(msg as object)
     end if
 end sub
 
-' Cancels downloads stuck over 30 s so the player never waits forever.
+' Cancels downloads stuck over their limit (30 s, 4 s for live lists) so the player never waits forever.
 sub dropStalledDownloads()
     for each key in m.xfers.Keys()
         job = m.xfers[key]
-        if job.timer.TotalMilliseconds() > m.TIMEOUT_MS
+        limit = m.TIMEOUT_MS
+        if job.timeoutMs <> invalid then limit = job.timeoutMs
+        if job.timer.TotalMilliseconds() > limit
             job.xfer.AsyncCancel()
             m.xfers.Delete(key)
             DeleteFile(job.file)
-            logLine("A download took over 30 seconds and was dropped")
+            logLine("A download took over " + Int(limit / 1000).toStr() + " seconds and was dropped (" + hostOf(job.url) + ")")
+            if job.live = true then noteLiveFailure()
             failJob(job)
         end if
     end for
+end sub
+
+' The player reads liveFailures: a server that fails live lists is not worth routing through.
+sub noteLiveFailure()
+    m.top.liveFailures = m.top.liveFailures + 1
 end sub
 
 sub failJob(job as object)
@@ -278,6 +299,7 @@ sub onPlaylistDownloaded(job as object)
     catch e
         m.maps.notes.Clear()
         m.breaks.notes.Clear()
+        if job.live = true then noteLiveFailure()
         logLine("Playlist rewrite failed: " + e.message)
         sendSimple(c, 502, "Bad Gateway")
         return
