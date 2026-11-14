@@ -149,10 +149,12 @@ function isBuiltinSplitterEnabled() as boolean
     return true
 end function
 
-' Starts the built-in server once. It always runs: live lists pass through it for the ad-freeze fix;
-' Enhanced streams are split by it only when the splitter setting is on.
+' Starts the built-in server once, when the splitter is enabled or the live-list ad fix is on
+' (remote adFix defaults to true until the config arrives). Enhanced streams are split only when
+' isBuiltinSplitterEnabled().
 sub startBuiltinSplitter()
     if m.global.demuxServer <> invalid then return
+    if not isBuiltinSplitterEnabled() and not remoteFlag("adFix", true) then return
     demuxServer = CreateObject("roSGNode", "DemuxServer")
     demuxServer.control = "RUN"
     m.global.addFields({ demuxServer: demuxServer })

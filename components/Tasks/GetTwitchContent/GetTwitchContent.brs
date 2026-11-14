@@ -506,7 +506,7 @@ sub main()
                     proxyQualityEntry(entry, proxyUrl, variantHints)
                 end for
             end if
-        else if m.top.contentRequested.contentType = "LIVE"
+        else if m.top.contentRequested.contentType = "LIVE" and remoteFlag("adFix", true)
             keepAdBreakCount(content, metadata)
         end if
 
