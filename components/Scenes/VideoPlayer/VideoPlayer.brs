@@ -1141,3 +1141,11 @@ end sub
 sub dismissTemporaryMessage()
     ' No-op for now
 end sub
+
+' Safety net: VideoPlayer can be removed from the scene without exitPlayer() having run
+' (e.g. the Back button path sets backPressed on the parent). Never leave the player running.
+sub onDestroy()
+    m.allowBreak = false
+    exitPlayer()
+    m.PlayVideo = destroyTask(m.PlayVideo, "response")
+end sub

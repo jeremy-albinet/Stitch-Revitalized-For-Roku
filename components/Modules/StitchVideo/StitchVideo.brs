@@ -42,6 +42,8 @@ sub init()
     m.qualityDialog = m.top.findNode("QualityDialog")
     ' Set up quality dialog observer once during initialization
     m.qualityDialog.observeFieldScopedEx("buttonSelected", "onQualityButtonSelect")
+    ' A Dialog consumes Back itself, so onKeyEvent never sees it: close the list from wasClosed.
+    m.qualityDialog.observeFieldScopedEx("wasClosed", "onQualityDialogClosed")
 
     ' State variables
     m.currentFocusedButton = 2 ' 0=back, 1=chat, 2=play/pause, 3=quality
@@ -427,6 +429,16 @@ sub onQualityButtonSelect()
     end if
 end sub
 
+sub onQualityDialogClosed()
+    m.qualityDialog.visible = false
+    m.top.setFocus(true)
+    if m.isOverlayVisible
+        focusButton(m.currentFocusedButton)
+        m.fadeAwayTimer.control = "stop"
+        m.fadeAwayTimer.control = "start"
+    end if
+end sub
+
 sub updateProgressBar()
     ' For live streams, always show full progress bar in Twitch purple
     m.progressBarProgress.width = m.progressBarBase.width
@@ -729,6 +741,7 @@ sub onDestroy()
     end if
     if m.qualityDialog <> invalid
         m.qualityDialog.unobserveFieldScoped("buttonSelected")
+        m.qualityDialog.unobserveFieldScoped("wasClosed")
     end if
     m.top.unobserveField("position")
     m.top.unobserveField("state")
