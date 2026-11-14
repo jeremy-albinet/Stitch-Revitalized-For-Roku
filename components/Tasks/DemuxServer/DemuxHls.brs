@@ -218,28 +218,50 @@ function absoluteUris(body as string, baseUrl as string) as string
     return lines.Join(chr(10))
 end function
 
-' After an ad, Twitch drops the ad's breaks (#EXT-X-DISCONTINUITY) off the top of a live list without
-' counting them in #EXT-X-DISCONTINUITY-SEQUENCE, so Roku loses its place and freezes. This keeps that count.
-function keepBreakCount(body as string, key as string, store as object) as string
-    if body.InStr("#EXTINF:") < 0 or body.InStr("#EXT-X-DISCONTINUITY-SEQUENCE:") >= 0 then return body
-    lines = body.Split(chr(10))
-    first = -1
-    seqLine = -1
-    seq = 0
-    marks = []
-    pendingBreak = false
+' State for keepBreakCount: one entry per live list address, least recently used evicted first.
+function newBreakStore() as object
+    store = { lists: {}, order: [], notes: [], ads: {}, maxLists: 8 }
+    store.lists.SetModeCaseSensitive()
+    store.ads.SetModeCaseSensitive()
+    return store
+end function
+
+' Marks a list as just used and drops the least recently used ones past the limit.
+sub touchBreakList(store as object, key as string)
+    for i = store.order.Count() - 1 to 0 step -1
+        if store.order[i] = key then store.order.Delete(i)
+    end for
+    store.order.Push(key)
+    while store.order.Count() > store.maxLists
+        store.lists.Delete(store.order.Shift())
+    end while
+end sub
+
+' Reads a live media list. Tags apply to the next piece address, so each break is counted on the piece
+' it precedes (several in a row count several times). A missing MEDIA-SEQUENCE means 0.
+function parseLiveList(lines as object, store as object) as object
+    r = { ok: true, first: 0, last: -1, uris: [], marks: {}, hasDsn: false, seqLine: -1, segLine: -1 }
+    breaks = []
+    pending = 0
+    digits = CreateObject("roRegex", "^[0-9]{1,9}$", "")
     for i = 0 to lines.Count() - 1
         line = lines[i].Trim()
         if startsWith(line, "#EXT-X-MEDIA-SEQUENCE:")
-            seq = line.Mid(22).ToInt()
-            first = seq
-            seqLine = i
+            v = line.Mid(22).Trim()
+            if digits.IsMatch(v) then r.first = v.ToInt() else r.ok = false
+            r.seqLine = i
+        else if startsWith(line, "#EXT-X-DISCONTINUITY-SEQUENCE:")
+            r.hasDsn = true
         else if line = "#EXT-X-DISCONTINUITY"
-            pendingBreak = true
+            pending = pending + 1
+            if r.segLine < 0 then r.segLine = i
+        else if line <> "" and line.Left(1) <> "#"
+            r.uris.Push(line)
+            breaks.Push(pending)
+            pending = 0
+            if r.segLine < 0 then r.segLine = i
         else if startsWith(line, "#EXTINF:")
-            if pendingBreak then marks.Push(seq)
-            pendingBreak = false
-            seq = seq + 1
+            if r.segLine < 0 then r.segLine = i
         else if startsWith(line, "#EXT-X-DATERANGE:") and line.InStr("twitch-stitched-ad") >= 0
             ' Each ad is logged once, so the log shows when ads came in.
             ad = tagAttr(line, "ID")
@@ -250,40 +272,91 @@ function keepBreakCount(body as string, key as string, store as object) as strin
             end if
         end if
     end for
-    if seqLine < 0 then return body
+    r.last = r.first + r.uris.Count() - 1
+    for i = 0 to breaks.Count() - 1
+        if breaks[i] > 0 then r.marks[(r.first + i).toStr()] = breaks[i]
+    end for
+    return r
+end function
 
-    ' One count per list; a list that jumps far back has started over.
+' After an ad, Twitch drops the ad's breaks (#EXT-X-DISCONTINUITY) off the top of a live list without
+' counting them in #EXT-X-DISCONTINUITY-SEQUENCE, so Roku loses its place and freezes. This keeps that count.
+' Per list: a ledger of breaks seen (kept across stale copies), the newest list served (stale or late copies
+' get that one back), and the pieces seen (tells a late copy from a stream that started over).
+function keepBreakCount(body as string, key as string, store as object) as string
+    lines = body.Split(chr(10))
+    pl = parseLiveList(lines, store)
+    if pl.uris.Count() = 0 or not pl.ok then return body
+
     st = store.lists[key]
-    if st <> invalid and first < st.first - 30 then st = invalid
-    if st = invalid
-        if not store.lists.DoesExist(key)
-            store.order.Push(key)
-            if store.order.Count() > 8 then store.lists.Delete(store.order.Shift())
+    if pl.hasDsn or (st <> invalid and st.native)
+        ' Twitch counts for itself: pass it through and never mix our base into this list.
+        if st = invalid or not st.native
+            store.lists[key] = { native: true }
+            store.notes.Push("Live list brings its own break count, left as is")
         end if
-        store.lists[key] = { first: first, disc: 0, marks: marks }
+        touchBreakList(store, key)
         return body
     end if
 
-    disc = st.disc
-    if first >= st.first
-        ' Breaks on pieces that fell off the top since last time.
-        for each s in st.marks
-            if s < first then disc = disc + 1
+    if st <> invalid and (pl.first < st.first or pl.last < st.last)
+        ' Older than what was already served. Only a list that is back near 0 with no piece seen before
+        ' is a stream that started over; anything else is a late copy and gets the newest list instead.
+        seenBefore = false
+        for each u in pl.uris
+            if st.seen.DoesExist(u) then seenBefore = true
         end for
-        if disc > st.disc then store.notes.Push("Ad breaks dropped off the top of a live list, break count now " + disc.toStr())
-        st.first = first
-        st.disc = disc
-        st.marks = marks
-    else
-        ' An older copy arrived late: count back from the newer one.
-        for each s in marks
-            if s < st.first then disc = disc - 1
-        end for
-        if disc < 0 then disc = 0
+        if pl.first < st.first and pl.first <= 10 and not seenBefore
+            store.notes.Push("Live list started over, break count reset")
+            st = invalid
+        else
+            touchBreakList(store, key)
+            store.notes.Push("Late copy of a live list (first " + pl.first.toStr() + ", newest " + st.first.toStr() + "), served the newest")
+            return st.out
+        end if
     end if
-    if disc = 0 then return body
-    lines[seqLine] = lines[seqLine].Trim() + chr(10) + "#EXT-X-DISCONTINUITY-SEQUENCE:" + disc.toStr()
-    return lines.Join(chr(10))
+
+    if st = invalid
+        st = { native: false, first: 0, last: -1, disc: 0, marks: {}, seen: {}, out: body }
+        store.lists[key] = st
+    end if
+    touchBreakList(store, key)
+
+    ' Breaks on pieces that fell off the top since last time are counted once and leave the ledger.
+    for each k in pl.marks
+        st.marks[k] = pl.marks[k]
+    end for
+    disc = st.disc
+    for each k in st.marks.Keys()
+        if k.ToInt() < pl.first
+            disc = disc + st.marks[k]
+            st.marks.Delete(k)
+        end if
+    end for
+    if st.seen.Count() > 256 then st.seen.Clear()
+    for each u in pl.uris
+        st.seen[u] = true
+    end for
+    st.first = pl.first
+    st.last = pl.last
+
+    out = body
+    if disc > 0
+        ' The count must come before the first piece or break: after MEDIA-SEQUENCE when that is first.
+        at = pl.segLine
+        if pl.seqLine >= 0 and pl.seqLine < at then at = pl.seqLine + 1
+        tag = "#EXT-X-DISCONTINUITY-SEQUENCE:" + disc.toStr()
+        if at <= 0
+            lines[0] = tag + chr(10) + lines[0]
+        else
+            lines[at - 1] = lines[at - 1] + chr(10) + tag
+        end if
+        out = lines.Join(chr(10))
+    end if
+    if disc > st.disc then store.notes.Push("Ad breaks dropped off the top of a live list, now serving #EXT-X-DISCONTINUITY-SEQUENCE:" + disc.toStr())
+    st.disc = disc
+    st.out = out
+    return out
 end function
 
 ' Variant without a track: synthesize a master with separate audio and video renditions.

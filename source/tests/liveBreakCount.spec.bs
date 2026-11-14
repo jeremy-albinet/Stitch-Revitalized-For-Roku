@@ -1,0 +1,237 @@
+import "pkg:/components/Tasks/DemuxServer/DemuxHls.brs"
+
+' Runs the real keepBreakCount on playlists captured from Twitch (signed URLs and ad metadata stripped,
+' see source/tests/fixtures). A piece must keep the same discontinuity number in every playlist it is in.
+namespace tests
+
+    @suite("keepBreakCount")
+    class LiveBreakCountTests extends rooibos.BaseTestSuite
+
+        private function load(name as string) as string
+            return ReadAsciiFile("pkg:/source/tests/fixtures/" + name + ".m3u8")
+        end function
+
+        ' Discontinuity number of every piece, as RFC 8216 6.2.1 derives it: the count tag plus breaks before it.
+        private function epochs(body as string) as object
+            result = {}
+            dsn = 0
+            breaks = 0
+            for each raw in body.Split(chr(10))
+                line = raw.Trim()
+                if startsWith(line, "#EXT-X-DISCONTINUITY-SEQUENCE:")
+                    dsn = line.Mid(30).ToInt()
+                else if line = "#EXT-X-DISCONTINUITY"
+                    breaks = breaks + 1
+                else if line <> "" and line.Left(1) <> "#"
+                    result[line] = dsn + breaks
+                end if
+            end for
+            return result
+        end function
+
+        private function dsnOf(body as string) as integer
+            for each raw in body.Split(chr(10))
+                if startsWith(raw.Trim(), "#EXT-X-DISCONTINUITY-SEQUENCE:") then return raw.Trim().Mid(30).ToInt()
+            end for
+            return -1
+        end function
+
+        ' Every piece present in both playlists has the same number in both.
+        private function stable(a as string, b as string) as boolean
+            ea = m.epochs(a)
+            eb = m.epochs(b)
+            shared = 0
+            for each uri in ea
+                if eb.DoesExist(uri)
+                    shared = shared + 1
+                    if ea[uri] <> eb[uri] then return false
+                end if
+            end for
+            return shared > 0
+        end function
+
+        private function playlist(first as integer, count as integer, breakAt = [] as object) as string
+            lines = ["#EXTM3U", "#EXT-X-VERSION:3", "#EXT-X-TARGETDURATION:5", "#EXT-X-MEDIA-SEQUENCE:" + first.toStr()]
+            for i = first to first + count - 1
+                for each b in breakAt
+                    if b = i then lines.Push("#EXT-X-DISCONTINUITY")
+                end for
+                lines.Push("#EXTINF:2.000,live")
+                lines.Push("https://s.hls.ttvnw.net/" + i.toStr() + ".ts")
+            end for
+            return lines.Join(chr(10)) + chr(10)
+        end function
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("captured ad scroll-off")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("keeps piece numbers stable when three breaks scroll off")
+        sub scrollOff()
+            store = newBreakStore()
+            before = keepBreakCount(m.load("preroll-a_0022"), "k", store)
+            after = keepBreakCount(m.load("preroll-a_0023"), "k", store)
+            m.assertEqual(m.dsnOf(before), -1)
+            m.assertEqual(m.dsnOf(after), 3)
+            m.assertTrue(m.stable(before, after))
+            ' Without the fix the same pieces change from 3 to 0.
+            m.assertFalse(m.stable(m.load("preroll-a_0022"), m.load("preroll-a_0023")))
+            later = keepBreakCount(m.load("preroll-a_0024"), "k", store)
+            m.assertEqual(m.dsnOf(later), 3)
+            m.assertTrue(m.stable(after, later))
+        end sub
+
+        @it("puts the count right after MEDIA-SEQUENCE and before the first piece")
+        sub placement()
+            store = newBreakStore()
+            keepBreakCount(m.load("preroll-a_0022"), "k", store)
+            lines = keepBreakCount(m.load("preroll-a_0023"), "k", store).Split(chr(10))
+            m.assertEqual(lines[3], "#EXT-X-MEDIA-SEQUENCE:13")
+            m.assertEqual(lines[4], "#EXT-X-DISCONTINUITY-SEQUENCE:3")
+        end sub
+
+        @it("counts a break that is not seen until it has scrolled off after joining mid-ad (kato)")
+        sub joinMidAd()
+            store = newBreakStore()
+            joined = keepBreakCount(m.load("preroll-b_0043"), "k", store)
+            m.assertEqual(m.dsnOf(joined), -1)
+            after = keepBreakCount(m.load("preroll-b_0044"), "k", store)
+            m.assertEqual(m.dsnOf(after), 3)
+            m.assertTrue(m.stable(joined, after))
+        end sub
+
+        @it("adds nothing when the first list seen is already past the ad")
+        sub joinAfterAd()
+            store = newBreakStore()
+            a = keepBreakCount(m.load("preroll-a_0023"), "k", store)
+            b = keepBreakCount(m.load("preroll-a_0024"), "k", store)
+            m.assertEqual(m.dsnOf(a), -1)
+            m.assertEqual(m.dsnOf(b), -1)
+            m.assertEqual(b, m.load("preroll-a_0024"))
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("accumulation and parsing")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("accumulates breaks across two separate scroll-offs")
+        sub twoBreaks()
+            store = newBreakStore()
+            keepBreakCount(m.playlist(100, 10, [102]), "k", store)
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(104, 10, []), "k", store)), 1)
+            keepBreakCount(m.playlist(106, 10, [112]), "k", store)
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(113, 10, []), "k", store)), 2)
+        end sub
+
+        @it("counts consecutive break tags on one piece and a tag before the piece address")
+        sub consecutiveTags()
+            store = newBreakStore()
+            body = "#EXTM3U" + chr(10) + "#EXT-X-MEDIA-SEQUENCE:5" + chr(10)
+            body = body + "#EXT-X-DISCONTINUITY" + chr(10) + "#EXT-X-DISCONTINUITY" + chr(10)
+            body = body + "#EXTINF:2.0," + chr(10) + "a.ts" + chr(10) + "#EXTINF:2.0," + chr(10) + "b.ts" + chr(10)
+            keepBreakCount(body, "k", store)
+            out = keepBreakCount(m.playlist(6, 3, []), "k", store)
+            m.assertEqual(m.dsnOf(out), 2)
+        end sub
+
+        @it("treats a missing MEDIA-SEQUENCE as 0")
+        sub noMediaSequence()
+            store = newBreakStore()
+            body = "#EXTM3U" + chr(10) + "#EXT-X-DISCONTINUITY" + chr(10) + "#EXTINF:2.0," + chr(10) + "a.ts" + chr(10) + "#EXTINF:2.0," + chr(10) + "b.ts" + chr(10)
+            keepBreakCount(body, "k", store)
+            out = keepBreakCount(m.playlist(1, 3, []), "k", store)
+            m.assertEqual(m.dsnOf(out), 1)
+        end sub
+
+        @it("puts the count before an early break when MEDIA-SEQUENCE comes after it")
+        sub orderDiffers()
+            store = newBreakStore()
+            body = "#EXTM3U" + chr(10) + "#EXT-X-DISCONTINUITY" + chr(10) + "#EXT-X-MEDIA-SEQUENCE:7" + chr(10)
+            body = body + "#EXTINF:2.0," + chr(10) + "a.ts" + chr(10) + "#EXTINF:2.0," + chr(10) + "b.ts" + chr(10)
+            keepBreakCount(body, "k", store)
+            second = "#EXTM3U" + chr(10) + "#EXT-X-DISCONTINUITY" + chr(10) + "#EXT-X-MEDIA-SEQUENCE:8" + chr(10)
+            second = second + "#EXTINF:2.0," + chr(10) + "b.ts" + chr(10) + "#EXTINF:2.0," + chr(10) + "c.ts" + chr(10)
+            lines = keepBreakCount(second, "k", store).Split(chr(10))
+            m.assertEqual(lines[0], "#EXTM3U")
+            m.assertEqual(lines[1], "#EXT-X-DISCONTINUITY-SEQUENCE:1")
+            m.assertEqual(lines[2], "#EXT-X-DISCONTINUITY")
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("stale and late copies")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("does not lose a known break to an older, shorter tail with the same first (real copy)")
+        sub equalFirstStaleTail()
+            store = newBreakStore()
+            newest = keepBreakCount(m.load("preroll-a_0022"), "k", store)
+            ' preroll-a_0005 starts at 0 too but ends at 10, before the break at 12.
+            stale = keepBreakCount(m.load("preroll-a_0005"), "k", store)
+            m.assertEqual(stale, newest)
+            after = keepBreakCount(m.load("preroll-a_0023"), "k", store)
+            m.assertEqual(m.dsnOf(after), 3)
+        end sub
+
+        @it("keeps the break count when a copy 33 pieces behind arrives late (kato)")
+        sub farBehindLateCopy()
+            store = newBreakStore()
+            keepBreakCount(m.load("preroll-b_0043"), "k", store)
+            current = keepBreakCount(m.load("preroll-b_0044"), "k", store)
+            m.assertEqual(m.dsnOf(current), 3)
+            late = keepBreakCount(m.load("preroll-b_0000"), "k", store)
+            m.assertEqual(late, current)
+            nxt = keepBreakCount(m.load("preroll-b_0045"), "k", store)
+            m.assertEqual(m.dsnOf(nxt), 3)
+            m.assertTrue(m.stable(current, nxt))
+        end sub
+
+        @it("starts over when the list is back near 0 and shares no piece with before")
+        sub restarted()
+            store = newBreakStore()
+            keepBreakCount(m.load("preroll-b_0043"), "k", store)
+            keepBreakCount(m.load("preroll-b_0044"), "k", store)
+            fresh = keepBreakCount(m.load("preroll-a_0022"), "k", store)
+            m.assertEqual(m.dsnOf(fresh), -1)
+            after = keepBreakCount(m.load("preroll-a_0023"), "k", store)
+            m.assertEqual(m.dsnOf(after), 3)
+        end sub
+
+        @it("keeps a list in use when others come and go (least recently used goes first)")
+        sub lruEviction()
+            store = newBreakStore()
+            keepBreakCount(m.playlist(100, 10, [102]), "active", store)
+            for i = 1 to 12
+                keepBreakCount(m.playlist(100, 10, []), "other" + i.toStr(), store)
+                keepBreakCount(m.playlist(100, 10, [102]), "active", store)
+            end for
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(104, 10, []), "active", store)), 1)
+            m.assertEqual(store.lists.Count(), 8)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("upstream sends its own count")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("passes it through unchanged and never injects for that list afterwards")
+        sub upstreamDsn()
+            store = newBreakStore()
+            own = m.playlist(100, 5, [102])
+            own = own.Replace("#EXT-X-MEDIA-SEQUENCE:100", "#EXT-X-MEDIA-SEQUENCE:100" + chr(10) + "#EXT-X-DISCONTINUITY-SEQUENCE:9")
+            m.assertEqual(keepBreakCount(own, "k", store), own)
+            ' Even if the tag is later missing from a list, nothing of ours is added.
+            plain = m.playlist(104, 5, [])
+            m.assertEqual(keepBreakCount(plain, "k", store), plain)
+            m.assertEqual(keepBreakCount(m.playlist(110, 5, []), "k", store), m.playlist(110, 5, []))
+        end sub
+
+        @it("returns a body without pieces or with a bad MEDIA-SEQUENCE untouched")
+        sub notALiveList()
+            store = newBreakStore()
+            m.assertEqual(keepBreakCount("#EXTM3U" + chr(10) + "#EXT-X-STREAM-INF:BANDWIDTH=1" + chr(10), "k", store), "#EXTM3U" + chr(10) + "#EXT-X-STREAM-INF:BANDWIDTH=1" + chr(10))
+            bad = "#EXTM3U" + chr(10) + "#EXT-X-MEDIA-SEQUENCE:x" + chr(10) + "#EXTINF:2.0," + chr(10) + "a.ts" + chr(10)
+            m.assertEqual(keepBreakCount(bad, "k", store), bad)
+        end sub
+
+    end class
+
+end namespace

@@ -17,9 +17,7 @@ sub runServer()
     m.MAX_TRACK_MAPS = 100
     m.maps = newMapRegistry()
     ' Ad-break counts for live lists (see keepBreakCount).
-    m.breaks = { lists: {}, order: [], notes: [], ads: {} }
-    m.breaks.lists.SetModeCaseSensitive()
-    m.breaks.ads.SetModeCaseSensitive()
+    m.breaks = newBreakStore()
     m.liveUa = invalid
     m.nextFile = 0
     m.CRLF = chr(13) + chr(10)
