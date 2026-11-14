@@ -35,6 +35,8 @@ end sub
 ' Build (or rebuild) item nodes from registry history.
 ' Called on init and by refresh timer.
 sub buildItems()
+    ' Which account's history these items show (see showOptionsDialog)
+    m.itemsSection = RW_Section()
     ' Remove previously created item children (children 2+ are items; 0=bg, 1=icon)
     if m.items.Count() > 0
         m.top.removeChildren(m.items)
@@ -208,6 +210,12 @@ end function
 
 ' Options menu for the focused channel. Edits local history only; never calls Twitch.
 sub showOptionsDialog()
+    ' After a login/logout the list can still show the previous account's history
+    ' (it refreshes every 30 s); edits would hit the new account, so refresh first.
+    if m.itemsSection <> RW_Section()
+        rebuildKeepingFocus(0)
+        return
+    end if
     data = m.items[m.currentIndex].itemData
     name = data.displayName
     if name = invalid or name = "" then name = data.login
