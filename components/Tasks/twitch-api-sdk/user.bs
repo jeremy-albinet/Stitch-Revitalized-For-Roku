@@ -61,12 +61,16 @@ sub getTwitchBookmarks()
             }
         })
         if rsp?.data?.currentUser?.viewedVideos?.edges <> invalid
+            ' Positions saved on this device win: Twitch can lag a few seconds behind them.
             videoBookmarks = {}
+            localRaw = get_user_setting("VideoBookmarks", "")
+            if localRaw <> "" then videoBookmarks = ParseJSON(localRaw)
+            if type(videoBookmarks) <> "roAssociativeArray" or videoBookmarks.Count() > 200 then videoBookmarks = {}
             for each edge in rsp.data.currentUser.viewedVideos.edges
                 if edge.node = invalid then continue for
                 videoId = edge.node.id
                 positionSecs = edge.history.position
-                videoBookmarks[videoId] = Int(positionSecs).toStr()
+                if not videoBookmarks.DoesExist(videoId) then videoBookmarks[videoId] = Int(positionSecs).toStr()
             end for
             try
                 set_user_setting("VideoBookmarks", FormatJson(videoBookmarks, 256))
