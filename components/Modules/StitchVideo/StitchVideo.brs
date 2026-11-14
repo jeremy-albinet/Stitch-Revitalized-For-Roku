@@ -39,11 +39,8 @@ sub init()
     m.loadingSpinner = m.top.findNode("loadingSpinner")
 
     ' Quality dialog
-    m.qualityDialog = m.top.findNode("QualityDialog")
-    ' Set up quality dialog observer once during initialization
-    m.qualityDialog.observeFieldScopedEx("buttonSelected", "onQualityButtonSelect")
-    ' A Dialog consumes Back itself, so onKeyEvent never sees it: close the list from wasClosed.
-    m.qualityDialog.observeFieldScopedEx("wasClosed", "onQualityDialogClosed")
+    ' Created per show and presented via scene.dialog (Back closes it natively), see showQualityDialog()
+    m.qualityDialog = invalid
 
     ' State variables
     m.currentFocusedButton = 2 ' 0=back, 1=chat, 2=play/pause, 3=quality
@@ -99,7 +96,6 @@ sub init()
     m.top.observeField("chatIsVisible", "onChatVisibilityChange")
     m.top.observeField("duration", "onDurationChange")
     m.top.observeField("bufferingStatus", "onBufferingStatusChange")
-    m.top.observeField("qualityOptions", "onQualityOptionsChange")
     m.top.observeField("selectedQuality", "onSelectedQualityChange")
 
     ' Initialize UI
@@ -370,67 +366,39 @@ sub onBufferingStatusChange()
     ' ? "[StitchVideo] Buffering status changed"
 end sub
 
-sub onQualityOptionsChange()
-    setupQualityDialog()
-end sub
-
 sub onSelectedQualityChange()
     setupLiveUI()
 end sub
 
-sub setupQualityDialog()
-    if m.top.qualityOptions <> invalid and m.top.qualityOptions.count() > 0
-        m.qualityDialog.title = "Please Choose Your Video Quality"
-        m.qualityDialog.message = ["Choose video quality:"]
-
-        buttons = []
-        for each quality in m.top.qualityOptions
-            buttons.push(quality)
-        end for
-        buttons.push("Cancel")
-
-        m.qualityDialog.buttons = buttons
-    end if
-end sub
-
 sub onQualityButtonSelect()
-    ' ? "[StitchVideo] Quality dialog button selected: "; m.qualityDialog.buttonSelected
-
     selectedIndex = m.qualityDialog.buttonSelected
     totalButtons = m.qualityDialog.buttons.count()
 
-    ' Hide dialog first
-    m.qualityDialog.visible = false
-    m.qualityDialog.setFocus(false)
+    closeQualityDialog()
 
-    ' Check if Cancel was selected (last button)
-    if selectedIndex = totalButtons - 1
-        ' ? "[StitchVideo] Cancel selected, no quality change"
-    else if selectedIndex >= 0 and selectedIndex < m.top.qualityOptions.count()
-        ' Valid quality option selected
-        selectedQuality = m.top.qualityOptions[selectedIndex]
-        ' ? "[StitchVideo] Quality selected: "; selectedQuality
-
-        m.top.selectedQuality = selectedQuality
+    ' Last button is Cancel: no change
+    if selectedIndex >= 0 and selectedIndex < totalButtons - 1 and selectedIndex < m.top.qualityOptions.count()
+        m.top.selectedQuality = m.top.qualityOptions[selectedIndex]
         m.top.QualityChangeRequest = selectedIndex
         m.top.QualityChangeRequestFlag = true
-    else
-        ' ? "[StitchVideo] Invalid selection index: "; selectedIndex
-    end if
-
-    ' Restore focus to video component
-    m.top.setFocus(true)
-
-    ' If overlay is visible, restart fade timer
-    if m.isOverlayVisible
-        focusButton(m.currentFocusedButton)
-        m.fadeAwayTimer.control = "stop"
-        m.fadeAwayTimer.control = "start"
     end if
 end sub
 
+' Back (or any close not via a button): no change
 sub onQualityDialogClosed()
-    m.qualityDialog.visible = false
+    closeQualityDialog()
+end sub
+
+' Idempotent: unobserve, dismiss the scene dialog, restore focus and overlay
+sub closeQualityDialog()
+    dlg = m.qualityDialog
+    if dlg = invalid then return
+    m.qualityDialog = invalid
+    dlg.unobserveFieldScoped("buttonSelected")
+    dlg.unobserveFieldScoped("wasClosed")
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid and scene.dialog.isSameNode(dlg) then scene.dialog = invalid
+
     m.top.setFocus(true)
     if m.isOverlayVisible
         focusButton(m.currentFocusedButton)
@@ -464,7 +432,7 @@ end sub
 
 sub onFadeAway()
     ' Only hide overlay if quality dialog is not visible
-    if not m.qualityDialog.visible
+    if m.qualityDialog = invalid
         hideOverlay()
     end if
 end sub
@@ -519,16 +487,24 @@ sub togglePlayPause()
 end sub
 
 sub showQualityDialog()
+    scene = m.top.getScene()
+    if scene = invalid or m.qualityDialog <> invalid then return
     if m.top.qualityOptions <> invalid and m.top.qualityOptions.count() > 0
-        ' Stop the fade timer when showing dialog
         m.fadeAwayTimer.control = "stop"
 
-        ' Show dialog and give it focus
-        ' (Observer is already set up in init() function)
-        m.qualityDialog.visible = true
-        m.qualityDialog.setFocus(true)
-    else
-        ' ? "[StitchVideo] No quality options available"
+        dlg = createObject("roSGNode", "StandardMessageDialog")
+        dlg.title = "Please Choose Your Video Quality"
+        dlg.message = ["Choose video quality:"]
+        buttons = []
+        for each quality in m.top.qualityOptions
+            buttons.push(quality)
+        end for
+        buttons.push("Cancel")
+        dlg.buttons = buttons
+        dlg.observeFieldScoped("buttonSelected", "onQualityButtonSelect")
+        dlg.observeFieldScoped("wasClosed", "onQualityDialogClosed")
+        m.qualityDialog = dlg
+        scene.dialog = dlg
     end if
 end sub
 
@@ -646,26 +622,6 @@ function onKeyEvent(key, press) as boolean
     ' ? "[StitchVideo] KeyEvent: "; key; " "; press
 
     if press
-        ' If quality dialog is visible, only handle back to close it
-        if m.qualityDialog.visible
-            if key = "back" or key = "down"
-                m.qualityDialog.visible = false
-                m.qualityDialog.setFocus(false)
-                m.top.setFocus(true)
-
-                ' Restart fade timer if overlay is visible
-                if m.isOverlayVisible
-                    focusButton(m.currentFocusedButton)
-                    m.fadeAwayTimer.control = "stop"
-                    m.fadeAwayTimer.control = "start"
-                end if
-                return true
-            end if
-            ' Let dialog handle all other keys
-            return false
-        end if
-
-        ' Normal key handling when dialog is not visible
         ' Reset fade timer on any key press (except back when overlay is hidden)
         if key <> "back" or m.isOverlayVisible
             if m.isOverlayVisible
@@ -723,6 +679,7 @@ function handleMainKeys(key) as boolean
 end function
 
 sub onDestroy()
+    closeQualityDialog()
     if m.fadeAwayTimer <> invalid
         m.fadeAwayTimer.control = "stop"
         m.fadeAwayTimer.unobserveField("fire")
@@ -738,10 +695,6 @@ sub onDestroy()
     if m.liveEdgeStartupTimer <> invalid
         m.liveEdgeStartupTimer.control = "stop"
         m.liveEdgeStartupTimer.unobserveField("fire")
-    end if
-    if m.qualityDialog <> invalid
-        m.qualityDialog.unobserveFieldScoped("buttonSelected")
-        m.qualityDialog.unobserveFieldScoped("wasClosed")
     end if
     m.top.unobserveField("position")
     m.top.unobserveField("state")
