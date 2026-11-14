@@ -5,7 +5,8 @@
     <interface>
         <!-- Field to issue a request to the handler -->
         <field id="contentRequested" type="assocarray" />
-        <field id="response" type="node" />
+        <!-- alwaysNotify: a failed load sets invalid again, and the player must still hear it -->
+        <field id="response" type="node" alwaysNotify="true" />
         <field id="metadata" type="array" />
     </interface>
     <script type="text/brightscript" uri="GetTwitchContent.brs" />

@@ -785,8 +785,15 @@ sub onWatchdogFire()
     ' i.e. exactly 16 wall-clock seconds.
     if m.stallSeconds >= 16
         ? getLogTimestamp(); " [VideoPlayer] LIVE stall detected (pos="; m.video.position; "). Reconnecting..."
-        ' Restarting a stream that has ended loops or kills the app, so ask Twitch first.
-        checkStillLive(true)
+        ' Restarting a stream that has ended loops or kills the app, so ask Twitch first,
+        ' but stop waiting for an answer after 8 s so a hung request can't block recovery.
+        if m.stallSeconds >= 24 and m.liveCheckTask <> invalid
+            m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
+            m.restartIfLive = false
+            beginLiveReconnect("stall")
+        else
+            checkStillLive(true)
+        end if
     end if
 end sub
 
@@ -996,12 +1003,18 @@ sub showErrorDialog(title as string, message as string)
 end sub
 
 sub onErrorDialogDismissed()
+    ' The player may already have left the scene (getScene() is then invalid), so close the dialog itself.
+    if m.errorDialog <> invalid
+        m.errorDialog.unobserveField("buttonSelected")
+        m.errorDialog.close = true
+    end if
     scene = m.top.getScene()
     if scene <> invalid
         scene.dialog = invalid
     end if
     m.errorDialog = invalid
-    exitPlayer()
+    ' Paths that already exited must not send a second Back.
+    if not m.isExiting then exitPlayer()
 end sub
 
 sub showTransmuxWarning()

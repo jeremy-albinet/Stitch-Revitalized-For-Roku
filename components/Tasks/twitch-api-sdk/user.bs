@@ -31,7 +31,8 @@ function getLiveStatusForLogins() as object
     rsp = TwitchGraphQLRequest({ query: gqlQuery })
 
     result = {}
-    if rsp <> invalid and rsp.data <> invalid
+    ' Any GraphQL error can null out a stream field, so the whole answer is unknown then.
+    if rsp <> invalid and rsp.data <> invalid and (rsp.errors = invalid or rsp.errors.Count() = 0)
         for i = 0 to logins.Count() - 1
             key = "u" + i.toStr()
             login = LCase(logins[i])
