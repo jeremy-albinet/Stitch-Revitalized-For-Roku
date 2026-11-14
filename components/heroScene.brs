@@ -3,8 +3,11 @@ sub init()
     analyticsTask.control = "RUN"
     m.global.addFields({ analyticsTask: analyticsTask })
 
+    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
+    ' Started now so a stream opened right after launch can use it; a remote "off"
+    ' that arrives later is honoured when each stream is routed (isBuiltinSplitterEnabled).
+    startBuiltinSplitter()
     ' Remote kill switch: fetched in the background, the app never waits on it.
-    ' The built-in splitter starts once it settles (or fails, within about 3 s).
     m.global.addFields({ remoteConfig: {} })
     m.remoteConfigTask = CreateObject("roSGNode", "RemoteConfig")
     m.remoteConfigTask.observeField("result", "onRemoteConfig")
@@ -45,7 +48,7 @@ sub onRemoteConfig()
         m.global.remoteConfig = result.config
     end if
 
-    ' Built-in Enhanced Broadcasting splitter (opt-in), used when no Proxy URL is set.
+    ' No-op if it already started at launch; starts it if the remote config arrived first.
     startBuiltinSplitter()
 
     message = remoteFlag("message", "")
