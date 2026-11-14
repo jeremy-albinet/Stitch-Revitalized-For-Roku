@@ -138,6 +138,8 @@ sub playContent(isRecovery = false as boolean)
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectAttempts = 0
+    m.liveFailuresAtStart = 0
+    if m.global.demuxServer <> invalid then m.liveFailuresAtStart = m.global.demuxServer.liveFailures
 
     ' Reset buffering state so stale timers from prior attempts don't persist
     m.bufferStartTime = 0
@@ -619,6 +621,7 @@ sub onVideoStateChange()
     else if m.video.state = "error"
         ' Log the raw error immediately for debugging visibility
         ? getLogTimestamp(); " [VideoPlayer] video.state=error — code="; m.video.errorCode; " msg="; m.video.errorStr
+        if fallbackToDirectLive("error") then return
 
         ' Grace period: within the first 5 seconds of a fresh playback attempt,
         ' Roku's engine often fires a transient error on the initial segment fetch
@@ -900,6 +903,8 @@ sub beginLiveReconnect(reason as string)
     ' If a reconnect is already scheduled/in-flight, don't stack them
     if m.reconnectTimer <> invalid then return
 
+    if fallbackToDirectLive(reason) then return
+
     m.reconnectReason = reason
     m.reconnectAttempts = m.reconnectAttempts + 1
     if m.reconnectAttempts > m.maxReconnectAttempts
@@ -1031,9 +1036,68 @@ sub onLiveReconnectResponse()
     end if
 end sub
 
+' A live stream routed through the built-in server (ad-freeze fix) restarts once on the direct Twitch
+' links when that server looks dead (task stopped, loop silent for 15 s) or failed a live list since this
+' playback began. The server is then left out for the rest of this session, including reconnects.
+function fallbackToDirectLive(reason as string) as boolean
+    content = m.top.content
+    request = m.top.contentRequested
+    if content = invalid or request = invalid or request.contentType <> "LIVE" or request.skipLiveRoute = true then return false
+    if not isLiveRouted(content.url) then return false
+    server = m.global.demuxServer
+    if server <> invalid and server.state = "run" and server.ready = true
+        if uptime(0) - server.beat < 15 and server.liveFailures = m.liveFailuresAtStart then return false
+    end if
+    ? getLogTimestamp(); " [VideoPlayer] Built-in server failed a live list ("; reason; "), restarting on the direct Twitch link"
+    trackEvent("live_route_fallback", { reason: reason })
+    request.skipLiveRoute = true
+    content.url = directLiveUrl(content.url)
+    if content.StreamUrls <> invalid
+        urls = []
+        for each streamUrl in content.StreamUrls
+            urls.push(directLiveUrl(streamUrl))
+        end for
+        content.StreamUrls = urls
+    end if
+    content.ForwardQueryStringParams = true
+    metadata = []
+    entries = m.top.metadata
+    if entries = invalid then entries = []
+    for each entry in entries
+        direct = {}
+        direct.Append(entry)
+        if direct.StreamUrls <> invalid
+            urls = []
+            for each streamUrl in direct.StreamUrls
+                urls.push(directLiveUrl(streamUrl))
+            end for
+            direct.StreamUrls = urls
+        end if
+        if direct.Streams <> invalid
+            streams = []
+            for each stream in direct.Streams
+                copy = {}
+                copy.Append(stream)
+                copy.url = directLiveUrl(stream.url)
+                streams.push(copy)
+            end for
+            direct.Streams = streams
+        end if
+        direct.ForwardQueryStringParams = true
+        metadata.push(direct)
+    end for
+    m.top.metadata = metadata
+    m.allowBreak = false
+    exitPlayer()
+    m.allowBreak = true
+    playContent(true)
+    return true
+end function
+
 sub retryPlayback()
     ? getLogTimestamp(); " [VideoPlayer] retryPlayback() — restarting playback"
     m.retryTimer = invalid
+    if fallbackToDirectLive("retry") then return
     ' isRecovery=true: same reasoning as onLiveReconnectResponse — we just
     ' hit a stream error, conditions are degraded, prioritize stability
     ' over latency. The user can re-open the stream to get the seek again.

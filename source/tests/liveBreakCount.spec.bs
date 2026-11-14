@@ -1,4 +1,5 @@
 import "pkg:/components/Tasks/DemuxServer/DemuxHls.brs"
+import "pkg:/source/utils/liveRoute.brs"
 
 ' Runs the real keepBreakCount on playlists captured from Twitch (signed URLs and ad metadata stripped,
 ' see source/tests/fixtures). A piece must keep the same discontinuity number in every playlist it is in.
@@ -230,6 +231,21 @@ namespace tests
             m.assertEqual(keepBreakCount("#EXTM3U" + chr(10) + "#EXT-X-STREAM-INF:BANDWIDTH=1" + chr(10), "k", store), "#EXTM3U" + chr(10) + "#EXT-X-STREAM-INF:BANDWIDTH=1" + chr(10))
             bad = "#EXTM3U" + chr(10) + "#EXT-X-MEDIA-SEQUENCE:x" + chr(10) + "#EXTINF:2.0," + chr(10) + "a.ts" + chr(10)
             m.assertEqual(keepBreakCount(bad, "k", store), bad)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("live route links")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("gives back the direct Twitch link from a routed one")
+        sub directLink()
+            direct = "https://usher.ttvnw.net/api/channel/hls/x.m3u8?sig=a%2Fb&token=%7B%22a%22%3A1%7D&p=123"
+            routed = "http://127.0.0.1:5757/live?u=" + direct.EncodeUriComponent()
+            m.assertTrue(isLiveRouted(routed))
+            m.assertEqual(directLiveUrl(routed), direct)
+            m.assertFalse(isLiveRouted(direct))
+            m.assertFalse(isLiveRouted(invalid))
+            m.assertEqual(directLiveUrl(direct), direct)
         end sub
 
     end class

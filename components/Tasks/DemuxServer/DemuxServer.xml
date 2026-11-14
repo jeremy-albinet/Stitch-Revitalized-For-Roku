@@ -4,6 +4,9 @@
     <interface>
         <field id="port" type="integer" value="5757" />
         <field id="ready" type="boolean" value="false" />
+        <!-- Health for the player: uptime seconds of the last loop pass, and live lists the server failed to serve. -->
+        <field id="beat" type="integer" value="0" />
+        <field id="liveFailures" type="integer" value="0" />
     </interface>
     <script type="text/brightscript" uri="DemuxServer.brs" />
     <script type="text/brightscript" uri="DemuxHls.brs" />
