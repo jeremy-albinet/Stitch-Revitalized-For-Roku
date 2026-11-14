@@ -3,9 +3,12 @@ sub setConstants()
     deviceInfo = CreateObject("roDeviceInfo")
     appInfo = CreateObject("roAppInfo")
     ' Video output height (e.g. "1080p60" -> 1080), not the UI graphics plane:
-    ' a 4K stick with a 720p UI still decodes and scales 1080p+ video.
+    ' a 4K stick with a 720p UI still decodes and scales 1080p video.
+    ' Capped at 1080: we only request AVC (avc1) and Roku documents AVC decoding up to 1080p,
+    ' so a 4K output must not let 1440p/2160p AVC variants through.
     maxVideoHeight = Val(deviceInfo.GetVideoMode())
     if maxVideoHeight <= 0 then maxVideoHeight = invalid
+    if maxVideoHeight <> invalid and maxVideoHeight > 1080 then maxVideoHeight = 1080
     ' Sideloaded dev builds get a separate registry section so they don't share
     ' login state or settings with the channel-store install.
     appID = "StitchRevitalizedForRoku"
