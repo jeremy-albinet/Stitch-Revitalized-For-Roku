@@ -58,8 +58,7 @@ end sub
 ' Remove one channel (by login) from the sidebar, pinned or recent.
 sub RW_Remove(login as string)
     if login = "" then return
-    registry_write(RW_RegistryKey(), FormatJson(RW_ListWithout(RW_LoadRecent(), login)), RW_Section())
-    registry_write(RW_PinnedKey(), FormatJson(RW_ListWithout(RW_LoadPinned(), login)), RW_Section())
+    RW_WriteLists(RW_ListWithout(RW_LoadRecent(), login), RW_ListWithout(RW_LoadPinned(), login))
 end sub
 
 ' Clear the recent (unpinned) history for the current user. Pinned channels stay.
@@ -73,8 +72,7 @@ sub RW_Pin(entry as object)
     pinned = RW_LoadPinned()
     if RW_ListHas(pinned, entry.login) then return
     pinned.push({ login: entry.login, displayName: entry.displayName, iconUrl: entry.iconUrl })
-    registry_write(RW_PinnedKey(), FormatJson(pinned), RW_Section())
-    registry_write(RW_RegistryKey(), FormatJson(RW_ListWithout(RW_LoadRecent(), entry.login)), RW_Section())
+    RW_WriteLists(RW_ListWithout(RW_LoadRecent(), entry.login), pinned)
 end sub
 
 ' Unpin a channel: it goes to the front of the recent list.
@@ -158,3 +156,11 @@ function RW_LoadList(key as string) as object
     if not (type(parsed) = "roArray") then return []
     return parsed
 end function
+
+' Writes both lists with a single registry Flush (Flush is the slow part).
+sub RW_WriteLists(recent as object, pinned as object)
+    reg = CreateObject("roRegistrySection", RW_Section())
+    reg.Write(RW_RegistryKey(), FormatJson(recent))
+    reg.Write(RW_PinnedKey(), FormatJson(pinned))
+    reg.Flush()
+end sub
