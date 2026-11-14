@@ -51,30 +51,41 @@ sub onRemoteConfig()
     ' No-op if it already started at launch; starts it if the remote config arrived first.
     startBuiltinSplitter()
 
-    message = remoteFlag("message", "")
-    if message <> "" and message <> get_setting("remote.last_message", "") then showRemoteMessage(message)
+    showRemoteMessage()
 end sub
 
-' Small dismissible notice. Skipped (and retried next launch) when another dialog is up.
-sub showRemoteMessage(message as string)
+' Small dismissible notice. Only shown when the home screen is up and no other dialog is
+' showing; otherwise it is retried after the home screen loads, or at the next launch.
+' It is marked seen only once the user dismisses it.
+sub showRemoteMessage()
+    message = remoteFlag("message", "")
+    if message = "" or message = get_setting("remote.last_message", "") then return
+    if m.remoteMessageDialog <> invalid or m.activeNode = invalid then return
     scene = m.top.getScene()
     if scene = invalid or scene.dialog <> invalid then return
     dialog = createObject("roSGNode", "StandardMessageDialog")
     dialog.title = "Notice"
     dialog.message = [message]
     dialog.buttons = ["OK"]
-    dialog.observeField("buttonSelected", "onRemoteMessageDismissed")
-    dialog.observeField("wasClosed", "onRemoteMessageDismissed")
+    dialog.observeField("buttonSelected", "onRemoteMessageButton")
+    dialog.observeField("wasClosed", "onRemoteMessageClosed")
     scene.dialog = dialog
     m.remoteMessageDialog = dialog
-    set_setting("remote.last_message", message)
+    m.remoteMessageText = message
 end sub
 
-sub onRemoteMessageDismissed()
+sub onRemoteMessageButton()
+    set_setting("remote.last_message", m.remoteMessageText)
+    if m.remoteMessageDialog <> invalid then m.remoteMessageDialog.close = true
+end sub
+
+' Back from the user marks it seen; being replaced by another dialog does not.
+sub onRemoteMessageClosed()
     if m.remoteMessageDialog = invalid then return
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog = invalid then set_setting("remote.last_message", m.remoteMessageText)
     m.remoteMessageDialog.unobserveField("buttonSelected")
     m.remoteMessageDialog.unobserveField("wasClosed")
-    m.remoteMessageDialog.close = true
     m.remoteMessageDialog = invalid
 end sub
 
@@ -379,6 +390,7 @@ sub onMenuSelection()
         if isFirstLoad
             showChangelogDialog()
         end if
+        showRemoteMessage()
     end if
 end sub
 
