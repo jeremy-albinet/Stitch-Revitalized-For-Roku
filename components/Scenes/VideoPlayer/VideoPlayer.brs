@@ -509,6 +509,11 @@ sub onPositionChanged()
         else if m.video.position > m.lastGoodPosition
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
+            ' The picture moved again: a pending "is it still live" answer is stale, drop it.
+            if m.liveCheckTask <> invalid
+                m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
+                m.restartIfLive = false
+            end if
         end if
     else if m.video <> invalid and m.video.video_id <> ""
         ' VOD/clip: remember where we are so a recovery retry resumes here

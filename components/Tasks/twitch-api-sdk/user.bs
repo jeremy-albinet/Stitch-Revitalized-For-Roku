@@ -28,7 +28,8 @@ function getLiveStatusForLogins() as object
     end if
     gqlQuery = "{ " + fields + "}"
 
-    rsp = TwitchGraphQLRequest({ query: gqlQuery })
+    ' Bounded: the player waits on this answer before it reconnects a frozen stream.
+    rsp = TwitchGraphQLRequest({ query: gqlQuery }, 5000)
 
     result = {}
     ' Any GraphQL error can null out a stream field, so the whole answer is unknown then.

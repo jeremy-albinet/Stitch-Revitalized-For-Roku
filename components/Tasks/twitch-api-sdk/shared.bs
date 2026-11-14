@@ -8,7 +8,8 @@ function getDeviceLocale()
     return di.GetCurrentLocale().Replace("_", "-")
 end function
 
-function TwitchGraphQLRequest(data)
+' timeoutMs: 0 waits forever (default); callers on a recovery path pass a bound.
+function TwitchGraphQLRequest(data, timeoutMs = 0 as integer)
     access_token = invalid
     device_code = invalid
     ' doubled up here in stead of defaulting to "" because access_token is dependent on device_code
@@ -35,7 +36,8 @@ function TwitchGraphQLRequest(data)
         url: "https://gql.twitch.tv/gql",
         headers: reqHeaders,
         method: "POST",
-        data: data
+        data: data,
+        timeout: timeoutMs
     })
     rspData = req.send()
     if rspData <> invalid
