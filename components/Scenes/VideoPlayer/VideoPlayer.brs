@@ -19,9 +19,9 @@ sub handleItemSelected()
 end sub
 
 sub onResponse()
-    ' You pressed Back while it was loading: don't start it behind you.
+    ' Back was pressed while the stream was still loading: don't start playback on an exiting player.
     if m.isExiting then return
-    ' No stream from Twitch (it ended, or Twitch didn't answer): back to the page you came from.
+    ' Twitch returned no stream (it ended, or the request failed): return to the previous page.
     if m.PlayVideo.response = invalid
         ? getLogTimestamp(); " [VideoPlayer] No stream from Twitch for "; m.top.contentRequested?.streamerLogin; ", going back"
         showErrorDialog("Unavailable", "Twitch did not return a stream. It may have ended.")
