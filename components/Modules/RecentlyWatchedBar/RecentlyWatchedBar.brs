@@ -209,13 +209,18 @@ function onKeyEvent(key as string, press as boolean) as boolean
 end function
 
 ' Options menu for the focused channel. Edits local history only; never calls Twitch.
+' After a login/logout (including the startup token check finishing late) the list can
+' still show the previous account's history, and edits would hit the new account.
+' Checked before opening the menu and again before every change; refreshes on mismatch.
+function accountChanged() as boolean
+    if m.itemsSection = RW_Section() then return false
+    closeDialog()
+    rebuildKeepingFocus(0)
+    return true
+end function
+
 sub showOptionsDialog()
-    ' After a login/logout the list can still show the previous account's history
-    ' (it refreshes every 30 s); edits would hit the new account, so refresh first.
-    if m.itemsSection <> RW_Section()
-        rebuildKeepingFocus(0)
-        return
-    end if
+    if accountChanged() then return
     data = m.items[m.currentIndex].itemData
     name = data.displayName
     if name = invalid or name = "" then name = data.login
@@ -258,6 +263,7 @@ sub onOptionsButton()
     pressed = m.dialog.buttonSelected
     action = "cancel"
     if pressed >= 0 and pressed < m.dialogActions.Count() then action = m.dialogActions[pressed]
+    if action <> "cancel" and accountChanged() then return
 
     if action = "pin"
         closeDialog()
@@ -278,6 +284,7 @@ sub onClearAllButton()
     pressed = m.dialog.buttonSelected
     closeDialog()
     if pressed <> 1 then return
+    if accountChanged() then return
     RW_Clear()
     rebuildKeepingFocus(m.currentIndex)
 end sub
