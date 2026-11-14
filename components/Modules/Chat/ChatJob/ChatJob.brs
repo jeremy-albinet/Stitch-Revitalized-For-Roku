@@ -59,11 +59,17 @@ sub main()
             '? "tcpListen isConnected " tcpListen.IsConnected()
             if tcpListen.GetCountRcvBuf() > 0
                 while not get = Chr(10)
+                    ' A line cut off mid-way would keep us here; let a stop through
+                    if m.port.PeekMessage() <> invalid
+                        stopped = true
+                        exit while
+                    end if
                     get = tcpListen.ReceiveStr(1)
                     '? "receive Status " tcpListen.Status()
                     received += get
                 end while
             end if
+            if stopped then exit while
             if tcpListen.GetCountRcvBuf() = 0 and tcpListen.IsReadable()
                 tcpListen = reconnectToChat(tcpListen, addr)
             end if
