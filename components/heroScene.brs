@@ -83,7 +83,9 @@ end sub
 sub onRemoteMessageClosed()
     if m.remoteMessageDialog = invalid then return
     scene = m.top.getScene()
-    if scene <> invalid and scene.dialog = invalid then set_setting("remote.last_message", m.remoteMessageText)
+    ' Seen unless another dialog took its place: on Back, scene.dialog is still this notice (or empty).
+    replaced = scene <> invalid and scene.dialog <> invalid and not scene.dialog.isSameNode(m.remoteMessageDialog)
+    if not replaced then set_setting("remote.last_message", m.remoteMessageText)
     m.remoteMessageDialog.unobserveField("buttonSelected")
     m.remoteMessageDialog.unobserveField("wasClosed")
     m.remoteMessageDialog = invalid
