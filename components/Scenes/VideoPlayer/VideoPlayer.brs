@@ -1147,5 +1147,17 @@ end sub
 sub onDestroy()
     m.allowBreak = false
     exitPlayer()
+    m.isExiting = true
     m.PlayVideo = destroyTask(m.PlayVideo, "response")
+    ' Final teardown only (exitPlayer also serves the reconnect path, which keeps these)
+    if m.watchdogTimer <> invalid
+        m.watchdogTimer.control = "stop"
+        m.watchdogTimer.unobserveField("fire")
+    end if
+    if m.bufferCheckTimer <> invalid
+        m.bufferCheckTimer.control = "stop"
+        m.bufferCheckTimer.unobserveField("fire")
+        m.bufferCheckTimer = invalid
+    end if
+    if m.chatWindow <> invalid then m.chatWindow.unobserveField("visible")
 end sub
