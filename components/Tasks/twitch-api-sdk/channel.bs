@@ -14,7 +14,10 @@ function getChannelHomeQuery() as object
         return invalid
     end if
     channel = rsp?.data?.channel
+    ' No stream (offline) leaves this invalid; calling ?.replace() on invalid crashes on device
+    livePreviewImageUrl = invalid
     previewTemplate = channel?.stream?.previewImageURL
+    if previewTemplate <> invalid then livePreviewImageUrl = previewTemplate.replace("{width}", "320").replace("{height}", "180")
     m.top.response = {
         description: channel?.description ?? "",
         followerCount: channel?.followers?.totalCount ?? 0,
@@ -22,7 +25,7 @@ function getChannelHomeQuery() as object
         isLive: channel?.stream <> invalid,
         liveTitle: channel?.stream?.title ?? "",
         liveGame: channel?.stream?.game?.name ?? "",
-        livePreviewImageUrl: previewTemplate?.replace("{width}", "320")?.replace("{height}", "180"),
+        livePreviewImageUrl: livePreviewImageUrl,
         videoShelves: channel?.videoShelves?.edges ?? []
     }
     m.top.control = TaskControl.STOP
