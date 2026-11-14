@@ -10,7 +10,8 @@ sub fetchConfig()
             method: "GET",
             headers: { "Accept": "application/json" },
             timeout: 3000,
-            retries: 0
+            ' HttpRequest sends while retries > 0: 1 means a single attempt
+            retries: 1
         }).send()
         if event <> invalid and event.getResponseCode() = 200
             cfg = parseRemoteConfig(event.getString())
@@ -20,8 +21,10 @@ sub fetchConfig()
     end try
 
     if cfg = invalid
+        ? "[RemoteConfig] not loaded, using defaults"
         m.top.result = { ok: false, config: {} }
     else
+        ? "[RemoteConfig] loaded: "; FormatJson(cfg)
         m.top.result = { ok: true, config: cfg }
     end if
 end sub
