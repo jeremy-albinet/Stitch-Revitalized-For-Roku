@@ -5,24 +5,19 @@ sub init()
     m.rowList.observeField("rowItemFocused", "onItemFocused")
 
     m.categoriesCursor = ""
-    m.liveCursor = ""
     m.categoriesMaxed = false
-    m.liveMaxed = false
     m.categoriesBuffering = false
-    m.liveBuffering = false
     m.categoriesLabelSet = false
-    m.liveLabelSet = false
 
-    ' Section insertion tracking — ensures Featured → Categories → Live order
+    ' Section insertion tracking — ensures Featured → Categories order
     ' regardless of which API task returns first.
     ' -1 = section not yet placed; >= 0 = index of first row in that section.
     m.featuredEndIndex = -1
     m.categoriesEndIndex = -1
 
-    ' Fire all three API tasks in parallel — three sections of one scrollable list
+    ' Fire both API tasks in parallel — two sections of one scrollable list
     m.featuredTask = createApiTask("getHomePageQuery", "onFeaturedResponse")
     m.categoriesTask = createApiTask("getBrowsePageQuery", "onCategoriesResponse")
-    m.liveTask = createApiTask("getBrowsePagePopularQuery", "onLiveResponse")
 end sub
 
 ' ─── Featured section (shelves from getHomePageQuery) ────────────────────────
@@ -132,70 +127,10 @@ sub appendMoreCategories()
     end if
 end sub
 
-' ─── Live Channels section (streams from getBrowsePagePopularQuery) ───────────
-
-sub onLiveResponse()
-    rsp = m.liveTask.response
-    if rsp = invalid
-        m.liveBuffering = false
-        return
-    end if
-    if rsp.hasNextPage and rsp.cursor <> ""
-        m.liveCursor = rsp.cursor
-    else
-        m.liveMaxed = true
-    end if
-    contentCollection = buildLiveRows(rsp.streams)
-    if not m.liveLabelSet and contentCollection.getChildCount() > 0
-        m.liveLabelSet = true
-        contentCollection.getChild(0).title = tr("Live Channels")
-    end if
-    m.liveBuffering = false
-    ' Live always appends at the tail (after Featured + Categories).
-    appendRows(contentCollection)
-end sub
-
-function buildLiveRows(streams as object) as object
-    itemsPerRow = getStreamTile().perRow
-    contentCollection = createObject("roSGNode", "ContentNode")
-    if streams = invalid or streams.count() = 0
-        return contentCollection
-    end if
-    row = createObject("roSGNode", "ContentNode")
-    for i = 0 to (streams.count() - 1) step 1
-        try
-            if i mod itemsPerRow = 0
-                row = createObject("roSGNode", "ContentNode")
-            end if
-            row.title = ""
-            rowItem = createObject("roSGNode", "TwitchContentNode")
-            setTwitchContentFields(rowItem, streams[i])
-            row.appendChild(rowItem)
-            if row.getChildCount() = itemsPerRow
-                contentCollection.appendChild(row)
-            end if
-        catch e
-            ? "[Browse] buildLiveRows error at index "; i; ": "; e
-        end try
-    end for
-    if row <> invalid and row.getChildCount() > 0 and row.getChildCount() < itemsPerRow
-        contentCollection.appendChild(row)
-    end if
-    return contentCollection
-end function
-
-sub appendMoreLive()
-    if not m.liveMaxed and not m.liveBuffering
-        m.liveBuffering = true
-        m.liveTask = destroyTask(m.liveTask, "response")
-        m.liveTask = createApiTask("getBrowsePagePopularQuery", "onLiveResponse", { cursor: m.liveCursor })
-    end if
-end sub
-
 ' ─── Append / insert rows into the single RowList ───────────────────────────
 
 ' insertRows inserts contentCollection rows starting at the given index.
-' Use this when section ordering must be enforced (Featured → Categories → Live).
+' Use this when section ordering must be enforced (Featured → Categories).
 sub insertRows(contentCollection as object, insertIndex as integer)
     if m.rowList = invalid or contentCollection = invalid then return
     rowCount = contentCollection.getChildCount()
@@ -268,56 +203,6 @@ sub insertRows(contentCollection as object, insertIndex as integer)
     m.rowList.visible = true
 end sub
 
-sub appendRows(contentCollection as object)
-    if m.rowList = invalid or contentCollection = invalid then return
-    if contentCollection.getChildCount() = 0 then return
-
-    rowItemSize = []
-    showRowLabel = []
-    rowHeights = []
-    for each row in contentCollection.getChildren(contentCollection.getChildCount(), 0)
-        hasRowLabel = row.title <> ""
-        showRowLabel.push(hasRowLabel)
-        firstChild = row.getChild(0)
-        contentType = ""
-        if firstChild <> invalid
-            contentType = firstChild.contentType
-        end if
-        config = getRowConfig(contentType, hasRowLabel)
-        if config <> invalid
-            rowItemSize.push(config.itemSize)
-            rowHeights.push(config.rowHeight)
-        end if
-    end for
-
-    if m.rowList.content <> invalid
-        existingSizes = []
-        existingSizes.append(m.rowList.rowItemSize)
-        existingLabels = []
-        existingLabels.append(m.rowList.showRowLabel)
-        existingHeights = []
-        existingHeights.append(m.rowList.rowHeights)
-        existingSizes.append(rowItemSize)
-        existingLabels.append(showRowLabel)
-        existingHeights.append(rowHeights)
-        while contentCollection.getChildCount() > 0
-            m.rowList.content.appendChild(contentCollection.getChild(0))
-        end while
-        m.rowList.rowItemSize = existingSizes
-        m.rowList.showRowLabel = existingLabels
-        m.rowList.rowHeights = existingHeights
-    else
-        m.rowList.rowItemSize = rowItemSize
-        m.rowList.showRowLabel = showRowLabel
-        m.rowList.rowHeights = rowHeights
-        m.rowList.content = contentCollection
-    end if
-
-    m.rowList.numRows = m.rowList.content.getChildCount()
-    m.rowList.rowLabelColor = m.global.constants.colors.twitch.purple10
-    m.rowList.visible = true
-end sub
-
 ' ─── Selection ───────────────────────────────────────────────────────────────
 
 sub onItemSelected()
@@ -341,18 +226,6 @@ sub onItemFocused()
         if categoriesRowsLeft >= 0 and categoriesRowsLeft < 5
             appendMoreCategories()
         end if
-    end if
-
-    ' Paginate Live only when focus is in or near the Live section tail.
-    liveStartIndex = 0
-    if m.categoriesEndIndex >= 0
-        liveStartIndex = m.categoriesEndIndex
-    else if m.featuredEndIndex >= 0
-        liveStartIndex = m.featuredEndIndex
-    end if
-    totalRows = m.rowList.content.getChildCount()
-    if focusedRowIndex >= liveStartIndex and (totalRows - focusedRowIndex) < 5
-        appendMoreLive()
     end if
 end sub
 
@@ -396,5 +269,4 @@ sub onDestroy()
     end if
     m.featuredTask = destroyTask(m.featuredTask, "response")
     m.categoriesTask = destroyTask(m.categoriesTask, "response")
-    m.liveTask = destroyTask(m.liveTask, "response")
 end sub
