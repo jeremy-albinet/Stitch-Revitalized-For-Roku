@@ -149,9 +149,18 @@ function isBuiltinSplitterEnabled() as boolean
     return true
 end function
 
-' Starts the built-in Enhanced Broadcasting splitter once, if it is enabled.
+' True unless the remote kill switch turned the live-list ad fix off (default on, also before the config arrives).
+function isAdFixEnabled() as boolean
+    remote = m.global.remoteConfig
+    return not (type(remote) = "roAssociativeArray" and remote.adFix = false)
+end function
+
+' Starts the built-in server once, when the splitter is enabled or the live-list ad fix is on
+' (remote adFix defaults to true until the config arrives). Enhanced streams are split only when
+' isBuiltinSplitterEnabled().
 sub startBuiltinSplitter()
-    if not isBuiltinSplitterEnabled() or m.global.demuxServer <> invalid then return
+    if m.global.demuxServer <> invalid then return
+    if not isBuiltinSplitterEnabled() and not isAdFixEnabled() then return
     demuxServer = CreateObject("roSGNode", "DemuxServer")
     demuxServer.control = "RUN"
     m.global.addFields({ demuxServer: demuxServer })

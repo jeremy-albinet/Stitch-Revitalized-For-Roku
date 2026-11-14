@@ -1,4 +1,4 @@
-' On-device fmp4-demux-proxy at 127.0.0.1: /m3u8 playlists, /s single-track segments, /health.
+' On-device fmp4-demux-proxy at 127.0.0.1: /m3u8 playlists, /s single-track segments, /live plain live lists, /health.
 
 sub init()
     m.top.functionName = "runServer"
@@ -16,10 +16,16 @@ sub runServer()
     m.trackMapOrder = []
     m.MAX_TRACK_MAPS = 100
     m.maps = newMapRegistry()
+    ' Ad-break counts for live lists (see keepBreakCount).
+    m.breaks = newBreakStore()
+    m.liveUa = invalid
     m.nextFile = 0
     m.CRLF = chr(13) + chr(10)
     m.MAX_SEGS = 12
     m.TIMEOUT_MS = 30000
+    ' A live list is re-asked every couple of seconds, so a slow answer is useless: fail it fast.
+    m.LIVE_TIMEOUT_MS = 4000
+    m.lastBeat = -1
     m.ALLOWED_HOSTS = ["ttvnw.net", "twitch.tv", "twitchcdn.net", "cloudfront.net"]
 
     addr = CreateObject("roSocketAddress")
@@ -32,15 +38,23 @@ sub runServer()
     m.listen.notifyReadable(true)
     m.listen.listen(8)
     if not m.listen.eOK()
-        logLine("Could not open port " + m.top.port.toStr() + ", Enhanced streams will need the Proxy URL setting")
+        logLine("Could not open port " + m.top.port.toStr() + ", live lists will skip the ad fix and Enhanced streams will need the Proxy URL setting")
         m.top.control = "STOP"
         return
     end if
-    logLine("Built-in splitter listening on 127.0.0.1:" + m.top.port.toStr())
+    logLine("Built-in server listening on 127.0.0.1:" + m.top.port.toStr())
     m.top.ready = true
 
     while true
-        msg = wait(5000, m.port)
+        ' Wake every second while a download runs so the short live timeout is kept.
+        waitMs = 5000
+        if m.xfers.Count() > 0 then waitMs = 1000
+        msg = wait(waitMs, m.port)
+        beat = Int(uptime(0))
+        if beat <> m.lastBeat
+            m.lastBeat = beat
+            m.top.beat = beat
+        end if
         t = type(msg)
         if t = "roSocketEvent"
             onSocketEvent(msg)
@@ -132,9 +146,11 @@ sub handleRequest(c as object)
     method = UCase(first[0])
     path = first[1]
     host = ""
+    ua = ""
     for each ln in lines
         t = ln.Trim()
         if LCase(t.Left(5)) = "host:" then host = t.Mid(5).Trim()
+        if LCase(t.Left(11)) = "user-agent:" then ua = t.Mid(11).Trim()
     end for
     if host = "" then host = "127.0.0.1:" + m.top.port.toStr()
 
@@ -166,7 +182,17 @@ sub handleRequest(c as object)
     if route = "/s"
         handleSegment(c)
     else if route = "/m3u8"
-        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c })
+        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: false })
+            sendSimple(c, 502, "Bad Gateway")
+        end if
+    else if route = "/live"
+        ' Only the player's own name (User-Agent) is passed on to Twitch with the list request.
+        if ua <> m.liveUa
+            m.liveUa = ua
+            logLine("Live lists asked for by: " + ua)
+        end if
+        if not startDownload(c.upstream, newTmpFile("pl"), { mode: "conn", c: c, live: true, ua: ua, timeoutMs: m.LIVE_TIMEOUT_MS })
+            noteLiveFailure()
             sendSimple(c, 502, "Bad Gateway")
         end if
     else
@@ -184,7 +210,11 @@ function startDownload(url as string, file as string, job as object) as boolean
     x.InitClientCertificates()
     x.EnableEncodings(true)
     x.RetainBodyOnError(true)
-    x.AddHeader("User-Agent", "Mozilla/5.0")
+    if job.ua = invalid
+        x.AddHeader("User-Agent", "Mozilla/5.0")
+    else if job.ua <> ""
+        x.AddHeader("User-Agent", job.ua)
+    end if
     job.xfer = x
     job.url = url
     job.file = file
@@ -207,6 +237,7 @@ sub onUrlEvent(msg as object)
     if code <> 200
         DeleteFile(job.file)
         logLine("Twitch gave " + code.toStr() + " " + msg.GetFailureReason() + " (" + hostOf(job.url) + ")")
+        if job.live = true and (code < 400 or code >= 500) then noteLiveFailure()
         failJob(job)
         return
     end if
@@ -222,18 +253,26 @@ sub onUrlEvent(msg as object)
     end if
 end sub
 
-' Cancels downloads stuck over 30 s so the player never waits forever.
+' Cancels downloads stuck over their limit (30 s, 4 s for live lists) so the player never waits forever.
 sub dropStalledDownloads()
     for each key in m.xfers.Keys()
         job = m.xfers[key]
-        if job.timer.TotalMilliseconds() > m.TIMEOUT_MS
+        limit = m.TIMEOUT_MS
+        if job.timeoutMs <> invalid then limit = job.timeoutMs
+        if job.timer.TotalMilliseconds() > limit
             job.xfer.AsyncCancel()
             m.xfers.Delete(key)
             DeleteFile(job.file)
-            logLine("A download took over 30 seconds and was dropped")
+            logLine("A download took over " + Int(limit / 1000).toStr() + " seconds and was dropped (" + hostOf(job.url) + ")")
+            if job.live = true then noteLiveFailure()
             failJob(job)
         end if
     end for
+end sub
+
+' The player reads liveFailures: a server that fails live lists is not worth routing through.
+sub noteLiveFailure()
+    m.top.liveFailures = m.top.liveFailures + 1
 end sub
 
 sub failJob(job as object)
@@ -251,9 +290,19 @@ sub onPlaylistDownloaded(job as object)
     body.ReadFile(job.file)
     DeleteFile(job.file)
     try
-        out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+        if job.live
+            out = absoluteUris(body.ToAsciiString(), c.upstream)
+        else
+            out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+        end if
+        ' k names the playback session: all its quality variants share one break count.
+        session = queryValue(c.q, "k")
+        if session = "" then session = c.upstream
+        out = keepBreakCount(out, session, m.breaks, c.upstream)
     catch e
         m.maps.notes.Clear()
+        m.breaks.notes.Clear()
+        if job.live = true then noteLiveFailure()
         logLine("Playlist rewrite failed: " + e.message)
         sendSimple(c, 502, "Bad Gateway")
         return
@@ -262,6 +311,10 @@ sub onPlaylistDownloaded(job as object)
         logLine(note)
     end for
     m.maps.notes.Clear()
+    for each note in m.breaks.notes
+        logLine(note)
+    end for
+    m.breaks.notes.Clear()
     body = CreateObject("roByteArray")
     body.FromAsciiString(out)
     sendResponse(c, 200, "OK", "application/vnd.apple.mpegurl", body)

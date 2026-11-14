@@ -35,6 +35,8 @@
         <!-- Enhanced Broadcasting detection -->
         <field id="isTransmux" type="bool" value="false" />
         <field id="isProxied" type="bool" value="false" />
+        <!-- Set when the built-in server failed this live session: play the direct Twitch links. -->
+        <field id="skipLiveRoute" type="bool" value="false" />
         <!-- Built-in ContentNode playback attr (Roku firmware 7.5+). Declared
              here for IDE/autocomplete and to pin the default explicitly. -->
         <field id="ForwardQueryStringParams" type="bool" value="true" />
