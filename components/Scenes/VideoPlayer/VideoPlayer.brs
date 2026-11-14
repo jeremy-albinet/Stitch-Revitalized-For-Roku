@@ -361,6 +361,7 @@ sub exitPlayer()
     ' reconnects we set allowBreak=false before calling exitPlayer().
     if m.allowBreak
         m.isExiting = true
+        closeChatOffNotice()
         ' Stop chat immediately so the IRC connection and ChatJob task are
         ' released before the scene tears down, regardless of chat visibility.
         if m.chatWindow <> invalid
@@ -469,16 +470,22 @@ sub showChatOffNotice()
     dialog.title = tr("Chat is off")
     dialog.message = tr("Chat is turned off in Settings.")
     dialog.buttons = [tr("OK")]
-    dialog.observeField("buttonSelected", "onChatOffNoticeDismissed")
-    m.top.getScene().dialog = dialog
+    ' OK and Back both end here (Back closes the dialog without a buttonSelected)
+    dialog.observeField("buttonSelected", "closeChatOffNotice")
+    dialog.observeField("wasClosed", "closeChatOffNotice")
+    m.chatOffDialog = dialog
+    scene = m.top.getScene()
+    if scene <> invalid then scene.dialog = dialog
 end sub
 
-sub onChatOffNoticeDismissed()
+sub closeChatOffNotice()
+    if m.chatOffDialog = invalid then return
+    m.chatOffDialog.unobserveField("buttonSelected")
+    m.chatOffDialog.unobserveField("wasClosed")
+    m.chatOffDialog.close = true
     scene = m.top.getScene()
-    if scene <> invalid
-        if scene.dialog <> invalid then scene.dialog.unobserveField("buttonSelected")
-        scene.dialog = invalid
-    end if
+    if scene <> invalid and scene.dialog <> invalid and scene.dialog.isSameNode(m.chatOffDialog) then scene.dialog = invalid
+    m.chatOffDialog = invalid
 end sub
 
 sub onToggleChat()
