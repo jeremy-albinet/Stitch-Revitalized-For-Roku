@@ -1,25 +1,3 @@
-function getBrowsePagePopularQuery() as object
-    variables = {
-        "limit": 30,
-        "sort": get_user_setting("LiveChannelSorting", "VIEWER_COUNT")
-    }
-    if m.top.request.cursor <> invalid
-        variables["after"] = m.top.request.cursor
-    end if
-    rsp = TwitchGraphQLRequest({
-        query: ReadAsciiFile("pkg:/source/graphql/BrowseLiveChannels_Query.gql"),
-        variables: variables
-    })
-    if rsp = invalid
-        m.top.response = invalid
-        m.top.control = TaskControl.STOP
-        return invalid
-    end if
-    m.top.response = api.twitch.browse.extractLiveStreams(rsp)
-    m.top.control = TaskControl.STOP
-    return invalid
-end function
-
 function getBrowsePageQuery() as object
     variables = {
         "first": 80
@@ -42,48 +20,6 @@ function getBrowsePageQuery() as object
 end function
 
 namespace api.twitch.browse
-
-    function extractLiveStreams(rsp as object) as object
-        edges = rsp?.data?.streams?.edges ?? []
-        hasNextPage = rsp?.data?.streams?.pageInfo?.hasNextPage ?? false
-        streams = []
-        for each edge in edges
-            try
-                node = edge?.node
-                if node <> invalid
-                    item = {
-                        contentId: node.id,
-                        contentType: "LIVE",
-                        previewImageURL: Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", node.broadcaster.login, "1280", "720"),
-                        contentTitle: node?.broadcaster?.broadcastSettings?.title ?? node?.broadcaster?.displayName ?? "",
-                        viewersCount: node.viewersCount,
-                        streamerDisplayName: node.broadcaster.displayName,
-                        streamerLogin: node.broadcaster.login,
-                        streamerId: node.broadcaster.id,
-                        streamerProfileImageUrl: node.broadcaster.profileImageURL
-                    }
-                    if node.game <> invalid
-                        item.gameDisplayName = node.game.displayName
-                        item.gameName = node.game.name
-                        item.gameId = node.game.id
-                    end if
-                    streams.push(item)
-                end if
-            catch e
-                ? "[browse] extractLiveStreams error: "; e
-            end try
-        end for
-        cursor = ""
-        if edges.count() > 0
-            cursor = edges[edges.count() - 1]?.cursor ?? ""
-        end if
-        if cursor = "" then hasNextPage = false
-        return {
-            streams: streams,
-            cursor: cursor,
-            hasNextPage: hasNextPage
-        }
-    end function
 
     function extractGames(rsp as object) as object
         edges = rsp?.data?.games?.edges ?? []
