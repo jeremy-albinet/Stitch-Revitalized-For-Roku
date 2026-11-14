@@ -150,5 +150,21 @@
             <source>Error: </source>
             <translation>Error: </translation>
         </message>
+        <message>
+            <source>Enable Chat</source>
+            <translation>Activar chat</translation>
+        </message>
+        <message>
+            <source>Turn chat off to skip the chat connection and emote loading while watching. Takes effect the next time a stream opens.</source>
+            <translation>Desactiva el chat para no conectarte al chat ni cargar emotes mientras ves. Se aplica la próxima vez que abras una transmisión.</translation>
+        </message>
+        <message>
+            <source>Chat is off</source>
+            <translation>Chat desactivado</translation>
+        </message>
+        <message>
+            <source>Chat is turned off in Settings.</source>
+            <translation>El chat está desactivado en Configuración.</translation>
+        </message>
     </context>
 </TS>
