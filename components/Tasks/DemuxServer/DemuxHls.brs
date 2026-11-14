@@ -218,7 +218,8 @@ function absoluteUris(body as string, baseUrl as string) as string
     return lines.Join(chr(10))
 end function
 
-' State for keepBreakCount: one entry per live list address, least recently used evicted first.
+' State for keepBreakCount: one entry per playback session (or per list address without a session id),
+' least recently used evicted first.
 function newBreakStore() as object
     store = { lists: {}, order: [], notes: [], ads: {}, maxLists: 8 }
     store.lists.SetModeCaseSensitive()
@@ -279,19 +280,37 @@ function parseLiveList(lines as object, store as object) as object
     return r
 end function
 
+' Folds the lowest marks of a full ledger into a plain count, so the ledger stays small.
+sub foldLedger(ss as object)
+    seqs = []
+    for each k in ss.ledger
+        seqs.Push(k.ToInt())
+    end for
+    seqs.Sort()
+    for i = 0 to 63
+        k = seqs[i].toStr()
+        ss.base = ss.base + ss.ledger[k]
+        ss.ledger.Delete(k)
+    end for
+end sub
+
 ' After an ad, Twitch drops the ad's breaks (#EXT-X-DISCONTINUITY) off the top of a live list without
 ' counting them in #EXT-X-DISCONTINUITY-SEQUENCE, so Roku loses its place and freezes. This keeps that count.
-' Per list: a ledger of breaks seen (kept across stale copies), the newest list served (stale or late copies
-' get that one back), and the pieces seen (tells a late copy from a stream that started over).
-function keepBreakCount(body as string, key as string, store as object) as string
+' Quality variants of one playback share piece numbers but switch from ad to live a second or two apart, and
+' Roku needs the same discontinuity number for a piece in every variant (RFC 8216 4.3.3.3). So all variants of
+' a session (key) share one ledger of breaks seen; a list gets the number of ledger breaks before its first piece.
+' Per variant (default: the key itself): the newest list served (stale or late copies get that one back) and
+' the pieces seen (tells a late copy from a stream that started over).
+function keepBreakCount(body as string, key as string, store as object, variant = "" as string) as string
+    if variant = "" then variant = key
     lines = body.Split(chr(10))
     pl = parseLiveList(lines, store)
     if pl.uris.Count() = 0 or not pl.ok then return body
 
-    st = store.lists[key]
-    if pl.hasDsn or (st <> invalid and st.native)
-        ' Twitch counts for itself: pass it through and never mix our base into this list.
-        if st = invalid or not st.native
+    ss = store.lists[key]
+    if pl.hasDsn or (ss <> invalid and ss.native)
+        ' Twitch counts for itself: pass it through and never mix our base into this session.
+        if ss = invalid or not ss.native
             store.lists[key] = { native: true }
             store.notes.Push("Live list brings its own break count, left as is")
         end if
@@ -299,6 +318,8 @@ function keepBreakCount(body as string, key as string, store as object) as strin
         return body
     end if
 
+    st = invalid
+    if ss <> invalid then st = ss.variants[variant]
     if st <> invalid and (pl.first < st.first or pl.last < st.last)
         ' Older than what was already served. Only a list that is back near 0 with no piece seen before
         ' is a stream that started over; anything else is a late copy and gets the newest list instead.
@@ -308,6 +329,7 @@ function keepBreakCount(body as string, key as string, store as object) as strin
         end for
         if pl.first < st.first and pl.first <= 10 and not seenBefore
             store.notes.Push("Live list started over, break count reset")
+            ss = invalid
             st = invalid
         else
             touchBreakList(store, key)
@@ -316,22 +338,24 @@ function keepBreakCount(body as string, key as string, store as object) as strin
         end if
     end if
 
-    if st = invalid
-        st = { native: false, first: 0, last: -1, disc: 0, marks: {}, seen: {}, out: body }
-        store.lists[key] = st
+    if ss = invalid
+        ss = { native: false, base: 0, ledger: {}, variants: {} }
+        store.lists[key] = ss
     end if
     touchBreakList(store, key)
+    if st = invalid
+        if ss.variants.Count() >= 16 then ss.variants.Clear()
+        st = { first: 0, last: -1, disc: 0, seen: {}, out: body }
+        ss.variants[variant] = st
+    end if
 
-    ' Breaks on pieces that fell off the top since last time are counted once and leave the ledger.
     for each k in pl.marks
-        st.marks[k] = pl.marks[k]
+        ss.ledger[k] = pl.marks[k]
     end for
-    disc = st.disc
-    for each k in st.marks.Keys()
-        if k.ToInt() < pl.first
-            disc = disc + st.marks[k]
-            st.marks.Delete(k)
-        end if
+    if ss.ledger.Count() > 256 then foldLedger(ss)
+    disc = ss.base
+    for each k in ss.ledger
+        if k.ToInt() < pl.first then disc = disc + ss.ledger[k]
     end for
     if st.seen.Count() > 256 then st.seen.Clear()
     for each u in pl.uris

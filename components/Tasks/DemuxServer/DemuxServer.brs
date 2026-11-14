@@ -295,7 +295,10 @@ sub onPlaylistDownloaded(job as object)
         else
             out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
         end if
-        out = keepBreakCount(out, c.upstream, m.breaks)
+        ' k names the playback session: all its quality variants share one break count.
+        session = queryValue(c.q, "k")
+        if session = "" then session = c.upstream
+        out = keepBreakCount(out, session, m.breaks, c.upstream)
     catch e
         m.maps.notes.Clear()
         m.breaks.notes.Clear()

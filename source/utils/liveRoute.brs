@@ -1,4 +1,4 @@
-' Live lists routed through the built-in server look like http://127.0.0.1:PORT/live?u=<encoded Twitch url>.
+' Live lists routed through the built-in server look like http://127.0.0.1:PORT/live?u=<encoded Twitch url>&k=<session id>.
 
 function isLiveRouted(url as dynamic) as boolean
     if url = invalid then return false
@@ -11,7 +11,10 @@ function directLiveUrl(url as string) as string
     marker = "/live?u="
     at = url.InStr(marker)
     if at < 0 then return url
-    parts = url.Mid(at + marker.Len()).Split("%")
+    tail = url.Mid(at + marker.Len())
+    amp = tail.InStr("&")
+    if amp >= 0 then tail = tail.Left(amp)
+    parts = tail.Split("%")
     direct = parts[0]
     for i = 1 to parts.Count() - 1
         direct = direct + Chr(Val(parts[i].Left(2), 16)) + parts[i].Mid(2)

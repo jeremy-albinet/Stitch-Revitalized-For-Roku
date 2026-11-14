@@ -234,6 +234,96 @@ namespace tests
         end sub
 
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("quality variants of one playback")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("gives a variant first fetched after the ad the same count as the one already playing")
+        sub variantFetchedLate()
+            store = newBreakStore()
+            ' Variant A plays through the ad, five breaks scroll off.
+            keepBreakCount(m.playlist(7060, 20, [7062, 7064, 7066, 7068, 7070]), "s1", store, "A")
+            a = keepBreakCount(m.playlist(7086, 20, []), "s1", store, "A")
+            m.assertEqual(m.dsnOf(a), 5)
+            ' Variant B is first fetched now, a little behind A.
+            b = keepBreakCount(m.playlist(7088, 20, []), "s1", store, "B")
+            m.assertEqual(m.dsnOf(b), 5)
+            m.assertTrue(m.stable(a, b))
+            ' Keyed per list, B would start from 0.
+            alone = keepBreakCount(m.playlist(7088, 20, []), "s1", newBreakStore(), "B")
+            m.assertEqual(m.dsnOf(alone), -1)
+        end sub
+
+        @it("numbers pieces alike while one variant is still in the ad list and the other is live")
+        sub staggeredTransition()
+            store = newBreakStore()
+            ' B is still the 0-based ad list: five breaks listed before its live pieces.
+            b = keepBreakCount(m.playlist(0, 30, [3, 5, 7, 9, 11]), "s1", store, "B")
+            m.assertEqual(m.dsnOf(b), -1)
+            ' A already jumped to its live numbers and lists no break, so it gets the count.
+            a = keepBreakCount(m.playlist(7084, 10, []), "s1", store, "A")
+            m.assertEqual(m.dsnOf(a), 5)
+            m.assertEqual(m.epochs(b)["https://s.hls.ttvnw.net/20.ts"], 5)
+            m.assertEqual(m.epochs(a)["https://s.hls.ttvnw.net/7090.ts"], 5)
+            ' B then follows with its own live numbers: same count, no stale or reset handling in the way.
+            b2 = keepBreakCount(m.playlist(7086, 10, []), "s1", store, "B")
+            m.assertEqual(m.dsnOf(b2), 5)
+            m.assertTrue(m.stable(a, b2))
+        end sub
+
+        @it("judges stale copies per variant, not across the session")
+        sub staleIsPerVariant()
+            store = newBreakStore()
+            newest = keepBreakCount(m.playlist(7090, 10, []), "s1", store, "A")
+            ' B is behind A but is not a late copy of A's list.
+            b = keepBreakCount(m.playlist(7085, 10, []), "s1", store, "B")
+            m.assertEqual(b, m.playlist(7085, 10, []))
+            ' A late copy of B's own list gets B's newest, not A's.
+            lateB = keepBreakCount(m.playlist(7080, 10, []), "s1", store, "B")
+            m.assertEqual(lateB, b)
+            m.assertEqual(newest, m.playlist(7090, 10, []))
+        end sub
+
+        @it("does not share breaks between two sessions")
+        sub sessionsApart()
+            store = newBreakStore()
+            keepBreakCount(m.playlist(7060, 20, [7062, 7064]), "s1", store, "A")
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(7086, 20, []), "s1", store, "A")), 2)
+            other = keepBreakCount(m.playlist(7086, 20, []), "s2", store, "A")
+            m.assertEqual(m.dsnOf(other), -1)
+            m.assertEqual(store.lists.Count(), 2)
+        end sub
+
+        @it("takes a break count from upstream for the whole session")
+        sub sessionNative()
+            store = newBreakStore()
+            keepBreakCount(m.playlist(7060, 20, [7062, 7064]), "s1", store, "A")
+            own = m.playlist(7086, 5, []).Replace("#EXT-X-MEDIA-SEQUENCE:7086", "#EXT-X-MEDIA-SEQUENCE:7086" + chr(10) + "#EXT-X-DISCONTINUITY-SEQUENCE:9")
+            m.assertEqual(keepBreakCount(own, "s1", store, "A"), own)
+            plain = m.playlist(7090, 5, [])
+            m.assertEqual(keepBreakCount(plain, "s1", store, "B"), plain)
+        end sub
+
+        @it("keeps one list per address when there is no session id")
+        sub noSession()
+            store = newBreakStore()
+            keepBreakCount(m.playlist(7060, 20, [7062, 7064]), "urlA", store)
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(7086, 20, []), "urlA", store)), 2)
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(7086, 20, []), "urlB", store)), -1)
+        end sub
+
+        @it("keeps the ledger bounded and the count right when it folds")
+        sub ledgerFold()
+            store = newBreakStore()
+            marks = []
+            for i = 0 to 299
+                marks.Push(1000 + i * 2)
+            end for
+            keepBreakCount(m.playlist(1000, 620, marks), "s1", store, "A")
+            m.assertTrue(store.lists["s1"].ledger.Count() <= 256)
+            m.assertEqual(m.dsnOf(keepBreakCount(m.playlist(1700, 20, []), "s1", store, "A")), 300)
+        end sub
+
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         @describe("live route links")
         '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -246,6 +336,9 @@ namespace tests
             m.assertFalse(isLiveRouted(direct))
             m.assertFalse(isLiveRouted(invalid))
             m.assertEqual(directLiveUrl(direct), direct)
+            ' The session id of a routed link is not part of the Twitch link.
+            m.assertEqual(directLiveUrl(routed + "&k=1a2b3c"), direct)
+            m.assertTrue(isLiveRouted(routed + "&k=1a2b3c"))
         end sub
 
     end class
