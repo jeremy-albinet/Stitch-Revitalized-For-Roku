@@ -1115,8 +1115,15 @@ sub showTransmuxWarning()
     m.transmuxButtonIndex = -1
     dialog = createObject("roSGNode", "StandardMessageDialog")
     dialog.title = "Enhanced Broadcasting Stream"
-    dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory and CPU while you watch.", "", "You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
-    dialog.buttons = ["Turn On and Play", "Go Back", "Try Anyway"]
+    remote = m.global.remoteConfig
+    m.transmuxCanEnable = not (type(remote) = "roAssociativeArray" and remote.builtinSplitter = false)
+    if m.transmuxCanEnable
+        dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "Stitch can start a built-in proxy so it plays normally. It uses a bit more memory and CPU while you watch.", "", "You can turn it off anytime in Settings > Built-in Enhanced Broadcasting Splitter."]
+        dialog.buttons = ["Turn On and Play", "Go Back", "Try Anyway"]
+    else
+        dialog.message = ["This stream uses Twitch Enhanced Broadcasting, a video format Roku's player can't play on its own.", "", "The built-in proxy is temporarily unavailable, so this stream may not play."]
+        dialog.buttons = ["Go Back", "Try Anyway"]
+    end if
     dialog.observeField("buttonSelected", "onTransmuxDialogButton")
     dialog.observeField("wasClosed", "onTransmuxDialogClosed")
     scene = m.top.getScene()
@@ -1138,9 +1145,12 @@ sub onTransmuxDialogClosed()
     if scene <> invalid
         scene.dialog = invalid
     end if
-    if m.transmuxButtonIndex = 0
+    ' Without the "Turn On and Play" button the indexes shift down by one.
+    index = m.transmuxButtonIndex
+    if index >= 0 and m.transmuxCanEnable = false then index++
+    if index = 0
         enableSplitterAndReload()
-    else if m.transmuxButtonIndex = 2
+    else if index = 2
         playContent()
     else
         exitPlayer()
@@ -1151,6 +1161,11 @@ sub enableSplitterAndReload()
     set_user_setting("proxy.builtin", "true")
     startBuiltinSplitter()
     m.splitter = m.global.demuxServer
+    if m.splitter = invalid or not isBuiltinSplitterEnabled()
+        m.splitter = invalid
+        showErrorDialog("Enhanced Broadcasting", "The built-in proxy is temporarily unavailable.")
+        return
+    end if
     m.splitter.observeField("ready", "onSplitterChanged")
     m.splitter.observeField("state", "onSplitterChanged")
     onSplitterChanged()
