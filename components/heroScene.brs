@@ -85,9 +85,11 @@ sub onRemoteMessageClosed()
     ' Seen unless another dialog took its place: on Back, scene.dialog is still this notice (or empty).
     replaced = scene <> invalid and scene.dialog <> invalid and not scene.dialog.isSameNode(m.remoteMessageDialog)
     if not replaced then set_setting("remote.last_message", m.remoteMessageText)
+    closed = m.remoteMessageDialog
     m.remoteMessageDialog.unobserveField("buttonSelected")
     m.remoteMessageDialog.unobserveField("wasClosed")
     m.remoteMessageDialog = invalid
+    if not replaced then restoreFocusAfterDialog(closed)
 end sub
 
 sub sendAppOpenedEvents()
@@ -233,7 +235,6 @@ sub showChangelogDialog()
     dialog.title = "What's New"
     dialog.message = lines
     dialog.width = 1100
-    dialog.maxWidth = 1100
     dialog.buttons = ["Got it"]
     dialog.observeField("buttonSelected", "onChangelogDialogButtonSelected")
     dialog.observeField("wasClosed", "onChangelogDialogClosed")
@@ -249,22 +250,32 @@ end sub
 ' Fired when the user clicks "Got it" — persist version and close.
 sub onChangelogDialogButtonSelected()
     set_setting("last_seen_version", m.global.appInfo.Version.Version)
-    if m.changelogDialog <> invalid
-        m.changelogDialog.unobserveField("buttonSelected")
-        m.changelogDialog.unobserveField("wasClosed")
-        m.changelogDialog.close = true
-        m.changelogDialog = invalid
-    end if
+    if m.changelogDialog <> invalid then m.changelogDialog.close = true
 end sub
 
 ' Fired when the dialog is dismissed via Back without clicking "Got it".
 ' Persists last_seen_version so the dialog is not reshown for this version.
 sub onChangelogDialogClosed()
     set_setting("last_seen_version", m.global.appInfo.Version.Version)
+    closed = m.changelogDialog
     if m.changelogDialog <> invalid
         m.changelogDialog.unobserveField("buttonSelected")
         m.changelogDialog.unobserveField("wasClosed")
         m.changelogDialog = invalid
+    end if
+    restoreFocusAfterDialog(closed)
+end sub
+
+' Roku leaves focus on the scene when a dialog closes; hand it back to the page (or menu).
+sub restoreFocusAfterDialog(closed as object)
+    ' wasClosed can fire while scene.dialog still points at the closing dialog; clear it first so
+    ' the pages' "dialog open" focus guard does not block the restore.
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid and closed <> invalid and scene.dialog.isSameNode(closed) then scene.dialog = invalid
+    if m.activeNode <> invalid
+        m.activeNode.setFocus(true)
+    else
+        m.menu.setFocus(true)
     end if
 end sub
 

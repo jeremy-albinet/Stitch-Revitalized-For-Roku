@@ -232,6 +232,9 @@ end sub
 ' ─── Focus ───────────────────────────────────────────────────────────────────
 
 sub onGetFocus()
+    ' A dialog is open: it owns focus until it closes (heroScene restores focus then).
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid then return
     if m.rowList.focusedChild = invalid
         m.rowList.setFocus(true)
     else if m.top.focusedChild <> invalid and m.top.focusedChild.id = "browseRowList"

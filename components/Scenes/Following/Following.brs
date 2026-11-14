@@ -189,6 +189,9 @@ sub handleLiveItemSelected()
 end sub
 
 sub onGetFocus()
+    ' A dialog is open: it owns focus until it closes (heroScene restores focus then).
+    scene = m.top.getScene()
+    if scene <> invalid and scene.dialog <> invalid then return
     if m.rowlist.focusedChild = invalid
         m.rowlist.setFocus(true)
     else if m.rowlist.focusedChild.id = "homeRowList"
