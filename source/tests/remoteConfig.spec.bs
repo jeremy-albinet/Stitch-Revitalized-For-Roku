@@ -1,0 +1,49 @@
+namespace tests
+
+    @suite("Remote config parsing")
+    class RemoteConfigTests extends rooibos.BaseTestSuite
+
+        @describe("parseRemoteConfig and remoteFlag")
+
+        @it("accepts a full valid config")
+        sub valid()
+            cfg = parseRemoteConfig("{" + chr(34) + "version" + chr(34) + ":2," + chr(34) + "adFix" + chr(34) + ":false," + chr(34) + "builtinSplitter" + chr(34) + ":false," + chr(34) + "message" + chr(34) + ":" + chr(34) + "hi" + chr(34) + "}")
+            m.assertEqual(cfg.version, 2)
+            m.assertFalse(cfg.adFix)
+            m.assertFalse(cfg.builtinSplitter)
+            m.assertEqual(cfg.message, "hi")
+        end sub
+
+        @it("leaves missing fields out so callers use their default")
+        sub missing()
+            cfg = parseRemoteConfig("{" + chr(34) + "adFix" + chr(34) + ":false}")
+            m.assertFalse(cfg.adFix)
+            m.assertFalse(cfg.doesExist("builtinSplitter"))
+            m.assertFalse(cfg.doesExist("message"))
+        end sub
+
+        @it("drops wrong-typed and unknown fields")
+        sub wrongTypes()
+            cfg = parseRemoteConfig("{" + chr(34) + "adFix" + chr(34) + ":" + chr(34) + "no" + chr(34) + "," + chr(34) + "builtinSplitter" + chr(34) + ":0," + chr(34) + "message" + chr(34) + ":5," + chr(34) + "version" + chr(34) + ":" + chr(34) + "x" + chr(34) + "," + chr(34) + "extra" + chr(34) + ":true}")
+            m.assertEqual(cfg.count(), 0)
+        end sub
+
+        @it("returns invalid for invalid JSON, non-objects and non-strings")
+        sub invalidJson()
+            m.assertInvalid(parseRemoteConfig("{not json"))
+            m.assertInvalid(parseRemoteConfig("[1,2]"))
+            m.assertInvalid(parseRemoteConfig(""))
+            m.assertInvalid(parseRemoteConfig(invalid))
+        end sub
+
+        @it("remoteFlag returns the default when the config is missing")
+        sub flagDefault()
+            m.global = { remoteConfig: {} }
+            m.assertTrue(remoteFlag("adFix", true))
+            m.global = { remoteConfig: { adFix: false } }
+            m.assertFalse(remoteFlag("adFix", true))
+        end sub
+
+    end class
+
+end namespace
