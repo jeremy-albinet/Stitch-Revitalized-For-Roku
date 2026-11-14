@@ -369,6 +369,8 @@ sub exitPlayer()
         end if
     end if
 
+    m.sameLinkPending = false
+
     ' Stop watchdog/reconnect timers and clean up any in-flight reconnect task
     if m.watchdogTimer <> invalid
         m.watchdogTimer.control = "stop"
@@ -448,6 +450,8 @@ sub init()
     m.reconnectCooldownSec = 45
     m.lastReconnectSuccessSec = 0
     m.sameLinkRestartSec = 0 ' when we last restarted on the current stream link
+    m.sameLinkPending = false ' true from a same-link restart until playback moves again
+    m.reconnectReason = ""
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.reconnectTimer = invalid
@@ -542,6 +546,11 @@ sub onPositionChanged()
         else if m.video.position > m.lastGoodPosition
             m.lastGoodPosition = m.video.position
             m.stallSeconds = 0
+            if m.sameLinkPending
+                ' The same-link restart really recovered: close this stall episode.
+                m.sameLinkPending = false
+                m.reconnectAttempts = 0
+            end if
             ' The picture moved again: a pending "is it still live" answer is stale, drop it.
             if m.liveCheckTask <> invalid
                 m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
@@ -588,6 +597,20 @@ sub onVideoStateChange()
             m.watchdogTimer.control = "start"
         else
             m.watchdogTimer.control = "stop"
+        end if
+    end if
+
+    if m.sameLinkPending and (m.video.state = "finished" or m.video.state = "error") and m.top.contentRequested <> invalid and m.top.contentRequested.contentType = "LIVE"
+        ' The aged link failed right after the same-link restart (stale playlist,
+        ' proxied 401/403 turned into 502, ...). No grace period: fetch a new link,
+        ' counted against the reconnect cap. A 970 decode error still exits below.
+        errorStr = m.video.errorStr
+        if errorStr = invalid then errorStr = ""
+        if errorStr.InStr("buffer:loop:demux") = -1 and errorStr.InStr("970") = -1
+            ? getLogTimestamp(); " [VideoPlayer] Same-link restart ended in state="; m.video.state; " code="; m.video.errorCode; " — fetching a new link"
+            m.sameLinkPending = false
+            beginLiveReconnect("same_link_failed")
+            return
         end if
     end if
 
@@ -877,6 +900,7 @@ sub beginLiveReconnect(reason as string)
     ' If a reconnect is already scheduled/in-flight, don't stack them
     if m.reconnectTimer <> invalid then return
 
+    m.reconnectReason = reason
     m.reconnectAttempts = m.reconnectAttempts + 1
     if m.reconnectAttempts > m.maxReconnectAttempts
         showErrorDialog("Stream frozen", "Twitch playback froze after an ad and could not be recovered.")
@@ -924,15 +948,21 @@ sub doLiveReconnect()
     ' A new Twitch link counts as a new viewer and replays the ads, which then
     ' freeze again. So first restart on the link we already have (live-edge
     ' PlayStart is re-applied by playContent). If that froze again within
-    ' 2 minutes, or the link errored, fetch a new one below.
+    ' 2 minutes, or the link errored, fetch a new one below. Only the first
+    ' attempt of a stall episode may do this: retries of a failed refresh or an
+    ' auth error must go to the new-link path so the attempt cap stays bounded.
     nowSec = CreateObject("roDateTime").AsSeconds()
-    if nowSec - m.sameLinkRestartSec > 120
+    if m.reconnectReason = "stall" and m.reconnectAttempts = 1 and nowSec - m.sameLinkRestartSec > 120
         m.sameLinkRestartSec = nowSec
         ? getLogTimestamp(); " [VideoPlayer] Restarting on the same stream link"
         m.allowBreak = false
         exitPlayer()
         m.allowBreak = true
+        attempts = m.reconnectAttempts
         playContent(true)
+        ' playContent resets the counter; keep it until the restart really recovers.
+        m.reconnectAttempts = attempts
+        m.sameLinkPending = true
         m.lastReconnectSuccessSec = nowSec ' cooldown, same as a new-link restart
         if m.watchdogTimer <> invalid then m.watchdogTimer.control = "start"
         return
@@ -979,6 +1009,7 @@ sub onLiveReconnectResponse()
     m.lastGoodPosition = invalid
     m.stallSeconds = 0
     m.sameLinkRestartSec = 0 ' fresh link: the next freeze gets a same-link restart again
+    m.sameLinkPending = false
 
     ' Restart playback in-place without exiting the scene. isRecovery=true
     ' so the new StitchVideo skips its startup live-edge seek — re-anchoring
