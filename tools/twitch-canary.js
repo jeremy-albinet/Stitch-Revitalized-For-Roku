@@ -89,7 +89,7 @@ function noteStreams(nodes) {
 }
 
 const requireLive = () => {
-    if (!ctx.liveLogin) throw new Error('no live channel found in Homepage or BrowseLiveChannels results');
+    if (!ctx.liveLogin) throw new Error('no live channel found in Homepage results');
     return ctx.liveLogin;
 };
 
@@ -99,12 +99,6 @@ const checks = [
         const shelves = need(rsp, 'data.shelves.edges', 'array');
         noteStreams(shelves.flatMap((s) => (get(s, 'node.content.edges') || []).map((e) => e.node)));
         return `${shelves.length} shelves`;
-    }],
-    ['BrowseLiveChannels_Query', async () => {
-        const rsp = await gql(readGql('BrowseLiveChannels_Query.gql'), { limit: 30, sort: 'VIEWER_COUNT' });
-        const edges = need(rsp, 'data.streams.edges', 'array');
-        noteStreams(edges.map((e) => e.node));
-        return `${edges.length} streams`;
     }],
     ['BrowseCategories_Query', async () => {
         const rsp = await gql(readGql('BrowseCategories_Query.gql'), { first: 80 });
