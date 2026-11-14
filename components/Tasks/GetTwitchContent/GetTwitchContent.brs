@@ -521,13 +521,16 @@ end sub
 sub keepAdBreakCount(content as object, metadata as object)
     server = m.global.demuxServer
     if server = invalid or server.ready <> true then return
+    ' One id per playback: the server keeps one break count for all quality variants carrying it.
+    session = StrI(Rnd(2147483646), 16).Trim() + StrI(Rnd(2147483646), 16).Trim()
     base = "http://127.0.0.1:" + server.port.toStr() + "/live?u="
+    suffix = "&k=" + session
     ? "[fmp4-demux] live list through the built-in server"
-    if content.url <> invalid and content.url <> "" then content.url = base + content.url.EncodeUriComponent()
+    if content.url <> invalid and content.url <> "" then content.url = base + content.url.EncodeUriComponent() + suffix
     if content.StreamUrls <> invalid
         urls = []
         for each streamUrl in content.StreamUrls
-            urls.push(base + streamUrl.EncodeUriComponent())
+            urls.push(base + streamUrl.EncodeUriComponent() + suffix)
         end for
         content.StreamUrls = urls
     end if
@@ -536,7 +539,7 @@ sub keepAdBreakCount(content as object, metadata as object)
         if entry.StreamUrls <> invalid
             urls = []
             for each streamUrl in entry.StreamUrls
-                urls.push(base + streamUrl.EncodeUriComponent())
+                urls.push(base + streamUrl.EncodeUriComponent() + suffix)
             end for
             entry.StreamUrls = urls
         end if
@@ -545,7 +548,7 @@ sub keepAdBreakCount(content as object, metadata as object)
             for each stream in entry.Streams
                 copy = {}
                 copy.Append(stream)
-                copy.url = base + stream.url.EncodeUriComponent()
+                copy.url = base + stream.url.EncodeUriComponent() + suffix
                 streams.push(copy)
             end for
             entry.Streams = streams
