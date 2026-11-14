@@ -3,6 +3,16 @@
 ' Versions are displayed in ascending order; multiple versions are shown when the user skipped an update.
 function getChangelog() as object
     return {
+        "3.1.0": [
+            "Fix: Streams no longer freeze about 30 seconds after an ad break",
+            "Fix: A stream that froze no longer replays the ads when it recovers",
+            "Fix: When a stream ends, you go back to the page you came from",
+            "New: Remove or pin channels in the left sidebar (press * on a channel)",
+            "New: A setting to turn chat off",
+            "Fix: Small channels without quality options, and vertical streams, now play",
+            "Fix: Back now closes the quality list",
+            "Fix: The Live Stream tile on channel pages shows its picture and title"
+        ],
         "3.0.0": [
             "New: Full 1080p rendering throughout the app - sharper text and more content on screen",
             "New: Enhanced Broadcasting streams now play out of the box, with the built-in splitter on by default",
