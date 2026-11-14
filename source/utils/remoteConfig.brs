@@ -1,11 +1,13 @@
 ' Remote kill switch helpers. See "Remote kill switch" in AGENTS.md.
 
 ' Validates the raw config.json text. Returns an AA holding only the known
-' fields that have the right type, or invalid when the text is not a JSON
+' fields that have the right type (message truncated to 300 characters), or invalid when the text is not a JSON
 ' object. Unknown fields and wrong-typed fields are dropped, so remoteFlag()
 ' falls back to the caller's default for them.
 function parseRemoteConfig(text as dynamic) as dynamic
     if type(text) <> "String" and type(text) <> "roString" then return invalid
+    ' Oversized bodies are treated as not loaded, before ParseJson.
+    if len(text) > 4096 then return invalid
     json = invalid
     try
         json = ParseJson(text)
@@ -18,7 +20,7 @@ function parseRemoteConfig(text as dynamic) as dynamic
     for each name in ["adFix", "builtinSplitter"]
         if type(json[name]) = "Boolean" or type(json[name]) = "roBoolean" then cfg[name] = json[name]
     end for
-    if type(json.message) = "String" or type(json.message) = "roString" then cfg.message = json.message
+    if type(json.message) = "String" or type(json.message) = "roString" then cfg.message = left(json.message, 300)
     valueType = type(json.version)
     if valueType = "Integer" or valueType = "roInt" or valueType = "LongInteger" or valueType = "Float" or valueType = "roFloat" or valueType = "Double" or valueType = "roDouble"
         cfg.version = json.version

@@ -36,6 +36,18 @@ namespace tests
             m.assertInvalid(parseRemoteConfig(invalid))
         end sub
 
+        @it("rejects a body larger than 4 KB")
+        sub oversizedBody()
+            body = "{" + chr(34) + "message" + chr(34) + ":" + chr(34) + string(5000, "a") + chr(34) + "}"
+            m.assertInvalid(parseRemoteConfig(body))
+        end sub
+
+        @it("truncates an over-long message to 300 characters")
+        sub longMessage()
+            cfg = parseRemoteConfig("{" + chr(34) + "message" + chr(34) + ":" + chr(34) + string(500, "a") + chr(34) + "}")
+            m.assertEqual(len(cfg.message), 300)
+        end sub
+
         @it("remoteFlag returns the default when the config is missing")
         sub flagDefault()
             m.global = { remoteConfig: {} }
