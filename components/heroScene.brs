@@ -160,7 +160,8 @@ sub cleanUserData()
         ? "active User: "; get_setting("active_user", "$default$")
     else
         for each key in getRegistryKeys("$default$")
-            if key <> "temp_device_code" and key <> "device_code"
+            ' Bookmarks are per device, not per account: keep them so anonymous replays resume.
+            if key <> "temp_device_code" and key <> "device_code" and key <> "VideoBookmarks"
                 unset_user_setting(key)
             end if
         end for

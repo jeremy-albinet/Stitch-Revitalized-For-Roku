@@ -197,8 +197,10 @@ sub onPositionChange()
 
     ' Auto-save bookmark every 20 seconds (not for live streams)
     if not m.isLiveStream
+        ' Position reads 0 at start and when the player resets on exit; saving it
+        ' would wipe the real bookmark.
         checker = Int(m.top.position) mod 20
-        if checker = 0 and (m._lastBookmarkSecond = invalid or m._lastBookmarkSecond <> Int(m.top.position))
+        if checker = 0 and Int(m.top.position) > 0 and (m._lastBookmarkSecond = invalid or m._lastBookmarkSecond <> Int(m.top.position))
             m._lastBookmarkSecond = Int(m.top.position)
             saveVideoBookmark()
         end if
@@ -671,6 +673,8 @@ sub saveVideoBookmark()
             bookmarkPosition = currentTime - secondsSincePublished.AsSeconds()
         end if
 
+        if m.top.video_type = "VOD" then saveLocalBookmark(m.top.video_id, bookmarkPosition)
+
         if get_user_setting("id", invalid) <> invalid
             if m.bookmarkTask <> invalid
                 m.bookmarkTask = invalid
@@ -686,6 +690,19 @@ sub saveVideoBookmark()
             m.bookmarkTask.control = "run"
         end if
     end if
+end sub
+
+' Resume reads this local map; the Twitch sync only refreshes it, so a replay no
+' longer depends on the cloud round trip or on being logged in.
+sub saveLocalBookmark(videoId as string, position as integer)
+    if videoId = "" then return
+    raw = get_user_setting("VideoBookmarks", "")
+    bookmarks = invalid
+    if raw <> "" then bookmarks = ParseJSON(raw)
+    ' ponytail: reset past 200 entries to bound the registry, keep an LRU if that loses real history
+    if type(bookmarks) <> "roAssociativeArray" or bookmarks.Count() > 200 then bookmarks = {}
+    bookmarks[videoId] = position.toStr()
+    set_user_setting("VideoBookmarks", FormatJson(bookmarks))
 end sub
 
 sub showErrorMessage(title as string, message as string)
