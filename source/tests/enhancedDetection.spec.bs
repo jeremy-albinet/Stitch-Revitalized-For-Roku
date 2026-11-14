@@ -3,6 +3,8 @@ namespace tests
     @suite("Enhanced Broadcasting detection")
     class EnhancedDetectionTests extends rooibos.BaseTestSuite
 
+        @describe("isFmp4Playlist")
+
         @it("plain TS variant is not Enhanced even when master says transmux")
         sub plainTs()
             variant = "#EXTM3U" + chr(10) + "#EXT-X-VERSION:3" + chr(10) + "#EXTINF:2.000,live" + chr(10) + "seg1.ts" + chr(10)
