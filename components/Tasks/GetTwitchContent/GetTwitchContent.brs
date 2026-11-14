@@ -434,16 +434,12 @@ sub main()
                         "Accept": "*/*",
                         "User-Agent": "Mozilla/5.0"
                     },
-                    method: "GET"
+                    method: "GET",
+                    ' One bounded try: this runs before every live start and reconnect,
+                    ' and a failed probe just plays the stream directly.
+                    timeout: 3000
                 })
-                variantRsp = invalid
-                retries = 0
-                while retries < 300
-                    variantRsp = variantReq.send()
-                    if variantRsp <> invalid then exit while
-                    sleep(10)
-                    retries++
-                end while
+                variantRsp = variantReq.send()
                 if variantRsp <> invalid
                     isTransmux = isFmp4Playlist(variantRsp.getString())
                 end if
