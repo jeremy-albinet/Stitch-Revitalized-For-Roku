@@ -89,7 +89,7 @@ components/                # SceneGraph components (XML + BRS pairs)
     Scene/                 # SceneManagerScene — base for heroScene
   Scenes/                  # Full-screen views
     Following/             # Followed streams grid (default home)
-    Browse/                # Featured + Categories + Live Channels, three stacked sections
+    Browse/                # Featured + Categories, two stacked sections
     Search/                # Search interface
     Settings/              # User settings screen
     ChannelPage/           # Individual channel view (profile, VODs, clips)
