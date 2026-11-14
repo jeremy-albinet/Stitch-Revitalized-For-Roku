@@ -59,8 +59,15 @@ function buildContentNodeFromShelves(rsp)
     if rsp.isLive
         row = createObject("RoSGNode", "ContentNode")
         row.title = "Live Stream"
-        ' A copy: appending contentRequested itself would move it out of the page's own field
-        rowItem = m.top.contentRequested.clone(false)
+        ' A new node with only the streamer's identity: appending contentRequested itself would
+        ' move it out of the page's field, and clone() does not keep TwitchContentNode fields.
+        src = m.top.contentRequested
+        rowItem = createObject("roSGNode", "TwitchContentNode")
+        rowItem.streamerLogin = src.streamerLogin
+        rowItem.streamerDisplayName = src.streamerDisplayName
+        rowItem.streamerId = src.streamerId
+        rowItem.streamerProfileImageUrl = src.streamerProfileImageUrl
+        if src.contentType = "LIVE" then rowItem.viewersCount = src.viewersCount
         rowItem.contentType = "LIVE"
         rowItem.contentTitle = rsp.liveTitle
         rowItem.gameDisplayName = rsp.liveGame
