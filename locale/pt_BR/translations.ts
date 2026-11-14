@@ -149,6 +149,5 @@
             <source>Error: </source>
             <translation>Erro: </translation>
         </message>
-        <message>
     </context>
 </TS>
