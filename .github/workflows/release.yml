@@ -50,6 +50,7 @@ jobs:
         # everything that went through its candidates.
         if [[ "$VERSION" == *-rc* ]]; then
           echo "PRERELEASE=true" >> "$GITHUB_OUTPUT"
+          echo "PREVIOUS=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
         else
           echo "PRERELEASE=false" >> "$GITHUB_OUTPUT"
           echo "PREVIOUS=$(git describe --tags --abbrev=0 --exclude '*-rc*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
