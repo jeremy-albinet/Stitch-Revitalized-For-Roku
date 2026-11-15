@@ -699,8 +699,9 @@ sub saveLocalBookmark(videoId as string, position as integer)
     raw = get_user_setting("VideoBookmarks", "")
     bookmarks = invalid
     if raw <> "" then bookmarks = ParseJSON(raw)
-    ' ponytail: reset past 200 entries to bound the registry, keep an LRU if that loses real history
-    if type(bookmarks) <> "roAssociativeArray" or bookmarks.Count() > 200 then bookmarks = {}
+    if type(bookmarks) <> "roAssociativeArray" then bookmarks = {}
+    ' ponytail: start over when a new VOD would pass 200 entries, keep an LRU if that loses real history
+    if bookmarks.Count() >= 200 and not bookmarks.DoesExist(videoId) then bookmarks = {}
     bookmarks[videoId] = position.toStr()
     set_user_setting("VideoBookmarks", FormatJson(bookmarks))
 end sub
