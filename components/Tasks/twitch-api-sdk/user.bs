@@ -70,7 +70,7 @@ sub getTwitchBookmarks()
                 if edge.node = invalid then continue for
                 videoId = edge.node.id
                 positionSecs = edge.history.position
-                if not videoBookmarks.DoesExist(videoId) then videoBookmarks[videoId] = Int(positionSecs).toStr()
+                if not videoBookmarks.DoesExist(videoId) and videoBookmarks.Count() < 200 then videoBookmarks[videoId] = Int(positionSecs).toStr()
             end for
             try
                 set_user_setting("VideoBookmarks", FormatJson(videoBookmarks, 256))
