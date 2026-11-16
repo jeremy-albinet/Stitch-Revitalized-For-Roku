@@ -290,15 +290,22 @@ sub onPlaylistDownloaded(job as object)
     body.ReadFile(job.file)
     DeleteFile(job.file)
     try
+        track = queryValue(c.q, "track")
         if job.live
             out = absoluteUris(body.ToAsciiString(), c.upstream)
         else
-            out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, queryValue(c.q, "track"), c.q, m.maps)
+            out = rewriteManifest(body.ToAsciiString(), c.upstream, c.base, track, c.q, m.maps)
         end if
-        ' k names the playback session: all its quality variants share one break count.
-        session = queryValue(c.q, "k")
-        if session = "" then session = c.upstream
-        out = keepBreakCount(out, session, m.breaks, c.upstream)
+        ' A split master has no pieces to count. The audio and video lists of one variant keep separate
+        ' counts: sharing one served a master or the other track as a "newest copy" after a quality change.
+        if job.live or track <> ""
+            variant = c.upstream
+            if track <> "" then variant = variant + "#" + track
+            ' k names the playback session: all its quality variants share one break count.
+            session = queryValue(c.q, "k")
+            if session = "" then session = variant
+            out = keepBreakCount(out, session, m.breaks, variant)
+        end if
     catch e
         m.maps.notes.Clear()
         m.breaks.notes.Clear()
