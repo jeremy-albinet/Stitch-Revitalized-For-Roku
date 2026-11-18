@@ -509,3 +509,14 @@ end function
 function isFmp4Playlist(playlist as dynamic) as boolean
     return playlist <> invalid and playlist.InStr("#EXT-X-MAP:") > -1
 end function
+
+' Position [row, col] of login in rows (an array of arrays of logins), or invalid.
+function findLoginPosition(rows as object, login as string) as dynamic
+    if login = "" then return invalid
+    for r = 0 to rows.count() - 1
+        for c = 0 to rows[r].count() - 1
+            if rows[r][c] = login then return [r, c]
+        end for
+    end for
+    return invalid
+end function

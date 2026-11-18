@@ -493,6 +493,21 @@ namespace tests
             m.assertTrue(isChainValid(root, "user.profile.name"))
         end sub
 
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        @describe("findLoginPosition")
+        '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        @it("finds a login in any row")
+        sub findLoginPosition_found()
+            m.assertEqual(findLoginPosition([["a", "b"], ["c", "d"]], "d"), [1, 1])
+        end sub
+
+        @it("returns invalid when missing or empty")
+        sub findLoginPosition_missing()
+            m.assertInvalid(findLoginPosition([["a"]], "z"))
+            m.assertInvalid(findLoginPosition([["a"]], ""))
+        end sub
+
     end class
 
 end namespace
