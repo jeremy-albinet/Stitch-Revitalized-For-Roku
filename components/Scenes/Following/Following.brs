@@ -7,12 +7,51 @@ sub init()
     ' m.allChannels.observeField("itemSelected", "handleItemSelected")
     m.rowlist.ObserveField("itemSelected", "handleItemSelected")
     m.offlineList = m.top.findNode("offlineList")
+    m.loading = true
+    m.lastLoad = 0
+    m.GetContentTask = createApiTask("getFollowingPageQuery", "decideRoute")
+    m.refreshTimer = createTimer(120, "onRefreshTimer", true)
+end sub
+
+function isLoggedIn() as boolean
+    user = get_setting("active_user")
+    return not m.top.anonymous and user <> invalid and user <> "$default$"
+end function
+
+' Following is the visible screen only while heroScene has no channel, game or player page on top of it.
+function isTopScene() as boolean
+    parent = m.top.getParent()
+    if parent = invalid then return false
+    for each child in parent.getChildren(-1, 0)
+        kind = child.subtype()
+        if kind = "ChannelPage" or kind = "GamePage" or kind = "VideoPlayer" then return false
+    end for
+    return true
+end function
+
+sub onRefreshTimer()
+    refreshFollowing(0)
+end sub
+
+' Silent reload; skipped for anonymous users, hidden screen, in-flight load or a load newer than minAge seconds.
+sub refreshFollowing(minAge as integer)
+    if m.loading or not isLoggedIn() or not isTopScene() then return
+    if CreateObject("roDateTime").AsSeconds() - m.lastLoad < minAge then return
+    m.loading = true
+    m.GetContentTask = destroyTask(m.GetContentTask, "response")
     m.GetContentTask = createApiTask("getFollowingPageQuery", "decideRoute")
 end sub
 
 sub decideRoute()
     ? "DecideRoute"; TimeStamp()
-    if not m.top.anonymous and get_setting("active_user") <> invalid and get_setting("active_user") <> "$default$"
+    m.loading = false
+    if m.GetContentTask.response <> invalid
+        m.lastLoad = CreateObject("roDateTime").AsSeconds()
+        ' Count the next timer refresh from this load, so a return refresh and a tick don't run back to back.
+        m.refreshTimer.control = "stop"
+        m.refreshTimer.control = "start"
+    end if
+    if isLoggedIn()
         ? "Route -> handleRecommendedSections"
         handleRecommendedSections()
     else
@@ -144,14 +183,44 @@ sub updateRowList(contentCollection)
             rowHeights.push(config.rowHeight)
         end if
     end for
+    focusPos = findFocusedChannel(contentCollection)
     m.rowlist.rowHeights = rowHeights
     m.rowlist.showRowLabel = showRowLabel
     m.rowlist.rowItemSize = rowItemSize
     m.rowlist.content = contentCollection
     m.rowlist.numRows = m.rowlist.content.getChildCount()
+    if focusPos <> invalid then m.rowlist.jumpToRowItem = focusPos
     m.rowlist.rowlabelcolor = m.global.constants.colors.twitch.purple10
     ? "updateRowList Done: "; TimeStamp()
 end sub
+
+' On a reload, where the focused channel lands in newContent (same login), else the old row/index clamped.
+' Returns invalid on the first load.
+function findFocusedChannel(newContent as object) as dynamic
+    old = m.rowlist.content
+    focused = m.rowlist.rowItemFocused
+    if old = invalid or focused = invalid or newContent.getChildCount() = 0 then return invalid
+    oldRow = old.getChild(focused[0])
+    oldItem = invalid
+    if oldRow <> invalid then oldItem = oldRow.getChild(focused[1])
+    if oldItem <> invalid
+        rows = []
+        for each row in newContent.getChildren(-1, 0)
+            logins = []
+            for each item in row.getChildren(-1, 0)
+                logins.push(item.streamerLogin)
+            end for
+            rows.push(logins)
+        end for
+        found = findLoginPosition(rows, oldItem.streamerLogin)
+        if found <> invalid then return found
+    end if
+    r = focused[0]
+    if r > newContent.getChildCount() - 1 then r = newContent.getChildCount() - 1
+    c = focused[1]
+    if c > newContent.getChild(r).getChildCount() - 1 then c = newContent.getChild(r).getChildCount() - 1
+    return [r, c]
+end function
 
 sub handleItemSelected()
     item = invalid
@@ -192,12 +261,18 @@ sub onGetFocus()
     ' A dialog is open: it owns focus until it closes (heroScene restores focus then).
     scene = m.top.getScene()
     if scene <> invalid and scene.dialog <> invalid then return
+    ' focusedChild also fires when focus leaves (menu, sidebar) or the list content changes: only act on gaining it.
+    if not m.top.isInFocusChain()
+        updateRowListFocusFeedback()
+        return
+    end if
     if m.rowlist.focusedChild = invalid
         m.rowlist.setFocus(true)
     else if m.rowlist.focusedChild.id = "homeRowList"
         m.rowlist.focusedChild.setFocus(true)
     end if
     updateRowListFocusFeedback()
+    refreshFollowing(30)
 end sub
 
 ' Hide the RowList focus rectangle when focus leaves the scene (e.g. user
@@ -229,4 +304,8 @@ sub onDestroy()
         m.rowlist.unobserveField("itemSelected")
     end if
     m.GetContentTask = destroyTask(m.GetContentTask, "response")
+    if m.refreshTimer <> invalid
+        m.refreshTimer.control = "stop"
+        m.refreshTimer.unobserveField("fire")
+    end if
 end sub

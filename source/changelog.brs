@@ -9,6 +9,7 @@ function getChangelog() as object
             "Fix: When a stream ends, you go back to the page you came from",
             "New: Remove or pin channels in the left sidebar (press * on a channel)",
             "New: A setting to turn chat off",
+            "New: The Following list refreshes when you come back to it and every 2 minutes",
             "Improved: Browse now shows Featured and Categories; pick a category to see its live channels"
         ],
         "3.0.0": [
