@@ -80,6 +80,9 @@ sub handleRecommendedSections()
 end sub
 
 sub handleItemSelected()
+    if m.rowlist.content = invalid then return
+    if m.rowlist.rowItemSelected = invalid then return
+    if m.rowlist.rowItemSelected.count() < 2 then return
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
     m.top.contentSelected = selectedItem

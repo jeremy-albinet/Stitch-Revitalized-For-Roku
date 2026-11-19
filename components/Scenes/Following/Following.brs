@@ -230,6 +230,9 @@ sub handleItemSelected()
         item = m.offlinelist
     end if
     if item <> invalid
+        if item.content = invalid then return
+        if item.rowItemSelected = invalid then return
+        if item.rowItemSelected.count() < 2 then return
         selectedRow = item.content.getchild(item.rowItemSelected[0])
         if selectedRow = invalid then return
         selectedItem = selectedRow.getChild(item.rowItemSelected[1])
@@ -249,6 +252,9 @@ sub handleItemSelected()
 end sub
 
 sub handleLiveItemSelected()
+    if m.rowlist.content = invalid then return
+    if m.rowlist.rowItemSelected = invalid then return
+    if m.rowlist.rowItemSelected.count() < 2 then return
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])

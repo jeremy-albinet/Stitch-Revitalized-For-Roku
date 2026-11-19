@@ -110,7 +110,7 @@ sub buildContentNodeFromShelves(shelves)
             rowItem.contentId = item.Id
             rowItem.previewImageURL = Substitute("https://static-cdn.jtvnw.net/previews-ttv/live_user_{0}-{1}x{2}.jpg", item.login, "1280", "720")
             rowItem.contentTitle = item.displayName
-            rowItem.followerCount = item.followers.totalCount
+            rowItem.followerCount = item.followers?.totalCount
             rowItem.streamerDisplayName = item.displayName
             rowItem.streamerLogin = item.login
             rowItem.streamerId = item.id
@@ -131,6 +131,7 @@ sub buildContentNodeFromShelves(shelves)
         Games.push(rowItem)
     end for
     for each VOD in shelves.videos
+        if VOD.owner = invalid then continue for
         rowItem = {}
         rowItem.contentType = "VOD"
         rowItem.contentId = VOD.Id
@@ -218,6 +219,9 @@ sub handleItemSelected()
     if m.kb.text <> ""
         updateRecents(m.kb.text)
     end if
+    if m.rowlist.content = invalid then return
+    if m.rowlist.rowItemSelected = invalid then return
+    if m.rowlist.rowItemSelected.count() < 2 then return
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])

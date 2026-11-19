@@ -206,6 +206,9 @@ end sub
 ' ─── Selection ───────────────────────────────────────────────────────────────
 
 sub onItemSelected()
+    if m.rowList.content = invalid then return
+    if m.rowList.rowItemSelected = invalid then return
+    if m.rowList.rowItemSelected.count() < 2 then return
     row = m.rowList.content.getChild(m.rowList.rowItemSelected[0])
     if row = invalid then return
     item = row.getChild(m.rowList.rowItemSelected[1])
