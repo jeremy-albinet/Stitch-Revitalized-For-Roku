@@ -32,10 +32,11 @@ function HttpRequest(params = invalid as dynamic) as object
             return left(url, 6) = "https:"
         end function,
 
-        _createHttpRequest: function() as object
+        _createHttpRequest: function() as dynamic
             request = createObject("roUrlTransfer")
             if request = invalid
                 ? "Failed to create roUrlTransfer"
+                return invalid
             end if
             request.setPort(createObject("roMessagePort"))
             request.setUrl(m._url)
@@ -106,6 +107,7 @@ function HttpRequest(params = invalid as dynamic) as object
 
         _sendHttpRequest: function(data = invalid as dynamic) as dynamic
             m._http = m._createHttpRequest()
+            if m._http = invalid then return false
 
             if data <> invalid
                 return m._http.asyncPostFromString(data)

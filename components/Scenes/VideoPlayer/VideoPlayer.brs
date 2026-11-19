@@ -7,6 +7,9 @@ sub handleContent()
 end sub
 
 sub handleItemSelected()
+    if m.rowlist.content = invalid then return
+    if m.rowlist.rowItemSelected = invalid then return
+    if m.rowlist.rowItemSelected.count() < 2 then return
     selectedRow = m.rowlist.content.getchild(m.rowlist.rowItemSelected[0])
     if selectedRow = invalid then return
     selectedItem = selectedRow.getChild(m.rowlist.rowItemSelected[1])
@@ -20,7 +23,7 @@ end sub
 
 sub onResponse()
     ' Back was pressed while the stream was still loading: don't start playback on an exiting player.
-    if m.isExiting then return
+    if m.isExiting = true then return
     ' Twitch returned no stream (it ended, or the request failed): return to the previous page.
     if m.PlayVideo.response = invalid
         ? getLogTimestamp(); " [VideoPlayer] No stream from Twitch for "; m.top.contentRequested?.streamerLogin; ", going back"
@@ -75,6 +78,7 @@ sub onResponse()
 end sub
 
 sub taskStateChanged(event as object)
+    if type(event) <> "roSGNodeEvent" then return
     state = event.GetData()
     if state = "done" or state = "stop"
         exitPlayer()
@@ -788,7 +792,7 @@ end sub
 
 ' ===== LIVE stall watchdog / reconnect =====
 sub onWatchdogFire()
-    if m.isExiting then return
+    if m.isExiting = true then return
     if m.video = invalid or m.top.contentRequested = invalid then return
     if m.top.contentRequested.contentType <> "LIVE" then return
     if m.video.state <> "playing" then return
@@ -884,7 +888,7 @@ sub onLiveCheck()
     m.liveCheckTask = destroyTask(m.liveCheckTask, "response")
     restart = m.restartIfLive = true
     m.restartIfLive = false
-    if m.isExiting then return
+    if m.isExiting = true then return
     login = LCase(m.top.contentRequested.streamerLogin)
     if rsp <> invalid and rsp.DoesExist(login) and rsp[login] = false
         ? getLogTimestamp(); " [VideoPlayer] Twitch says "; login; " is offline, going back"
@@ -898,7 +902,7 @@ sub onLiveCheck()
 end sub
 
 sub beginLiveReconnect(reason as string)
-    if m.isExiting then return
+    if m.isExiting = true then return
 
     ' If a reconnect is already scheduled/in-flight, don't stack them
     if m.reconnectTimer <> invalid then return
@@ -940,7 +944,7 @@ sub cleanupReconnectTask()
 end sub
 
 sub doLiveReconnect()
-    if m.isExiting then return
+    if m.isExiting = true then return
 
     if m.reconnectTimer <> invalid
         m.reconnectTimer.control = "stop"
@@ -983,7 +987,7 @@ sub doLiveReconnect()
 end sub
 
 sub onLiveReconnectResponse()
-    if m.isExiting
+    if m.isExiting = true
         cleanupReconnectTask()
         return
     end if
@@ -1172,7 +1176,7 @@ sub onErrorDialogDismissed()
     end if
     m.errorDialog = invalid
     ' Paths that already exited must not send a second Back.
-    if not m.isExiting then exitPlayer()
+    if m.isExiting <> true then exitPlayer()
 end sub
 
 sub showTransmuxWarning()

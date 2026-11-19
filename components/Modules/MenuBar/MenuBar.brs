@@ -9,7 +9,9 @@ sub init()
     '*******************'
     '* Layout Constants
     '*******************'
-    m.screenWidth = m.global.constants.screenWidth
+    constants = m.global.constants
+    m.screenWidth = 1920
+    if constants <> invalid then m.screenWidth = constants.screenWidth
     m.iconRightPadding = 24
 
     '*******************'
@@ -40,8 +42,10 @@ sub init()
     m.iconOptions.observeField("buttonFocused", "onIconOptionsFocused")
     m.iconOptions.observeField("buttonSelected", "onIconOptionsSelected")
 
-    m.top.menuTextColor = m.global.constants.colors.muted.ice
-    m.top.menuFocusColor = m.global.constants.colors.twitch.purple10
+    if constants <> invalid
+        m.top.menuTextColor = constants.colors.muted.ice
+        m.top.menuFocusColor = constants.colors.twitch.purple10
+    end if
 end sub
 
 ' Remove all children from a ButtonGroup so updateMenuOptions can be re-run.
