@@ -1,0 +1,26 @@
+namespace tests
+
+    @suite("Profiles")
+    class ProfilesTests extends rooibos.BaseTestSuite
+
+        @it("adds a section")
+        sub profilesWith_adds()
+            m.assertEqual(profilesWith([], "alice"), ["alice"])
+        end sub
+
+        @it("dedupes an existing section")
+        sub profilesWith_dedupes()
+            m.assertEqual(profilesWith(["alice"], "alice"), ["alice"])
+        end sub
+
+        @it("removes only the given section")
+        sub profilesWithout_removes()
+            m.assertEqual(profilesWithout(["alice", "bob"], "alice"), ["bob"])
+        end sub
+
+        @it("remove of a missing section is a no-op")
+        sub profilesWithout_missing()
+            m.assertEqual(profilesWithout(["alice"], "bob"), ["alice"])
+        end sub
+    end class
+end namespace
